@@ -983,14 +983,29 @@ if (dlBtn) {
                 overallGraphWrapper.innerHTML = ""; // Clear previous content
                 createOverallGraph(totalScore, checkboxScore, overallTotal);
 
+// Clean up any leftover expanded ternary card from a previous calculation
+// (e.g. if the user re-clicked Calculate while still hovering it) before
+// building the new one.
+const staleTernaryWrapper = document.getElementById('ternaryPlotWrapper');
+if (staleTernaryWrapper) staleTernaryWrapper.remove();
+if (_ternaryHoverBackdrop) _ternaryHoverBackdrop.classList.remove('active');
+
 const plotDiv = document.createElement('div');
 plotDiv.id = "ternary-plot";
-plotDiv.style.width = (typeof TERNARY_WIDTH === "string" && TERNARY_WIDTH.indexOf("%") !== -1) ? TERNARY_WIDTH : (TERNARY_WIDTH + "px");
-plotDiv.style.height = TERNARY_HEIGHT + "px";
-plotDiv.style.maxWidth = "100%";
-plotDiv.style.margin = "0 auto";
-rightContainerDiv.appendChild(plotDiv);
+plotDiv.style.width = "100%";
+plotDiv.style.height = "100%";
+
+const ternaryWrapper = document.createElement('div');
+ternaryWrapper.id = "ternaryPlotWrapper";
+ternaryWrapper.className = "ternary-plot-wrapper";
+ternaryWrapper.style.width = (typeof TERNARY_WIDTH === "string" && TERNARY_WIDTH.indexOf("%") !== -1) ? TERNARY_WIDTH : (TERNARY_WIDTH + "px");
+ternaryWrapper.style.height = TERNARY_HEIGHT + "px";
+ternaryWrapper.style.maxWidth = "100%";
+ternaryWrapper.style.margin = "0 auto";
+ternaryWrapper.appendChild(plotDiv);
+rightContainerDiv.appendChild(ternaryWrapper);
 updatePlot();
+_setupTernaryHoverExpand(ternaryWrapper, plotDiv);
         
                 
             } 
@@ -1009,6 +1024,7 @@ function updatePlot() {
     var data = [{
         type: 'scatterternary',
         mode: 'markers',
+        name: 'Blended AFT',
         a: samples.map(s => s.acidicOxides),
         b: samples.map(s => s.basicOxides),
         c: samples.map(s => s.otherOxides),
@@ -1026,6 +1042,12 @@ function updatePlot() {
     autosize: true,   // let Plotly fill the container
     height: TERNARY_HEIGHT,
     margin: { l: 50, r: 40, t: 40, b: 40 },
+    // Plotly auto-shows its own legend once a 2nd trace exists (the
+    // hover-expand view adds one for the individual coal points), which
+    // would otherwise print this trace's auto-generated "trace 0" label
+    // on the chart. We already show a custom legend under the expanded
+    // card, so keep Plotly's own legend off entirely.
+    showlegend: false,
     ternary: {
         sum: 100,
         aaxis: { title: { text: "Thermal Stability", font: { size: 12 } }, showticklabels: true },
@@ -1435,6 +1457,152 @@ async function computeIndividualCoalAFTs() {
   }
 
   return results;
+}
+
+/* -----------------------------------------------------------------------
+   Ternary hover-to-expand
+   Hovering the on-screen ternary card enlarges it and dims/blurs the rest
+   of the page behind it, so it's easier to read. While expanded, each
+   currently selected coal's own predicted AFT is overlaid on the SAME
+   ternary axes as the existing blend plot (which is left completely
+   untouched — only an extra trace is added and then removed again), with
+   a small legend distinguishing the two. Moving the mouse away restores
+   everything exactly as it was.
+----------------------------------------------------------------------- */
+let _ternaryHoverBackdrop = null;
+function _getTernaryHoverBackdrop() {
+  if (_ternaryHoverBackdrop && document.body.contains(_ternaryHoverBackdrop)) return _ternaryHoverBackdrop;
+  const bd = document.createElement('div');
+  bd.className = 'ternary-hover-backdrop';
+  document.body.appendChild(bd);
+  _ternaryHoverBackdrop = bd;
+  return bd;
+}
+
+// Cheap cache so repeated hovers over an unchanged blend don't re-hit the
+// prediction endpoint for every coal each time.
+let _individualAftCache = null;
+function _getTernaryBlendSignature() {
+  const parts = [];
+  document.querySelectorAll('.blend').forEach((blend, index) => {
+    const sel = document.querySelector(`#coal${index}`);
+    const range = document.querySelector(`#currentrange${index}`);
+    parts.push((sel ? sel.value : '') + ':' + (range ? range.value : ''));
+  });
+  return parts.join('|');
+}
+
+function _setupTernaryHoverExpand(wrapper, plotDiv) {
+  let expanded = false;
+  let individualTraceAdded = false;
+  let leaveTimer = null;
+  let originalParent = null;
+  let originalNextSibling = null;
+
+  async function expand() {
+    if (expanded) return;
+    expanded = true;
+    clearTimeout(leaveTimer);
+
+    // Re-home under <body> so the enlarged card and backdrop sit above
+    // (and blur) the whole page, not just whatever panel it started in.
+    originalParent = wrapper.parentNode;
+    originalNextSibling = wrapper.nextSibling;
+    document.body.appendChild(wrapper);
+
+    _getTernaryHoverBackdrop().classList.add('active');
+    wrapper.classList.add('ternary-expanded');
+
+    let legend = wrapper.querySelector('.ternary-hover-legend');
+    if (!legend) {
+      legend = document.createElement('div');
+      legend.className = 'ternary-hover-legend';
+      legend.innerHTML =
+        '<span><i class="ternary-legend-swatch ternary-legend-swatch-coal"></i>Individual Coal AFT</span>' +
+        '<span><i class="ternary-legend-swatch ternary-legend-swatch-blend"></i>Blended AFT</span>';
+      wrapper.appendChild(legend);
+    }
+    legend.style.display = 'flex';
+
+    if (window.Plotly) {
+      try {
+        const rect = plotDiv.getBoundingClientRect();
+        await Plotly.relayout(plotDiv, { width: rect.width, height: rect.height, autosize: false });
+        Plotly.Plots.resize(plotDiv);
+      } catch (e) {}
+    }
+
+    try {
+      const sig = _getTernaryBlendSignature();
+      let results;
+      if (_individualAftCache && _individualAftCache.sig === sig) {
+        results = _individualAftCache.results;
+      } else {
+        results = await computeIndividualCoalAFTs();
+        _individualAftCache = { sig, results };
+      }
+      const valid = (results || []).filter(r => r && r.aft != null && !isNaN(r.aft) && r.a != null && r.b != null && r.c != null);
+
+      if (expanded && window.Plotly && valid.length) {
+        if (individualTraceAdded) {
+          await Plotly.deleteTraces(plotDiv, [1]);
+          individualTraceAdded = false;
+        }
+        await Plotly.addTraces(plotDiv, {
+          type: 'scatterternary',
+          mode: 'markers',
+          name: 'Individual Coal AFT',
+          a: valid.map(r => r.a),
+          b: valid.map(r => r.b),
+          c: valid.map(r => r.c),
+          marker: {
+            symbol: 'diamond',
+            size: (typeof MARKER_SIZE !== 'undefined' ? MARKER_SIZE : 9) + 4,
+            color: valid.map(r => r.aft),
+            colorscale: 'Jet',
+            showscale: false,
+            line: { width: 1.5, color: '#111' }
+          },
+          text: valid.map(r => `${r.name} — Individual AFT: ${Math.round(Number(r.aft))}°C`),
+          hoverinfo: 'text',
+          showlegend: false
+        });
+        individualTraceAdded = true;
+      }
+    } catch (e) {
+      console.warn('ternary hover: individual coal AFT lookup failed', e);
+    }
+  }
+
+  async function collapse() {
+    expanded = false;
+    wrapper.classList.remove('ternary-expanded');
+    const legend = wrapper.querySelector('.ternary-hover-legend');
+    if (legend) legend.style.display = 'none';
+    _getTernaryHoverBackdrop().classList.remove('active');
+
+    if (originalParent) {
+      if (originalNextSibling && originalNextSibling.parentNode === originalParent) {
+        originalParent.insertBefore(wrapper, originalNextSibling);
+      } else {
+        originalParent.appendChild(wrapper);
+      }
+    }
+
+    if (window.Plotly) {
+      try {
+        if (individualTraceAdded) {
+          await Plotly.deleteTraces(plotDiv, [1]);
+          individualTraceAdded = false;
+        }
+        await Plotly.relayout(plotDiv, { width: null, height: TERNARY_HEIGHT, autosize: true });
+        Plotly.Plots.resize(plotDiv);
+      } catch (e) {}
+    }
+  }
+
+  wrapper.addEventListener('mouseenter', () => { clearTimeout(leaveTimer); expand(); });
+  wrapper.addEventListener('mouseleave', () => { leaveTimer = setTimeout(collapse, 80); });
 }
 
 // Render the individual coal AFT results as a table in the same visual

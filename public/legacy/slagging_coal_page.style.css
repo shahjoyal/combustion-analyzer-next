@@ -1013,3 +1013,85 @@ body.page-slagging .advanced-gauge-view {
   border: 1px solid var(--cxd-border);
   border-radius: 10px;
 }
+
+/* ---------- ternary card: hover-to-expand ----------
+   Normal state: sits inline exactly where it always has. On hover it's
+   re-homed under <body> and switched to position:fixed so it can enlarge
+   over the whole page (with a blurred backdrop behind it) regardless of
+   where it started; leaving the card restores everything exactly as it
+   was. */
+.ternary-plot-wrapper {
+  position: relative;
+  transition: box-shadow 0.2s ease;
+}
+.ternary-plot-wrapper.ternary-expanded {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(760px, 92vw) !important;
+  height: min(600px, 86vh) !important;
+  z-index: 2001;
+  background: linear-gradient(180deg, #0a1638, #071230);
+  border: 1px solid rgba(120, 155, 230, 0.35);
+  border-radius: 16px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.65);
+  padding: 18px 18px 46px;
+  display: flex;
+  flex-direction: column;
+}
+.ternary-plot-wrapper.ternary-expanded #ternary-plot {
+  flex: 1;
+  /* The default #ternary-plot rule caps it at width:92%/max-height:260px
+     for the small inline card — override that here so it can actually
+     grow to fill the enlarged card instead of staying pinned to its
+     original small size. */
+  width: 100% !important;
+  max-width: 100% !important;
+  max-height: none !important;
+  padding-top: 0;
+}
+.ternary-hover-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(3, 7, 20, 0.6);
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.ternary-hover-backdrop.active { opacity: 1; }
+.ternary-hover-legend {
+  display: none;
+  gap: 20px;
+  justify-content: center;
+  align-items: center;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cxd-white, #f4f8ff);
+}
+.ternary-hover-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ternary-legend-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid rgba(0, 0, 0, 0.55);
+  flex: none;
+}
+.ternary-legend-swatch-coal {
+  background: #ffb703;
+  transform: rotate(45deg);
+}
+.ternary-legend-swatch-blend {
+  background: #2e6bff;
+  border-radius: 50%;
+}
