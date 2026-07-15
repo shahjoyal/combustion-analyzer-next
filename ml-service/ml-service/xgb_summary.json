@@ -1,0 +1,80 @@
+{
+  "results": {
+    "pure_xgb": {
+      "stats": {
+        "rows": 248,
+        "avgAbs": 31.65,
+        "maxError": 297.0,
+        "minError": 0.0,
+        "gt20": 124,
+        "gt40": 67,
+        "gt60": 42
+      },
+      "modelPath": "ml-service\\models\\pure_xgb.joblib",
+      "n_features": 11
+    },
+    "hybrid_xgb": {
+      "stats": {
+        "rows": 248,
+        "avgAbs": 31.9,
+        "maxError": 273.0,
+        "minError": 0.0,
+        "gt20": 129,
+        "gt40": 74,
+        "gt60": 39
+      },
+      "modelPath": "ml-service\\models\\hybrid_xgb.joblib",
+      "n_features": 12
+    }
+  },
+  "summary": {
+    "rows": 1239,
+    "train_rows": 991,
+    "test_rows": 248,
+    "saved_models": {
+      "pure": "ml-service\\models\\pure_xgb.joblib",
+      "hybrid": "ml-service\\models\\hybrid_xgb.joblib"
+    }
+  },
+  "preprocessing": {
+    "lower": [
+      22.0152,
+      8.838000000000001,
+      1.5,
+      0.23304,
+      0.24294000000000002,
+      0.07076,
+      0.16114,
+      0.2105748792,
+      0.28452865000000005,
+      0.03938,
+      0.08
+    ],
+    "upper": [
+      67.68599999999996,
+      39.933999999999926,
+      36.94399999999987,
+      25.174399999999988,
+      14.63579999999999,
+      4.9,
+      4.802399999999998,
+      18.211599999999983,
+      2.5533999999999923,
+      2.3747999999999956,
+      2.296199999999999
+    ],
+    "columns": [
+      "SiO2",
+      "Al2O3",
+      "Fe2O3",
+      "CaO",
+      "MgO",
+      "Na2O",
+      "K2O",
+      "SO3",
+      "TiO2",
+      "P2O5",
+      "S"
+    ]
+  }
+}

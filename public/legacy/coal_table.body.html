@@ -1,0 +1,282 @@
+<div id="edit-modal-backdrop" aria-hidden="true">
+  <div id="edit-modal" role="dialog" aria-modal="true">
+
+    <h3>Edit Coal Properties</h3>
+
+    <div id="edit-form-fields"></div>
+
+    <div class="modal-actions">
+      <button id="edit-cancel-btn" type="button">Cancel</button>
+      <button id="edit-save-btn" type="button" class="btn-upload">
+        Save changes
+      </button>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ================= Page Title ================= -->
+
+<h1 class="page-title">Slagging Data Table</h1>
+
+
+<!-- ================= Toolbar ================= -->
+
+<div class="toolbar-wrapper">
+  <div class="toolbar">
+
+    <!-- Left controls -->
+    <div class="left-group">
+
+      <button
+        id="btn-download-template"
+        class="btn-template"
+        type="button"
+      >
+        Download Template
+      </button>
+
+      <button
+        id="btn-upload"
+        class="btn-upload"
+        type="button"
+      >
+        📤 Upload New Data
+      </button>
+
+      <input
+        id="fileInput"
+        type="file"
+        accept=".xlsx,.xls"
+      >
+
+      <!-- Search -->
+      <input
+        id="searchInput"
+        type="search"
+        placeholder="Search coal name..."
+        style="padding:8px 10px;border-radius:8px;border:1px solid #ddd;min-width:220px;"
+      >
+
+      <button
+        id="searchBtn"
+        class="btn-template"
+        type="button"
+      >
+        Search
+      </button>
+
+    </div>
+
+
+    <!-- Right controls -->
+    <div class="right-group">
+
+      <!-- Selection mode toggle -->
+      <div class="selection-mode-toggle" role="group" aria-label="Selection mode">
+        <button
+          id="mode-select-btn"
+          class="mode-btn active"
+          type="button"
+          title="Click checkboxes one by one"
+        >
+          Select
+        </button>
+        <button
+          id="mode-range-btn"
+          class="mode-btn"
+          type="button"
+          title="Click a start row, then an end row, to select everything in between"
+        >
+          Select Range
+        </button>
+      </div>
+
+      <!-- Download selected -->
+      <div class="download-dropdown">
+
+        <button
+          id="download-selected-btn"
+          class="btn-download"
+          type="button"
+          disabled
+        >
+          Download Selected ▾
+        </button>
+
+        <div
+          id="download-menu"
+          class="dropdown-menu"
+          aria-hidden="true"
+        >
+          <button type="button" onclick="downloadSelected('excel')">
+            Download as Excel
+          </button>
+
+          <button type="button" onclick="downloadSelected('pdf')">
+            Download as PDF
+          </button>
+        </div>
+
+      </div>
+
+
+      <!-- Actions -->
+      <button
+        id="delete-selected-btn"
+        class="btn-delete"
+        type="button"
+        disabled
+      >
+        Delete Selected
+      </button>
+
+      <button
+        id="edit-selected-btn"
+        class="btn-upload"
+        type="button"
+        disabled
+      >
+        Edit Selected
+      </button>
+
+      <button
+        id="downloadWholePDFBtn"
+        class="btn-download"
+        type="button"
+      >
+        Download whole page as PDF
+      </button>
+
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ================= Data Table ================= -->
+
+<div class="table-wrapper">
+
+  <table
+    id="data-table"
+    role="table"
+    aria-label="coal data table"
+  >
+
+    <thead>
+      <tr id="table-header"></tr>
+    </thead>
+
+    <tbody id="table-body"></tbody>
+
+  </table>
+
+</div>
+
+
+
+
+<!-- ====== START: COMMON NAVBAR (paste into each HTML file, right after <body>) ====== -->
+<style>
+/* Common navbar override — dark premium theme, matches the login page */
+:root{
+  --nav-h: 90px;
+  --nav-bg-start: rgba(10, 20, 48, 0.94);
+  --nav-bg-end: rgba(5, 11, 31, 0.9);
+  --nav-blue-1: #1d4fd6;
+  --nav-blue-2: #2e6bff;
+  --nav-text: #f4f8ff;
+  --nav-btn-radius: 999px;
+}
+
+/* Strongly scoped to override older rules */
+.common-navbar-wrapper { position: fixed; top: 0; left: 0; right: 0; height: var(--nav-h); z-index: 1300; }
+.common-navbar {
+  box-sizing: border-box;
+  height: 100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 12px;
+  padding: 8px 20px;
+  background: linear-gradient(180deg, var(--nav-bg-start), var(--nav-bg-end));
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+  border-bottom: 1px solid rgba(120, 155, 230, 0.22);
+  backdrop-filter: blur(10px) saturate(1.1);
+  font-family: Inter, Arial, Helvetica, sans-serif;
+}
+
+/* Left: logo + title */
+.common-navbar .brand { display:flex; align-items:center; gap:12px; }
+.common-navbar .brand img { height:46px; width:auto; object-fit:contain; display:block; }
+.common-navbar .brand .title { font-weight:700; color:var(--nav-text); font-size:18px; margin:0; }
+
+/* Center/right: nav buttons */
+.common-navbar .nav-buttons { display:flex; gap:10px; align-items:center; margin-left:12px; }
+.common-navbar .nav-buttons button{
+  padding:8px 14px;
+  border-radius:var(--nav-btn-radius);
+  border: none;
+  font-weight:600;
+  cursor:pointer;
+  background: linear-gradient(180deg,var(--nav-blue-1),var(--nav-blue-2));
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(29, 79, 214, 0.35);
+  transition: transform .12s ease, box-shadow .12s ease, opacity .12s;
+}
+.common-navbar .nav-buttons button:hover{ transform: translateY(-2px); box-shadow: 0 12px 28px rgba(29, 79, 214, 0.5); }
+.common-navbar .nav-buttons button.logout-btn{
+  background: linear-gradient(180deg,#ff4b4b,#e32d2d) !important;
+  box-shadow: 0 8px 20px rgba(227,45,45,0.25);
+}
+
+/* Active page visual — glassy highlighted pill instead of solid white */
+.common-navbar .nav-buttons button.active {
+  background: rgba(127, 176, 255, 0.16) !important;
+  color: #eaf2ff !important;
+  box-shadow: 0 0 0 1px rgba(127, 176, 255, 0.45) inset, 0 0 18px rgba(47, 107, 255, 0.35) !important;
+  border: 1px solid rgba(127, 176, 255, 0.5);
+  transform: translateY(-1px) !important;
+}
+
+/* Mobile: make buttons smaller/wrapping */
+@media (max-width: 720px) {
+  .common-navbar { padding:10px 14px; }
+  .common-navbar .brand .title { font-size:15px; }
+  .common-navbar .nav-buttons { gap:6px; }
+  .common-navbar .nav-buttons button { padding:7px 10px; font-size:13px; }
+}
+
+/* push page content below navbar (only added if page doesn't already do it) */
+html body { --navbar-height: var(--nav-h); }
+</style>
+
+<div class="common-navbar-wrapper" role="navigation" aria-label="Main navigation">
+  <nav class="common-navbar">
+    <div class="brand" aria-hidden="false">
+      <img src="./images/abhitech-logo.png" alt="Abhitech logo">
+      <h1 class="title">Combustion Analyzer</h1>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:12px;">
+      <div class="nav-buttons" role="menubar" aria-label="Primary">
+        <button data-target="coal_table.html" title="Coal Properties">Coal Properties</button>
+        <button data-target="slagging_coal_page.html" title="Calculation">Calculation</button>
+        <button data-target="model.html" title="Model">Cost Optimization Model</button>
+        <!-- <button data-target="date.html" title="About">Date Wise Analysis</button> -->
+        <button data-target="model_compare.html" title="Compare Models">Compare Models</button>
+      </div>
+
+      <div style="width:8px;"></div>
+
+      <div class="nav-buttons" aria-hidden="false">
+        <button class="logout-btn" id="common-logout-btn" title="Logout">Logout</button>
+      </div>
+    </div>
+  </nav>
+</div>
+
+
+<!-- ====== END: COMMON NAVBAR ====== -->

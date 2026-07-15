@@ -1,0 +1,277 @@
+
+    
+    <button id="downloadPDF" class="icon-btn" title="Download page as PDF">⬇️</button>
+    
+    <div class="content">
+        
+    <div class="left-container">
+        <div class="control-card">
+  <div class="control-title">Coal Data Source</div>
+
+  <div class="control-row">
+    <button id="uploadBtn" class="primary-btn">Upload Excel</button>
+    <input type="file" id="excelFileInput" accept=".xlsx,.xls" style="display:none" />
+
+    <button id="templateBtn" class="secondary-btn">Download Template</button>
+  </div>
+
+  <div class="control-row">
+    <label>Date</label>
+    <select id="dateSelect" class="control-select"></select>
+  </div>
+
+  <div id="uploadStatus" class="helper-text"></div>
+</div>
+
+        <form id="coalForm">
+            <div id="coalBlends">
+                <h2>Coal Type</h2>
+                <div class="blend-row"></div>
+                </div>
+                <button type="button" class="add-blend-btn" onclick="addBlend()">Add Coal</button>
+                <div id="totalRangeContainer">
+                    <label>Total Current Range:<span id="totalRange"></span>%</label>        
+                </div>
+                 
+  
+                <div class="checkbox-card" id="checkboxCard">
+                    <h3>Operational Parameters</h3>
+                    
+                </div>
+            
+                <!-- Collapsible Checkbox Section -->
+                <div class="checkbox-container hidden" id="checkboxContainer">
+                    <table class="checkbox-table">
+                        <tbody>
+                            <tr>
+                                <td><input type="checkbox" name="question1" value="Coal Mill Fineness"></td>
+                                <td>Coal Mill Fineness (+) 50 mesh more than 0.2%</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" name="question2" value="Coal Mill DPT Normal"></td>
+                                <td>Coal Mill DPT Result abnormal</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" name="question3" value="Preventive Maintenance"></td>
+                                <td>Coal Mill preventive maintenance delayed by more than 20 days</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" name="question4" value="O2 at APH O/L"></td>
+                                <td>O₂ at APH O/L less than Design O₂ at APH O/L</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" name="question5" value="SADC Operative"></td>
+                                <td>SADC operation faulty</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" name="question6" value="FG Temp Difference"></td>
+                                <td>Difference in FG temp. between Left and Right zones at RH and SH zones more than 50°C</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" name="question7" value="APH O/L FG Temp"></td>
+                                <td>Corrected APH O/L FG temp greater than 25 deg. + Design temp at APH O/L</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" name="question8" value="Overhaul Conducted"></td>
+                                <td>Last Overhaul conducted before 1.5 years from current date</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" name="question9" value="Soot Blowing Cycle"></td>
+                                <td>Water wall Soot Blowing Cycle not operated fully</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" name="question10" value="LSRB"></td>
+                                <td>LRSB not operated as per schedule</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" name="question11" value="FTM temperature"></td>
+                                <td>FTM indicating temperatures > 1300 °C</td>
+                            </tr>
+
+                        </tbody>
+                    </table>
+                </div>
+            <button type="button" class="calculate-properties-btn" onclick="calculateWeightedAverage(); callConsumeTrial();">Calculate</button> 
+        </div>    
+    </form>
+        
+
+    <div class="right-container" id="resultsContainer">
+        <button id="blendPropertiesBtn" class="blendProperties" onclick="openBlendModal()" style="display:none;">Simulated AFB Coal Elemental Analysis</button>      
+    </div>
+</div>
+
+    <!-- Modal for displaying blended coal properties -->
+    <div id="blendPropertiesModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeBlendModal()">&times;</span>
+            <div id="blendValues"></div>  
+        </div>
+    </div>
+   
+
+    <div id="coalPropertiesModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Elemental Analysis</h3>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            <div id="coalPropertiesContent"></div>
+        </div>
+    </div>  
+
+    
+
+   
+
+
+<!-- ====== START: COMMON NAVBAR (paste into each HTML file, right after <body>) ====== -->
+<style>
+/* Common navbar override (will replace previous styles visually) */
+:root{
+  --nav-h: 90px;
+  --nav-bg-start: rgba(255,255,255,0.96);
+  --nav-bg-end: rgba(245,247,255,0.88);
+  --nav-blue-1: #02126e;
+  --nav-blue-2: #0027a7;
+  --nav-text: #071a52;
+  --nav-btn-radius: 999px;
+}
+
+/* Strongly scoped to override older rules */
+.common-navbar-wrapper { position: fixed; top: 0; left: 0; right: 0; height: var(--nav-h); z-index: 1300; }
+.common-navbar {
+  box-sizing: border-box;
+  height: 100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 12px;
+  padding: 8px 20px;
+  background: linear-gradient(180deg, var(--nav-bg-start), var(--nav-bg-end));
+  box-shadow: 0 8px 30px rgba(9,20,46,0.06);
+  border-bottom: 1px solid rgba(2,18,110,0.04);
+  backdrop-filter: blur(4px) saturate(1.02);
+  font-family: Inter, Arial, Helvetica, sans-serif;
+}
+
+/* Left: logo + title */
+.common-navbar .brand { display:flex; align-items:center; gap:12px; }
+.common-navbar .brand img { height:46px; width:auto; object-fit:contain; display:block; }
+.common-navbar .brand .title { font-weight:700; color:var(--nav-text); font-size:18px; margin:0; }
+
+/* Center/right: nav buttons */
+.common-navbar .nav-buttons { display:flex; gap:10px; align-items:center; margin-left:12px; }
+.common-navbar .nav-buttons button{
+  padding:8px 14px;
+  border-radius:var(--nav-btn-radius);
+  border: none;
+  font-weight:600;
+  cursor:pointer;
+  background: linear-gradient(180deg,var(--nav-blue-1),var(--nav-blue-2));
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(2,18,110,0.07);
+  transition: transform .12s ease, box-shadow .12s ease, opacity .12s;
+}
+.common-navbar .nav-buttons button:hover{ transform: translateY(-2px); }
+.common-navbar .nav-buttons button.logout-btn{
+  background: linear-gradient(180deg,#ff4b4b,#e32d2d) !important;
+  box-shadow: 0 8px 20px rgba(227,45,45,0.07);
+}
+
+/* Active page visual (different contrast + subtle outline) */
+.common-navbar .nav-buttons button.active {
+  background: linear-gradient(180deg,#ffffff, #f1f6ff) !important;
+  color: var(--nav-blue-2) !important;
+  box-shadow: 0 6px 18px rgba(2,18,110,0.06) !important;
+  border: 1px solid rgba(2,18,110,0.12);
+  transform: translateY(-1px) !important;
+}
+
+/* Mobile: make buttons smaller/wrapping */
+@media (max-width: 720px) {
+  .common-navbar { padding:10px 14px; }
+  .common-navbar .brand .title { font-size:15px; }
+  .common-navbar .nav-buttons { gap:6px; }
+  .common-navbar .nav-buttons button { padding:7px 10px; font-size:13px; }
+}
+
+/* push page content below navbar (only added if page doesn't already do it) */
+html body { --navbar-height: var(--nav-h); }
+
+/* FORCE custom select styling */
+.control-select {
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+
+  display: inline-flex;
+  align-items: center;
+
+  height: 34px;                 /* slightly smaller than buttons */
+  min-width: 180px;
+
+  padding: 0 32px 0 10px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  line-height: 1;
+
+  color: #0b1a2b;
+  background-color: #ffffff;
+
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+
+  cursor: pointer;
+  box-sizing: border-box;
+
+  /* custom arrow */
+  background-image:
+    linear-gradient(45deg, transparent 50%, #6b7280 50%),
+    linear-gradient(135deg, #6b7280 50%, transparent 50%);
+  background-position:
+    calc(100% - 16px) center,
+    calc(100% - 11px) center;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+}
+
+
+/* main, .content, .toolbar-wrapper, #content, #coalForm { margin-top: calc(var(--navbar-height) + 12px) !important; } */
+</style>
+
+<div class="common-navbar-wrapper" role="navigation" aria-label="Main navigation">
+  <nav class="common-navbar">
+    <div class="brand" aria-hidden="false">
+      <img src="./images/abhitech-logo.png" alt="Abhitech logo">
+      <h1 class="title">Combustion Analyzer</h1>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:12px;">
+      <div class="nav-buttons" role="menubar" aria-label="Primary">
+        <!-- important: use the exact filenames from your site -->
+        <button data-target="coal_table.html" title="Coal Properties">Coal Properties</button>
+        <button data-target="slagging_coal_page.html" title="Calculation">Calculation</button>
+        <button data-target="model.html" title="Model">Cost Optimization Model</button>
+        <button data-target="date.html" title="About">Date Wise Analysis</button>
+        <button data-target="model_compare.html" title="Compare Models">Compare Models</button>
+      </div>
+
+      <div style="width:8px;"></div>
+
+      <!-- keep logout last -->
+      <div class="nav-buttons" aria-hidden="false">
+        <button class="logout-btn" id="common-logout-btn" title="Logout">Logout</button>
+      </div>
+    </div>
+  </nav>
+</div>
+
+
+<!-- ====== END: COMMON NAVBAR ====== -->
+ 
+
+
+
+

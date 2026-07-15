@@ -1,0 +1,443 @@
+/* ============================================================
+   Combustion Analyzer — Login (premium dark split-screen)
+   ============================================================ */
+
+* { box-sizing: border-box; }
+
+:root {
+  --cx-navy-950: #050b1f;
+  --cx-navy-900: #071230;
+  --cx-navy-800: #0a1a44;
+  --cx-navy-700: #0e2360;
+  --cx-blue-500: #2e6bff;
+  --cx-blue-400: #4f8dff;
+  --cx-blue-300: #7fb0ff;
+  --cx-blue-glow: rgba(47, 107, 255, 0.55);
+  --cx-white: #f4f8ff;
+  --cx-muted: #9db2dd;
+  --cx-border: rgba(120, 155, 230, 0.28);
+  --cx-field-bg: rgba(255, 255, 255, 0.04);
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: var(--cx-navy-950);
+  color: var(--cx-white);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ---------------------------------------------------------- */
+/* Page shell                                                  */
+/* ---------------------------------------------------------- */
+.cx-page {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+}
+
+/* ============================================================
+   LEFT — brand panel
+   ============================================================ */
+.cx-brand {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 40px;
+  background:
+    radial-gradient(120% 90% at 15% 8%, #123170 0%, transparent 55%),
+    linear-gradient(160deg, #071634 0%, #050c22 60%, #030817 100%);
+  border-right: 1px solid rgba(120, 155, 230, 0.18);
+}
+
+.cx-brand-bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.cx-glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.55;
+}
+.cx-glow--a {
+  width: 420px;
+  height: 420px;
+  top: -140px;
+  left: -120px;
+  background: radial-gradient(circle, rgba(47,107,255,0.55), transparent 70%);
+  animation: cxDrift 12s ease-in-out infinite;
+}
+.cx-glow--b {
+  width: 360px;
+  height: 360px;
+  bottom: -140px;
+  right: -100px;
+  background: radial-gradient(circle, rgba(120,80,255,0.35), transparent 70%);
+  animation: cxDrift 14s ease-in-out infinite reverse;
+}
+@keyframes cxDrift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(30px, 20px) scale(1.08); }
+}
+
+.cx-rings {
+  position: absolute;
+  top: 46%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 10px;
+  height: 10px;
+}
+.cx-rings span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border: 1px solid rgba(127, 176, 255, 0.22);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  animation: cxRing 5s ease-out infinite;
+}
+.cx-rings span:nth-child(1) { animation-delay: 0s; }
+.cx-rings span:nth-child(2) { animation-delay: 1.6s; }
+.cx-rings span:nth-child(3) { animation-delay: 3.2s; }
+@keyframes cxRing {
+  0%   { width: 20px;  height: 20px;  opacity: 0.9; }
+  100% { width: 620px; height: 620px; opacity: 0; }
+}
+
+.cx-dotgrid {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(140, 175, 255, 0.16) 1px, transparent 1px);
+  background-size: 26px 26px;
+  mask-image: radial-gradient(circle at 20% 20%, black, transparent 70%);
+  -webkit-mask-image: radial-gradient(circle at 20% 20%, black, transparent 70%);
+}
+
+/* Interactive three.js scene sits above the ambient glow/dot-grid layers
+   and below the readability scrim + text content. It renders with a
+   transparent clear color, so the CSS gradient behind it still shows
+   through the sky area of the scene. Stays invisible until the script
+   confirms a real frame has rendered at the right size, then fades in —
+   so a slow/failed script load never leaves you looking at a broken or
+   mis-sized frame, just the flat fallback skyline underneath. */
+.cx-three-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 1;
+  cursor: default;
+  opacity: 0;
+  transition: opacity 1.1s ease;
+}
+.cx-three-canvas.is-ready {
+  opacity: 1;
+}
+
+/* Light readability scrim — just enough to keep the "LOGIN" copy and
+   logo legible, without flattening the scene's own lighting into a
+   black silhouette. */
+.cx-brand-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    radial-gradient(55% 40% at 50% 28%, rgba(5, 11, 31, 0.05), rgba(5, 11, 31, 0.22) 75%),
+    linear-gradient(180deg, rgba(5, 11, 31, 0) 0%, rgba(5, 11, 31, 0.12) 45%, rgba(5, 11, 31, 0.62) 100%);
+}
+
+/* Flat SVG skyline: the always-available base layer. The three.js
+   canvas, once ready, renders on top of it; if three.js/WebGL never
+   loads (offline, blocked script, disabled JS), this is what's seen —
+   by itself it's already a complete, good-looking background. */
+.cx-skyline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -4px;
+  width: 100%;
+  height: 42%;
+  min-height: 200px;
+  opacity: 0.9;
+  z-index: 0;
+}
+.cx-skyline .cx-lights circle {
+  fill: #7fb0ff;
+  animation: cxTwinkle 2.6s ease-in-out infinite;
+}
+.cx-skyline .cx-lights circle:nth-child(odd) { animation-delay: 0.6s; }
+.cx-skyline .cx-lights circle:nth-child(3n)  { animation-delay: 1.3s; }
+@keyframes cxTwinkle {
+  0%, 100% { opacity: 0.35; }
+  50%      { opacity: 1; }
+}
+
+.cx-brand-content {
+  position: relative;
+  z-index: 3;
+  max-width: 420px;
+  text-align: center;
+  animation: cxFadeUp 0.9s ease both 0.15s;
+}
+
+.cx-logo-badge {
+  width: 128px;
+  height: 128px;
+  margin: 0 auto 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(140, 175, 255, 0.25);
+  box-shadow: 0 0 0 8px rgba(47, 107, 255, 0.06), 0 20px 45px rgba(0, 0, 0, 0.45);
+  animation: cxFloat 4.5s ease-in-out infinite;
+}
+.cx-logo-badge img {
+  width: 76%;
+  height: 76%;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.4));
+}
+@keyframes cxFloat {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-10px); }
+}
+
+.cx-brand-title {
+  margin: 0;
+  font-size: clamp(26px, 3vw, 34px);
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  color: var(--cx-white);
+}
+.cx-brand-title span {
+  background: linear-gradient(90deg, var(--cx-blue-300), var(--cx-blue-500));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.cx-brand-rule {
+  width: 64px;
+  height: 3px;
+  margin: 16px auto;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--cx-blue-400), var(--cx-blue-300));
+  box-shadow: 0 0 14px var(--cx-blue-glow);
+}
+
+.cx-brand-sub {
+  margin: 0;
+  color: var(--cx-muted);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* ============================================================
+   RIGHT — auth panel
+   ============================================================ */
+.cx-auth {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
+  background:
+    radial-gradient(80% 60% at 80% 0%, rgba(47, 107, 255, 0.10), transparent 60%),
+    var(--cx-navy-900);
+}
+
+.login-container {
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+  animation: cxFadeUp 0.9s ease both 0.3s;
+}
+
+@keyframes cxFadeUp {
+  0%   { opacity: 0; transform: translateY(22px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.cx-mobile-logo { display: none; }
+
+.login-container h2 {
+  margin: 0 0 14px;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: var(--cx-white);
+}
+.login-container h2::after {
+  content: '';
+  display: block;
+  width: 54px;
+  height: 3px;
+  margin: 10px auto 0;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--cx-blue-400), var(--cx-blue-300));
+  box-shadow: 0 0 12px var(--cx-blue-glow);
+  animation: cxExpand 0.8s ease forwards 0.5s;
+  transform-origin: center;
+  width: 0;
+}
+@keyframes cxExpand { to { width: 54px; } }
+
+#loginForm {
+  margin-top: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cx-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  animation: cxFadeUp 0.7s ease both;
+}
+.cx-field:nth-of-type(1) { animation-delay: 0.42s; }
+.cx-field:nth-of-type(2) { animation-delay: 0.52s; }
+
+.cx-icon {
+  position: absolute;
+  left: 16px;
+  width: 19px;
+  height: 19px;
+  color: var(--cx-blue-400);
+  pointer-events: none;
+  transition: color 0.25s ease;
+}
+
+.cx-field input {
+  width: 100%;
+  padding: 15px 16px 15px 46px;
+  border-radius: 12px;
+  border: 1px solid var(--cx-border);
+  background: var(--cx-field-bg);
+  color: var(--cx-white);
+  font-size: 15.5px;
+  outline: none;
+  backdrop-filter: blur(6px);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+}
+.cx-field input::placeholder { color: #7b8cb8; }
+
+.cx-field input:focus {
+  border-color: var(--cx-blue-400);
+  background: rgba(47, 107, 255, 0.08);
+  box-shadow: 0 0 0 4px rgba(47, 107, 255, 0.15), 0 0 22px rgba(47, 107, 255, 0.25);
+}
+.cx-field input:focus + .cx-icon,
+.cx-field:focus-within .cx-icon {
+  color: var(--cx-blue-300);
+}
+
+button[type="submit"] {
+  position: relative;
+  margin-top: 6px;
+  padding: 15px;
+  width: 100%;
+  border: none;
+  border-radius: 12px;
+  font-size: 16.5px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: #fff;
+  cursor: pointer;
+  overflow: hidden;
+  background: linear-gradient(90deg, #1d4fd6, #3f7dff 50%, #1d4fd6);
+  background-size: 220% 100%;
+  box-shadow: 0 12px 28px rgba(29, 79, 214, 0.45);
+  transition: background-position 0.5s ease, transform 0.2s ease, box-shadow 0.25s ease;
+  animation: cxFadeUp 0.7s ease both 0.62s;
+}
+button[type="submit"]:hover {
+  background-position: 100% 0;
+  transform: translateY(-2px);
+  box-shadow: 0 16px 34px rgba(29, 79, 214, 0.55);
+}
+button[type="submit"]:active {
+  transform: translateY(0);
+  box-shadow: 0 8px 18px rgba(29, 79, 214, 0.4);
+}
+button[type="submit"] span { position: relative; z-index: 1; }
+
+#message {
+  min-height: 20px;
+  margin-top: 16px;
+  font-size: 14px;
+  color: #ff7b7b;
+  transition: all 0.3s ease;
+}
+
+/* ============================================================
+   Responsive
+   ============================================================ */
+@media (max-width: 980px) {
+  .cx-page { grid-template-columns: 1fr; }
+
+  .cx-brand {
+    padding: 40px 24px 90px;
+    border-right: none;
+  }
+  .cx-brand-sub { font-size: 14px; }
+  .cx-logo-badge { width: 96px; height: 96px; margin-bottom: 16px; }
+  .cx-brand-title { font-size: 24px; }
+
+  .cx-auth { padding: 40px 20px 56px; }
+}
+
+@media (max-width: 560px) {
+  .cx-brand { display: none; }
+
+  .cx-auth {
+    min-height: 100vh;
+    padding: 28px 18px;
+  }
+
+  .cx-mobile-logo {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 18px;
+    animation: cxFloat 4.5s ease-in-out infinite;
+  }
+  .cx-mobile-logo img {
+    width: 78px;
+    height: 78px;
+    object-fit: contain;
+    filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.4));
+  }
+
+  .login-container { max-width: 100%; }
+  .login-container h2 { font-size: 22px; }
+
+  .cx-field input { padding: 14px 14px 14px 44px; font-size: 16px; }
+  button[type="submit"] { padding: 14px; font-size: 16px; }
+}
+
+@media (max-width: 360px) {
+  .cx-auth { padding: 22px 14px; }
+  .login-container h2 { font-size: 20px; }
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+}

@@ -1,0 +1,342 @@
+
+    :root{
+      --bg: #F7F8FA;        
+      --card: #FFFFFF;      
+      --muted: #6b7280;     
+      --text: #111827;      
+      --accent: #b71c1c;    /* red */
+      --green: #16a34a;     /* green */
+      --border: #E5E7EB;    
+      --input-border: #D1D5DB; 
+      --accent-btn: #0f4db2;
+      --color-blue-800: oklch(.424 .199 265.638);
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 90px 14px 8px; /* top padding increased for navbar */
+    }
+
+    h1 {
+      color: var(--text);
+      margin: 8px 0;
+      font-size: 1.3rem;
+      text-align: left;
+    }
+
+    .upload-btn {
+      display: inline-block;
+      background: #02008a;
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      margin: 6px 3px;
+      border: none;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      font-size: 0.85rem;
+    }
+
+    .main-container {
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+      max-width: 900px;
+      align-items:flex-start;
+    }
+
+    .mills-grid {
+      display: grid;
+      grid-template-columns: 140px repeat(8, 1fr);
+      gap: 6px;
+      margin: 8px 0;
+      align-items: center;
+      font-size: 0.8rem;
+      width: 100%;
+    }
+
+    .mill {
+      background: var(--card);
+      border: 1px solid var(--border);
+      text-align: center;
+      padding: 6px;
+      color: var(--text);
+      min-height: 34px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      box-shadow: 0 1px 2px rgba(16,24,40,0.03);
+      border-radius: 6px;
+    }
+
+    /* red state (when sum == 100) */
+    .mill.red {
+      background: var(--accent);
+      color: #fff;
+      font-weight:700;
+      border: 1px solid rgba(0,0,0,0.08);
+    }
+
+    /* green state (default when sum < 100) */
+    .mill.green {
+      background: var(--green);
+      color: #fff;
+      font-weight:700;
+      border: 1px solid rgba(0,0,0,0.06);
+    }
+
+    .mill.coal-flow,
+    .mill.gcv,
+    .mill.aft-head,
+    .mill.cost-head {
+      background: #02008a;
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .dropdown {
+      width: 105%;
+      padding:8px;
+      background: #fff;
+      color: var(--text);
+      border: 1px solid var(--input-border);
+      border-radius: 4px;
+      box-sizing: border-box;
+      font-size: 0.8rem;
+    }
+
+    .percentage-input, .flow-input, .cost-input, .generation-input {
+      width: 88%;
+      padding:6px;
+      background: #fff;
+      border:1px solid var(--input-border);
+      color: var(--text);
+      text-align:center;
+      border-radius: 4px;
+      box-sizing: border-box;
+      outline: none;
+      font-size: 0.8rem;
+    }
+
+    .percentage-input{
+      border:2px solid #02008a
+    }
+
+    .percentage-input::placeholder, .flow-input::placeholder, .cost-input::placeholder {
+      color: var(--muted);
+    }
+.flow-input{
+  border:2px solid #F1C40F
+}
+
+.generation-input{
+  border:2px solid #F1C40F
+}
+    .cost-input { border:2px solid #F1C40F; background:#fff; }
+
+    .gcv-box {
+      width: 92%;
+      padding:6px;
+      text-align:center;
+      font-weight:700;
+      background:#F3F4F6;
+      border:1px solid var(--input-border);
+      color: var(--text);
+      border-radius: 4px;
+      box-sizing: border-box;
+      font-size: 0.8rem;
+    }
+
+    .aft { min-height: 28px; color: var(--text); }
+
+    .summary-table {
+      display: grid;
+      grid-template-columns: 140px 110px;
+      gap:6px;
+      width:280px;
+      margin-bottom:14px;
+      font-size: 0.8rem;
+    }
+
+    .summary-cell {
+      background: var(--card);
+      border:1px solid var(--border);
+      padding:8px;
+      color:var(--text);
+      text-align:center;
+      border-radius:6px;
+    }
+
+    .summary-header {
+      background:#F3F4F6;
+      font-weight:700;
+      color:var(--text);
+    }
+
+    .summary-cell.summary-header {
+      background: #02008a;
+      font-weight: 700;
+      color: #fff;
+    }
+
+   .navbar {
+            
+            width: 100%;
+            background-color: #f7f8fa;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            color: white;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 65px;
+            z-index: 1000;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .navbar img {
+            height: 95px;
+            margin-right: 10px;
+            margin-left: 0px;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px; /* Use 'gap' for spacing between flex items */
+            margin-right: 20px;
+            
+        }
+
+        .navbar h1 {
+            margin-left: 0px;
+            font-size: 20px; /* Adjust font size as needed */
+            color: black;
+            
+        }
+
+       .navbar button {
+            padding: 10px 15px;
+            background-color: #02008a;
+            color: #ffffff;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            margin-right: 20px;
+            font-weight: bold;
+        }
+        
+        .navbar button:hover {
+            background-color: #001cbb;
+        }
+    /* compact adjustments to avoid scrolling */
+    body {
+      padding: 80px 6px 6px; /* reduce padding */
+    }
+
+    .mills-grid {
+      gap: 4px;
+      font-size: 0.72rem;
+    }
+
+    .mill {
+      padding: 4px;
+      min-height: 28px;
+      font-size: 0.72rem;
+    }
+
+    .dropdown,
+    .percentage-input,
+    .flow-input,
+    .cost-input,
+    .gcv-box,
+    .generation-input {
+      font-size: 0.72rem;
+      padding: 4px;
+    }
+    .dropdown {
+  font-size:0.6rem;
+    }
+       #downloadPDF {
+  position: fixed;
+  top: 100px;
+  right: 20px;
+  background: #02008a; 
+  color: #fff;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+  transition: all 0.3s ease;
+  z-index: 9999; /* keeps it above everything */
+}
+
+#downloadPDF:hover {
+  background: #1e40af;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.2);
+}
+.navbar .logout-btn {
+  padding: 10px 16px;
+  background-color: red !important;
+  color: #fff !important;
+  border: none;
+  cursor: pointer;
+  border-radius: 25px;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+.navbar .logout-btn:hover {
+  background-color: darkred !important;
+}
+        .icon-btn {
+  background: #02008a;  /* same as navbar */
+  color: #fff;
+  border: none;
+  padding: 12px;
+  border-radius: 50%;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+}
+
+
+/* Tooltip */
+.icon-btn::after {
+  content: attr(title);
+  position: absolute;
+  bottom: -35px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #000;
+  color: #fff;
+  font-size: 12px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  opacity: 0;
+  white-space: nowrap;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.icon-btn:hover::after {
+  opacity: 1;
+}
+
+
+    #loader { display:none; color:var(--muted); margin-top:4px; font-size:0.8rem; }
+  

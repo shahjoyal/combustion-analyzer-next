@@ -1,0 +1,287 @@
+<div class="content">
+        
+    <div class="left-container">
+        <form id="coalForm">
+            <div id="coalBlends">
+
+<div class="unit-capacity" style="margin-bottom:15px; display:flex; align-items:center; gap:10px; width:100%;">
+  <!-- left group: unit capacity (unchanged) -->
+  <div style="display:flex; align-items:center; gap:10px;">
+    <label for="unitCapacity" style="font-weight:800;">Unit Capacity:</label>
+
+    <select id="unitCapacity" name="unitCapacity"
+            style="padding:8px 12px; border-radius:8px; border:1px solid #ccc;">
+      <option value="">Select Unit Capacity</option>
+      <option value="150">150 MW</option>
+      <option value="210">210 MW</option>
+      <option value="250">250 MW</option>
+      <option value="300">300 MW</option>
+      <option value="500">500 MW</option>
+      <option value="600">600 MW</option>
+      <option value="660_SC">660 MW (Super Critical)</option>
+      <option value="700_SC">700 MW (Super Critical)</option>
+      <option value="800_860_SC">800–860 MW (Super Critical)</option>
+      <option value="1000_SC">1000 MW (Super Critical)</option>
+    </select>
+  </div>
+
+  <!-- right group: firing type (kept on same line using margin-left:auto) -->
+  <div style="margin-left:auto; display:flex; align-items:center; gap:10px;">
+    <label for="firingType" style="font-weight:800;">Type of Firing:</label>
+
+    <select id="firingType" name="firingType"
+            style="padding:8px 12px; border-radius:8px; border:1px solid #ccc;">
+      <option value="">Select Firing Type</option>
+      <option value="front_fired">Front</option>
+      <option value="tangential_fired">Tangential</option>
+      <option value="front_and_rear_fired">Front and Rear</option>
+    </select>
+  </div>
+</div>
+
+
+                <h2>Coal Type</h2>
+                <div class="blend-row"></div>
+                </div>
+                <button type="button" class="add-blend-btn" onclick="addBlend()">Add Coal</button>
+                <div id="totalRangeContainer">
+                    <label>Total Current Range:<span id="totalRange"></span>%</label>        
+                </div>
+                 
+  
+                <div class="checkbox-card" id="checkboxCard">
+                    <h3>Operational Parameters</h3>
+                    
+                </div>
+            
+                <!-- Collapsible Checkbox Section -->
+                <div class="checkbox-container hidden" id="checkboxContainer">
+                    <table class="checkbox-table">
+                        <tbody>
+                            <tr>
+                                <td><input type="checkbox" name="question1" value="Coal Mill Fineness"></td>
+                                <td>Coal Mill Fineness (+) 50 mesh more than 0.2%</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" name="question2" value="Coal Mill DPT Normal"></td>
+                                <td>Coal Mill DPT Result abnormal</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" name="question3" value="Preventive Maintenance"></td>
+                                <td>Coal Mill preventive maintenance delayed by more than 20 days</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" name="question4" value="O2 at APH O/L"></td>
+                                <td>O₂ at APH O/L less than Design O₂ at APH O/L</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" name="question5" value="SADC Operative"></td>
+                                <td>SADC operation faulty</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" name="question6" value="FG Temp Difference"></td>
+                                <td>Difference in FG temp. between Left and Right zones at RH and SH zones more than 50°C</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" name="question7" value="APH O/L FG Temp"></td>
+                                <td>Corrected APH O/L FG temp greater than 25 deg. + Design temp at APH O/L</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" name="question8" value="Overhaul Conducted"></td>
+                                <td>Last Overhaul conducted before 1.5 years from current date</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" name="question9" value="Soot Blowing Cycle"></td>
+                                <td>Water wall Soot Blowing Cycle not operated fully</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" name="question10" value="LSRB"></td>
+                                <td>LRSB not operated as per schedule</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" name="question11" value="FTM temperature"></td>
+                                <td>FTM indicating temperatures > 1300 °C</td>
+                            </tr>
+
+                        </tbody>
+                    </table>
+                </div>
+            <button type="button" class="calculate-properties-btn" onclick="calculateWeightedAverage(); callConsumeTrial();">Calculate</button> 
+        </div>    
+    </form>
+        
+
+    <div class="right-container" id="resultsContainer">
+         <button id="downloadPDF" class="icon-btn hidden" title="Download page as PDF">⬇️</button>
+        <button id="blendPropertiesBtn" class="blendProperties" onclick="openBlendModal()" style="display:none;">Simulated AFB Coal Elemental Analysis</button>      
+    </div>
+</div>
+
+    <!-- Modal for displaying blended coal properties -->
+    <div id="blendPropertiesModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeBlendModal()">&times;</span>
+            <div id="blendValues"></div>  
+        </div>
+    </div>
+   
+
+    <div id="coalPropertiesModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Elemental Analysis</h3>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            <div id="coalPropertiesContent"></div>
+        </div>
+    </div>  
+
+    
+
+   
+
+
+<!-- ====== START: COMMON NAVBAR (paste into each HTML file, right after <body>) ====== -->
+<style>
+/* Common navbar override — dark premium theme, matches the login page */
+:root{
+  --nav-h: 90px;
+  --nav-bg-start: rgba(10, 20, 48, 0.94);
+  --nav-bg-end: rgba(5, 11, 31, 0.9);
+  --nav-blue-1: #1d4fd6;
+  --nav-blue-2: #2e6bff;
+  --nav-text: #f4f8ff;
+  --nav-btn-radius: 999px;
+}
+
+/* Strongly scoped to override older rules */
+.common-navbar-wrapper { position: fixed; top: 0; left: 0; right: 0; height: var(--nav-h); z-index: 1300; }
+.common-navbar {
+  box-sizing: border-box;
+  height: 100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 12px;
+  padding: 8px 20px;
+  background: linear-gradient(180deg, var(--nav-bg-start), var(--nav-bg-end));
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+  border-bottom: 1px solid rgba(120, 155, 230, 0.22);
+  backdrop-filter: blur(10px) saturate(1.1);
+  font-family: Inter, Arial, Helvetica, sans-serif;
+}
+
+/* Left: logo + title */
+.common-navbar .brand { display:flex; align-items:center; gap:12px; }
+.common-navbar .brand img { height:46px; width:auto; object-fit:contain; display:block; }
+.common-navbar .brand .title { font-weight:700; color:var(--nav-text); font-size:18px; margin:0; }
+
+/* Center/right: nav buttons */
+.common-navbar .nav-buttons { display:flex; gap:10px; align-items:center; margin-left:12px; }
+.common-navbar .nav-buttons button{
+  padding:8px 14px;
+  border-radius:var(--nav-btn-radius);
+  border: none;
+  font-weight:600;
+  cursor:pointer;
+  background: linear-gradient(180deg,var(--nav-blue-1),var(--nav-blue-2));
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(29, 79, 214, 0.35);
+  transition: transform .12s ease, box-shadow .12s ease, opacity .12s;
+}
+.common-navbar .nav-buttons button:hover{ transform: translateY(-2px); box-shadow: 0 12px 28px rgba(29, 79, 214, 0.5); }
+.common-navbar .nav-buttons button.logout-btn{
+  background: linear-gradient(180deg,#ff4b4b,#e32d2d) !important;
+  box-shadow: 0 8px 20px rgba(227,45,45,0.25);
+}
+
+/* Active page visual — glassy highlighted pill instead of solid white */
+.common-navbar .nav-buttons button.active {
+  background: rgba(127, 176, 255, 0.16) !important;
+  color: #eaf2ff !important;
+  box-shadow: 0 0 0 1px rgba(127, 176, 255, 0.45) inset, 0 0 18px rgba(47, 107, 255, 0.35) !important;
+  border: 1px solid rgba(127, 176, 255, 0.5);
+  transform: translateY(-1px) !important;
+}
+
+/* Mobile: make buttons smaller/wrapping */
+@media (max-width: 720px) {
+  .common-navbar { padding:10px 14px; }
+  .common-navbar .brand .title { font-size:15px; }
+  .common-navbar .nav-buttons { gap:6px; }
+  .common-navbar .nav-buttons button { padding:7px 10px; font-size:13px; }
+}
+
+/* push page content below navbar (only added if page doesn't already do it) */
+html body { --navbar-height: var(--nav-h); }
+</style>
+
+<div class="common-navbar-wrapper" role="navigation" aria-label="Main navigation">
+  <nav class="common-navbar">
+    <div class="brand" aria-hidden="false">
+      <img src="./images/abhitech-logo.png" alt="Abhitech logo">
+      <h1 class="title">Combustion Analyzer</h1>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:12px;">
+      <div class="nav-buttons" role="menubar" aria-label="Primary">
+        <!-- important: use the exact filenames from your site -->
+        <button data-target="coal_table.html" title="Coal Properties">Coal Properties</button>
+        <button data-target="slagging_coal_page.html" title="Calculation">Calculation</button>
+        <button data-target="model.html" title="Model">Cost Optimization Model</button>
+        <!-- <button data-target="date.html" title="About">Date Wise Analysis</button> -->
+        <button data-target="model_compare.html" title="Contact">Compare Models</button>
+      </div>
+
+      <div style="width:8px;"></div>
+
+      <!-- keep logout last -->
+      <div class="nav-buttons" aria-hidden="false">
+        <button class="logout-btn" id="common-logout-btn" title="Logout">Logout</button>
+      </div>
+    </div>
+  </nav>
+</div>
+
+
+
+<!-- PDF Report Styling -->
+<style>
+#pdfReportPage {
+  width: 900px;
+  padding: 22px;
+  box-sizing: border-box;
+  background: #ffffff;
+  color: #111;
+  font-family: Arial, sans-serif;
+  border: 3px solid #02008a;
+  border-radius: 6px;
+}
+#pdfReportPage .header { display:flex; align-items:center; gap:12px; margin-bottom:14px; border-bottom: 2px solid #02008a; padding-bottom: 10px; }
+#pdfReportPage .header img { width:72px; height:auto; }
+#pdfReportPage h1 { font-size:16px; margin:0; color:#02008a; }
+#pdfReportPage .meta { font-size:10px; color:#666; margin-top:4px; }
+#pdfReportPage section { margin-bottom:10px; }
+#pdfReportPage .section-title { background:#f0f4fb; padding:6px 10px; border-radius:4px; font-weight:700; margin-bottom:6px; color:#02008a; font-size:12px; border-left: 3px solid #02008a; }
+
+/* Two-column top layout: coal+params left, AFB table right */
+#pdfReportPage .two-col-top { display:flex; gap:14px; align-items:flex-start; margin-bottom:10px; }
+#pdfReportPage .top-left-col { flex: 0 0 38%; min-width:0; }
+#pdfReportPage .top-right-col { flex: 1 1 60%; min-width:0; }
+
+#pdfReportPage table { width:100%; border-collapse:collapse; margin-top:4px; }
+#pdfReportPage table th, #pdfReportPage table td { border:1px solid #ddd; padding:4px 6px; font-size:11px; text-align:left; }
+#pdfReportPage table th { background:#0153ac; color:#fff; }
+#pdfReportPage table tr td { background:#fff; }
+#pdfReportPage .footer { text-align:center; font-size:10px; color:#666; margin-top:10px; border-top: 1px solid #ddd; padding-top: 6px; }
+
+/* Dashboard + ternary side by side */
+#pdfReportPage .bottom-row { display:flex; gap:14px; align-items:flex-start; }
+#pdfReportPage .dashboard-col { flex: 1 1 55%; min-width:0; }
+#pdfReportPage .ternary-col { flex: 1 1 43%; min-width:0; }
+
+#pdfReportPage ul { margin:0; padding-left:14px; }
+#pdfReportPage li { font-size:11px; margin-bottom:2px; line-height:1.3; }
+</style>
+
+<!-- PDF Generation Script -->

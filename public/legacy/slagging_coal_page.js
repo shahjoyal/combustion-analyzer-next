@@ -1,0 +1,1982 @@
+
+function addBlend() {
+    const MAX_COALS = 10; // <-- increased from 5 to 10
+    const currentCoals = document.querySelectorAll('.blend').length;
+
+    if (currentCoals >= MAX_COALS) {
+        alert("You can only add up to 10 coal types.");
+        return;
+    }
+
+    const index = currentCoals;
+    const blendDiv = document.createElement("div");
+    blendDiv.className = "blend";
+    blendDiv.innerHTML = `
+        <label for="coal${index}">Coal:</label>
+        <select name="coal${index}" id="coal${index}">
+            <option value="">Select Coal Type</option>
+        </select>
+        <input type="number" id="currentrange${index}" placeholder="Current Range (%)">
+        <button type="button" class="remove-blend-btn" onclick="removeBlend(this)">X</button>
+        <button type="button" class="properties-btn" onclick="fetchCoalProperties(${index})">Properties</button>
+        <div id="properties${index}"></div>
+    `;
+
+    const currentRangeInput = blendDiv.querySelector(`#currentrange${index}`);
+    currentRangeInput.addEventListener("input", updateTotalRange);
+
+    const blendRow = document.querySelector(".blend-row");
+
+    // Append the new blendDiv to the blendRow
+    blendRow.appendChild(blendDiv); // This will add it to the end
+
+    populateDropdown(blendDiv.querySelector(`#coal${index}`));
+    updateTotalRange();
+}
+
+        function updateTotalRange() {
+            totalCurrentRange = 0;
+            const ranges = document.querySelectorAll('input[id^="currentrange"]');
+            ranges.forEach(range => {
+                const rangeValue = parseFloat(range.value) || 0;
+                totalCurrentRange += rangeValue;
+            });
+            document.getElementById("totalRange").textContent = totalCurrentRange;
+
+        }
+
+       
+        
+        document.addEventListener("DOMContentLoaded", function () {
+            const checkboxCard = document.getElementById("checkboxCard");
+            const checkboxContainer = document.getElementById("checkboxContainer");
+            const toggleIcon = document.querySelector(".toggle-icon");
+        
+            // Toggle click event
+            checkboxCard.addEventListener("click", function () {
+                if (checkboxContainer.classList.contains("hidden")) {
+                    checkboxContainer.classList.remove("hidden");
+                    checkboxContainer.style.display = "block";
+                    toggleIcon.style.transform = "rotate(180deg)";
+                } else {
+                    checkboxContainer.classList.add("hidden");
+                    setTimeout(() => (checkboxContainer.style.display = "none"), 300);
+                    toggleIcon.style.transform = "rotate(0deg)";
+                }
+            });
+        
+        });
+
+        
+        
+        function getSelectedCheckboxes() {
+            const checkboxes = document.querySelectorAll('.checkbox-container input[type="checkbox"]:checked');
+            let selectedValues = [];
+            checkboxes.forEach((checkbox) => {
+                selectedValues.push(checkbox.name); // Use `name` instead of `value`
+            });
+            return selectedValues;
+        }
+        
+        function openBlendModal() {
+            document.getElementById("blendPropertiesModal").style.display = "block";
+        }
+        
+        function closeBlendModal() {
+            document.getElementById("blendPropertiesModal").style.display = "none";
+        }
+        var samples = [];
+        let predictedAFT = 0;
+ 
+        
+
+        // ----- size configuration (change numbers to taste) -----
+const TERNARY_WIDTH = "100%";   // px (try 320 / 360 / 420)
+const TERNARY_HEIGHT = 300;  // px (try 240 / 300)
+const MARKER_SIZE = 9;       // ternary marker size (smaller if plot is tiny)
+
+const GAUGE_SIZE = 160;      // px for gauge width/height (try 120 / 150)
+const OVERALL_GRAPH_WIDTH = 550; // px for the overall bar (was 550)
+        async function calculateWeightedAverage() {
+
+            let totalCurrentRange = 0;
+            const ranges = document.querySelectorAll('input[id^="currentrange"]');
+            
+            ranges.forEach(range => {
+                const rangeValue = parseFloat(range.value) || 0;
+                totalCurrentRange += rangeValue;
+            });
+
+            if (totalCurrentRange !== 100) {
+                alert("Total percentage must be exactly 100 to proceed!");
+                return;
+            }
+            const rightContainerDiv = document.querySelector("#resultsContainer");
+            let blendValuesDiv = document.getElementById("blendValues");
+            let blendPropertiesBtn = document.getElementById("blendPropertiesBtn");
+            
+        
+            if (!rightContainerDiv) {
+                console.error("Element #resultsContainer not found.");
+                return;
+            }
+            if (!blendValuesDiv) {
+                console.error("Element #blendValues not found.");
+                return;
+            }
+        
+            let totalPercentage = 0;
+            let propertySums = {
+                "SiO₂": 0, "Al₂O₃": 0, "Fe₂O₃": 0, "CaO": 0, "MgO": 0, 
+                "Na₂O": 0, "K₂O": 0, "TiO₂": 0, "SO₃": 0, "P₂O₅": 0,
+                "Mn₃O₄":0,"Sulphur (S)":0, "GCV": 0
+        
+            };
+        
+            const blends = document.querySelectorAll('.blend');
+        
+            blends.forEach((blend, index) => {
+                const selectedCoal = document.querySelector(`#coal${index}`).value;
+                const currentRange = parseFloat(document.querySelector(`#currentrange${index}`).value) || 0;
+        
+                if (!selectedCoal || currentRange <= 0) return;
+        
+                const coalInfo = window.coalData.find(coal => coal.id === selectedCoal);
+                if (!coalInfo) return;
+        
+                totalPercentage += currentRange;
+        
+                for (let prop in propertySums) {
+                    function getPropValue(coalInfo, prop) {
+  const p = coalInfo.properties || {};
+  if (p[prop] !== undefined) return parseFloat(p[prop]) || 0;
+
+  // try ascii version (replace subscript unicode with digits)
+  const ascii = prop.replace(/[₂₂₃₄₅₆₇₈₉₀₁]/g, ch => {
+    const rev = { '₀':'0','₁':'1','₂':'2','₃':'3','₄':'4','₅':'5','₆':'6','₇':'7','₈':'8','₉':'9' };
+    return rev[ch] || ch;
+  });
+  if (p[ascii] !== undefined) return parseFloat(p[ascii]) || 0;
+
+  // try common simple variants
+  const simple = ascii.replace(/\s+/g,'');
+  if (p[simple] !== undefined) return parseFloat(p[simple]) || 0;
+
+  // try mapping via aliasMap if defined
+  if (typeof aliasMap !== 'undefined') {
+    const mapped = aliasMap[ascii] || aliasMap[simple] || aliasMap[prop];
+    if (mapped && p[mapped] !== undefined) return parseFloat(p[mapped]) || 0;
+  }
+
+  return 0;
+}
+
+// then inside your loop:
+const propValue = getPropValue(coalInfo, prop);
+propertySums[prop] += propValue * currentRange;
+
+                    
+                }
+            });
+
+            if (totalPercentage > 0) {
+                // Compute weighted averages
+                let SIO = propertySums["SiO₂"] / totalPercentage;
+                let ALO = propertySums["Al₂O₃"] / totalPercentage;
+                let FEO = propertySums["Fe₂O₃"] / totalPercentage;
+                let CAO = propertySums["CaO"] / totalPercentage;
+                let MGO = propertySums["MgO"] / totalPercentage;
+                let NAO = propertySums["Na₂O"] / totalPercentage;
+                let KO = propertySums["K₂O"] / totalPercentage;
+                let TIO = propertySums["TiO₂"] / totalPercentage;
+                let SO = propertySums["SO₃"] / totalPercentage;
+                let PO = propertySums["P₂O₅"] / totalPercentage;
+                let S = propertySums["Sulphur (S)"]/totalPercentage;
+                let MNO = propertySums["Mn₃O₄"]/totalPercentage;
+                
+                //let GCV = propertySums["GCV"]/totalPercentage;
+                
+                const result = await axios.post(
+  './calculate-aft',
+  {
+    values: [
+      SIO,  // SiO2
+      ALO,  // Al2O3
+      FEO,  // Fe2O3
+      CAO,  // CaO
+      MGO,  // MgO
+      NAO,  // Na2O
+      KO,   // K2O
+      SO,   // SO3
+      TIO,
+      PO,
+      S   // TiO2
+    ]
+  },
+  {
+    withCredentials: true,
+    headers: { 'Content-Type': 'application/json' }
+  }
+);
+
+const data = result.data.prediction;
+
+
+                let checkboxesScore = 0;
+                let allQuestionss = ["question1", "question2", "question3", "question4", "question5", "question6", "question7", "question8", "question9", "question10", "question11",];
+                let selectedValuess = getSelectedCheckboxes();
+                let count = selectedValuess.length; // Get checked checkboxes
+        
+let scoreMappings = {
+    "question1": [9.97, 0],        // 0.5 * 19.94
+    "question2": [6.889, 0],       // 0.25 * 27.556
+    "question3": [23.80875, 0],    // 0.25 * 95.235
+    "question4": [3.315, 0],       // 0.25 * 13.26
+    "question5": [12.083, 0],      // 0.5 * 24.166
+    "question6": [5.454, 0],       // 0.25 * 21.816
+    "question7": [6.2721, 0],      // 0.25 * 25.0884
+    "question8": [16.1446, 0],     // 0.25 * 64.5784
+    "question9": [18.6817, 0],     // 0.25 * 74.7268
+    "question10": [17.9704, 0],    // 0.25 * 71.8816
+    "question11": [40.0607, 0]     // 0.5 * 80.1214
+};
+        
+                // Iterate through all checkboxes (checked and unchecked)
+                allQuestionss.forEach(question => {
+                    let isChecked = selectedValuess.includes(question);
+                    checkboxesScore += isChecked ? scoreMappings[question][0] : scoreMappings[question][1];;
+                });
+
+                
+                console.log("API result:", result.data);
+                predictedAFT = result.data.prediction;
+                 console.log("predicted AFT:", predictedAFT);
+                predictedAFT-=checkboxesScore;
+                console.log("count is ",count);
+                console.log("checkboxes score is ",checkboxesScore);
+                
+            console.log("predicted AFT after checkbox:", predictedAFT);
+         
+            blendValuesDiv.innerHTML = ""; 
+            let acidicOxidesAvg = 0;
+            let basicOxidesAvg = 0;
+            let otherOxidesAvg = 0;
+            
+        
+            if (totalPercentage > 0) {
+                let propertiesHTML = `
+                                      <table border="1">
+                                        <tr>
+                                            <th>Property</th>
+                                            <th>Value</th>
+                                        </tr>`;
+                
+                for (let prop in propertySums) {
+                    let avgValue = propertySums[prop] / totalPercentage;
+        
+        
+                        if (prop === "SiO₂" || prop === "Al₂O₃" || prop === "TiO₂") {
+                            acidicOxidesAvg += avgValue;   
+                        }
+        
+                        if (prop === "CaO" || prop === "MgO" || prop === "Na₂O"|| prop === "K₂O") {
+                            basicOxidesAvg += avgValue;   
+                        }
+        
+                        if (prop === "Fe₂O₃" || prop === "SO₃" || prop === "P₂O₅" || prop === "Mn₃O₄") {
+                            otherOxidesAvg += avgValue;   
+                        }
+                        
+                        
+                
+                    propertiesHTML += `<tr>
+                                           <td><strong>${prop}</strong></td>
+                                           <td>${avgValue.toFixed(2)}</td>
+                                       </tr>`;
+                }
+                
+                propertiesHTML += "</table>";
+        
+                console.log("Acidic Value:", acidicOxidesAvg.toFixed(2));
+                console.log("Basic Value:", basicOxidesAvg.toFixed(2));
+                console.log("other Value:", otherOxidesAvg.toFixed(2));
+                
+        
+            blendValuesDiv.innerHTML = propertiesHTML;
+            
+            // keep a reference to the download button (if it exists)
+const dlBtn = document.getElementById('downloadPDF');
+
+// clear results (this removes DOM children but dlBtn variable still references the node)
+rightContainerDiv.innerHTML = "";
+
+// put the download button back at the top and show it
+if (dlBtn) {
+  // insert at the top so it stays in the top-right visually
+  rightContainerDiv.insertBefore(dlBtn, rightContainerDiv.firstChild);
+  dlBtn.classList.remove('hidden'); // remove the hidden class so it displays
+  // ensure visibility over other elements
+  dlBtn.style.zIndex = '9999';
+}
+        
+            let newSample = {
+                acidicOxides: acidicOxidesAvg,
+                basicOxides: basicOxidesAvg,
+                otherOxides: otherOxidesAvg,
+                AFT: predictedAFT
+            };
+            samples.push(newSample);
+        
+                // Calculate test values using formulas
+                const T250 = Math.sqrt(
+                    ((((0.00835 * SIO) + (0.00601 * ALO) - 0.109) * 10**7) /
+                    (2.398 - ((0.0415 * SIO) + (0.0192 * ALO) +
+                    (0.027 * FEO) + (0.016 * CAO) - 3.92)))) + 150;
+        
+                let T250S;
+                if (T250 > 1275) T250S = 0;
+                else if (T250 < 1200) T250S = 1;
+                else T250S = 0.5;
+                
+                // Base/Acid Ratio test value
+                const BART = (FEO + CAO + MGO + NAO + KO) / (SIO + ALO + TIO);
+        
+                // Base/Acid Ratio score
+                let BARS;
+                if (BART < 0.5) BARS = 0;
+                else if (BART > 1) BARS = 1;
+                else BARS = 0.5;
+
+                //Hemispherical temp formula
+                HT= predictedAFT -78;
+
+                //Initial Deformatiion Formula
+                IDT= predictedAFT-103;
+                
+                // Slagging Factor test value
+                const SF = BART * S;
+        
+                // Slagging Factor score
+                let SFS;
+                if (SF < 0.6) SFS = 0;
+                else if (SF > 1) SFS = 1;
+                else SFS = 0.5;
+        
+                // Slagging Index test value
+                const SIT = (HT + 4 * IDT) / 5;
+        
+                // Slagging Index score
+                let SIS;
+                if (SIT > 1343) SIS = 0;
+                else if (SIT < 1149) SIS = 1;
+                else SIS = 0.5;
+        
+        
+                // Silica % test value
+                const SPT = SIO * 100 / (SIO + FEO + CAO + MGO);
+                
+        
+                // Silica % score
+                let SPS;
+                if (SPT > 82) SPS = 0;
+                else if (SPT < 30) SPS = 1;
+                else SPS = 0.5;
+                
+        
+                // Iron Calcium ratio test value
+                const ICRT = FEO / CAO;
+                
+        
+                // Iron Calcium ratio score
+                let ICRS;
+                if (ICRT < 0.31) ICRS = 0;
+                else if (ICRT > 3) ICRS = 1;
+                else ICRS = 0.5;
+        
+                // Iron plus Calcium test value
+                const IPCT = FEO + CAO;
+        
+                // Iron plus Calcium score
+                const IPCS = IPCT < 12 ? 0 : 1;
+        
+                // Fuel Slagging Potential
+                const FSP = Number(T250S) + Number(BARS) + Number(SFS) + Number(SIS) + Number(SPS) + Number(ICRS) + Number(IPCS);
+                let FSPD;
+                if (FSP < 2) FSPD = "Low";
+                else if (FSP > 4) FSPD = "High";
+                else FSPD = "Moderate";
+                
+                //FOULING
+                
+                // Sodium in Ash test value
+                const SIAT = NAO * (46 / 62);
+        
+                // Sodium in Ash score
+                let SIAS;
+                if (SIAT < 1) SIAS = 0;
+                else if (SIAT > 5) SIAS = 1;
+                else SIAS = 0.5;
+                
+                // Total Alkali test value
+                const TAT = (FEO + CAO + MGO + NAO + KO + MNO + SO + PO);
+                
+                // Total Alkali score
+                const TAS = TAT < 2 ? 0 : 1;
+        
+                // Fouling factor test value
+                const FFT = BART * SIAT;
+                
+        
+                // Fouling factor score
+                let FFS;
+                if (FFT < 0.1) FFS = 0;
+                else if (FFT > 0.5) FFS = 1;
+                else FFS = 0.5;
+                
+        
+                // Fuel fouling factor total score
+                const FFFTS = Number(SIAS) + Number(TAS) + Number(FFS);
+                
+        
+                // Fuel fouling factor total display
+                let FFFD;
+                if (FFFTS < 1) FFFD = "Low";
+                else if (FFFTS > 2) FFFD = "High";
+                else FFFD = "Moderate";
+        
+                let totalScore = FSP + FFFTS;
+
+                let checkboxScore = 0;
+                let allQuestions = ["question1", "question2", "question3", "question4", "question5", "question6", "question7", "question8", "question9", "question10", "question11",];
+                let selectedValues = getSelectedCheckboxes(); // Get checked checkboxes
+        
+                let scoreMapping = {
+                    "question1": [0.5, 0],  
+                    "question2": [0.25,0],
+                    "question3": [0.25, 0],
+                    "question4": [0.25, 0],
+                    "question5": [0.5, 0],
+                    "question6": [0.25, 0],
+                    "question7": [0.25, 0],
+                    "question8": [0.25, 0],
+                    "question9": [0.25, 0],
+                    "question10": [0.25, 0],
+                    "question11": [0.5, 0]
+                };
+        
+                // Iterate through all checkboxes (checked and unchecked)
+                allQuestions.forEach(question => {
+                    let isChecked = selectedValues.includes(question);
+                    checkboxScore += isChecked ? scoreMapping[question][0] : scoreMapping[question][1];
+                });
+        
+                let overallTotal = totalScore + checkboxScore;  
+                console.log("Total Score:", overallTotal);
+                  
+            let FoulingHTML = `
+                    <table>
+                        <thead>  <tr>
+                                    <th colspan="3">Slagging Potential (Results in to Clinker Formation)</th> </tr>
+                                <tr>
+                                    <th>Slagging Indices</th>
+                                    <th>Test Coal</th>
+                                    <th>Aggregate Scores</th>
+                                </tr>
+                            </thead>
+                        <tr>
+                            <td>T250</td>
+                            <td>${T250.toFixed(2)}</td>
+                            <td>${T250S}</td>
+                        </tr>
+                        <tr>
+                            <td>Base/Acid Ratio (BART)</td>
+                            <td>${BART.toFixed(2)}</td>
+                            <td>${BARS}</td>
+                        </tr>
+                        <tr>
+                            <td>Slagging Factor ((B/A ratio * S in coal))</td>
+                            <td>${SF.toFixed(2)}</td>
+                            <td>${SFS}</td>
+                        </tr>
+                        <tr>
+                            <td>Slagging Index Test</td>
+                            <td>${SIT.toFixed(2)}</td>
+                            <td>${SIS}</td>
+                        </tr>
+                        <tr>
+                            <td>Silica % Test</td>
+                            <td>${SPT.toFixed(2)}</td>
+                            <td>${SPS}</td>
+                        </tr>
+                        <tr>
+                            <td>Iron Calcium Ratio Test</td>
+                            <td>${ICRT.toFixed(2)}</td>
+                            <td>${ICRS}</td>
+                        </tr>
+                        <tr>
+                            <td>Iron + Calcium </td>
+                            <td>${IPCT.toFixed(2)}</td>
+                            <td>${IPCS}</td>
+                        </tr>
+                    </table>`;
+        
+                
+        
+                let FoulingHTML2 = `<table>
+                    <thead>
+                        <tr><th colspan="3">Fouling Potential (Requires increased soot blowing)</th></tr>
+                        <tr>
+                            <th>Fouling Indices</th>
+                            <th>Test Coal</th>
+                            <th>Aggregate Scores</th>
+                        </tr>
+                    </thead>
+                    <tr><td>Sodium in Ash</td><td>${SIAT.toFixed(2)}</td><td>${SIAS}</td></tr>
+                    <tr><td>Alkali Test</td><td>${TAT.toFixed(2)}</td><td>${TAS}</td></tr>
+                    <tr><td>Fouling Factor (B/A*Na)</td><td>${FFT.toFixed(2)}</td><td>${FFS}</td></tr>
+                </table>`;
+                
+                rightContainerDiv.appendChild(blendPropertiesBtn);
+                
+                
+                google.charts.load('current', { 'packages': ['gauge'] });
+        
+                
+        
+                let chartWrapper = document.createElement("div");   
+                chartWrapper.style.display = "flex";  // Flexbox for side-by-side layout
+                chartWrapper.style.justifyContent = "center"; // Center align
+                chartWrapper.style.gap = "40px"; // Space between charts
+                rightContainerDiv.appendChild(chartWrapper);
+                
+                // Create Slagging Gauge Chart
+                const fspGraphWrapper = document.createElement("div");
+                fspGraphWrapper.style.textAlign = "center"; 
+                
+                const fspDisplay = document.createElement("div");
+                fspDisplay.style.marginTop = "20px";
+                fspDisplay.style.marginBottom = "3px";
+                fspDisplay.style.fontWeight = "bold"; 
+                fspDisplay.textContent = `Slagging Potential : ${FSPD}`;
+                
+                const fspGraphContainer = document.createElement("div");
+                fspGraphContainer.id = "fspGaugeChart";
+                fspGraphContainer.style.width = GAUGE_SIZE + "px";
+                fspGraphContainer.style.height = GAUGE_SIZE + "px";
+                
+                fspGraphWrapper.appendChild(fspDisplay);
+                fspGraphWrapper.appendChild(fspGraphContainer);
+                chartWrapper.appendChild(fspGraphWrapper);
+                
+                // Create Fouling Gauge Chart
+                const ffftsGraphWrapper = document.createElement("div");
+                ffftsGraphWrapper.style.textAlign = "center"; 
+                
+                const ffftsDisplay = document.createElement("div");
+                ffftsDisplay.style.marginTop = "20px";
+                ffftsDisplay.style.marginBottom = "3px";
+                ffftsDisplay.style.fontWeight = "bold";
+                ffftsDisplay.textContent = `Fouling Potential: ${FFFD}`;
+                
+                const ffftsGraphContainer = document.createElement("div");
+                ffftsGraphContainer.id = "ffftsGaugeChart";
+                ffftsGraphContainer.style.width = GAUGE_SIZE + "px";
+                ffftsGraphContainer.style.height = GAUGE_SIZE + "px";
+                
+                ffftsGraphWrapper.appendChild(ffftsDisplay);
+                ffftsGraphWrapper.appendChild(ffftsGraphContainer);
+                chartWrapper.appendChild(ffftsGraphWrapper);
+                
+                // Append chartWrapper to the rightContainerDiv
+                rightContainerDiv.appendChild(chartWrapper);
+                
+                // Create a separate table container BELOW charts
+                let tableContainer = document.createElement("div");
+                tableContainer.style.width = "100%";
+                tableContainer.style.marginTop = "20px";
+                rightContainerDiv.appendChild(tableContainer);
+                
+                // Load Google Charts
+                google.charts.setOnLoadCallback(() => createGaugeChart("fspGaugeChart", FSP, 0, 6, fspColorRanges));
+                google.charts.setOnLoadCallback(() => createffftGaugeChart("ffftsGaugeChart", FFFTS, 0, 3, ffftsColorRanges));
+                
+                // Table toggle logic
+                let fspTableVisible = false;
+                let fspTableElement = null;
+                
+                let ffftsTableVisible = false;
+                let ffftsTableElement = null;
+                
+                // Function to update table layout dynamically
+                function updateTableLayout() {
+                    tableContainer.innerHTML = ""; // Clear previous content
+                
+                    if (fspTableVisible && fspTableElement) {
+                        fspTableElement.style.width = "100%";
+                        fspTableElement.style.marginBottom = "10px";
+                        tableContainer.appendChild(fspTableElement);
+                    }
+                
+                    if (ffftsTableVisible && ffftsTableElement) {
+                        ffftsTableElement.style.width = "100%";
+                        tableContainer.appendChild(ffftsTableElement);
+                    }
+                
+                    // Ensure the overall graph stays at the bottom
+                    tableContainer.appendChild(overallGraphWrapper);
+                }
+                
+                // Toggle logic for Slagging Table
+                fspGraphContainer.addEventListener("click", () => {
+                    fspTableVisible = !fspTableVisible;
+                
+                    if (fspTableVisible) {
+                        if (!fspTableElement) {
+                            fspTableElement = document.createElement("div");
+                            fspTableElement.innerHTML = FoulingHTML;
+                        }
+                    } else {
+                        fspTableElement = null;
+                    }
+                
+                    updateTableLayout();
+                });
+                
+                // Toggle logic for Fouling Table
+                ffftsGraphContainer.addEventListener("click", () => {
+                    ffftsTableVisible = !ffftsTableVisible;
+                
+                    if (ffftsTableVisible) {
+                        if (!ffftsTableElement) {
+                            ffftsTableElement = document.createElement("div");
+                            ffftsTableElement.innerHTML = FoulingHTML2;
+                        }
+                    } else {
+                        ffftsTableElement = null;
+                    }
+                
+                    updateTableLayout();
+                });
+                
+                
+                // Function to create Google Gauge Chart
+                function createGaugeChart(containerId, value, minValue, maxValue, colorRanges) {
+                    const data = google.visualization.arrayToDataTable([
+                        ['Label', 'Value'],
+                        ['Value', value]
+                    ]);
+                
+                    const options = {
+                        width: GAUGE_SIZE,
+                        height: GAUGE_SIZE,
+                        min: minValue,
+                        max: maxValue,
+                        redFrom: colorRanges.red[0], redTo: colorRanges.red[1],
+                        yellowFrom: colorRanges.yellow[0], yellowTo: colorRanges.yellow[1],
+                        greenFrom: colorRanges.green[0], greenTo: colorRanges.green[1],
+                        greenColor: '#5de65d', // Light Green
+                        yellowColor: '#ffff76', // Light Yellow
+                        redColor: '#e24242', // Light Red
+                        majorTicks: ['0', '1', '2', '3', '4', '5', '6'], // 6 bold tick marks
+                        minorTicks: 2
+                        
+                    };   
+                
+                    const chart = new google.visualization.Gauge(document.getElementById(containerId));
+                    chart.draw(data, options);
+                }
+        
+                function createffftGaugeChart(containerId, value, minValue, maxValue, colorRanges) {
+                    const data = google.visualization.arrayToDataTable([
+                        ['Label', 'Value'],
+                        ['Value', value]
+                    ]);
+                
+                    const options = {
+                        width: GAUGE_SIZE,
+                        height: GAUGE_SIZE,
+                        min: minValue,
+                        max: maxValue,
+                        redFrom: colorRanges.red[0], redTo: colorRanges.red[1],
+                        yellowFrom: colorRanges.yellow[0], yellowTo: colorRanges.yellow[1],
+                        greenFrom: colorRanges.green[0], greenTo: colorRanges.green[1],
+                        greenColor: '#5de65d', // Light Green
+                        yellowColor: '#ffff76', // Light Yellow
+                        redColor: '#e24242', // Light Red
+                        majorTicks: ['0', '1', '2', '3'], // 4 bold tick marks
+                        minorTicks: 2
+                        
+                    };
+                    const chart = new google.visualization.Gauge(document.getElementById(containerId));
+                    chart.draw(data, options);
+                }
+        
+                // Color ranges for FSP (0 to 6)
+                const fspColorRanges = {
+                    green: [0, 2],
+                    yellow: [2, 4],
+                    red: [4, 6]
+                };
+        
+                // Color ranges for FFTS (0 to 4)
+                const ffftsColorRanges = {
+                    green: [0, 1],
+                    yellow: [1, 2],
+                    red: [2, 3]
+                };
+
+                // ---- Advanced chart toggle -----------------------------------------
+                // Adds a small "Advanced view" button beside each gauge that swaps in
+                // a Plotly indicator-gauge using the SAME value/thresholds as the
+                // Google gauge above. Purely additive: the original gauge, its own
+                // click-to-show-table behaviour, and every calculation stay exactly
+                // as they were.
+                function buildAdvancedGaugeFigure(value, minValue, maxValue, colorRanges, title) {
+                    return {
+                        data: [{
+                            type: "indicator",
+                            mode: "gauge+number",
+                            value: value,
+                            title: { text: title, font: { size: 14 } },
+                            number: { font: { size: 28 } },
+                            gauge: {
+                                axis: { range: [minValue, maxValue] },
+                                bar: { color: "#0027a7", thickness: 0.28 },
+                                bgcolor: "white",
+                                borderwidth: 1,
+                                bordercolor: "rgba(11,26,43,0.15)",
+                                steps: [
+                                    { range: colorRanges.green, color: "#bdf5bd" },
+                                    { range: colorRanges.yellow, color: "#fff3b0" },
+                                    { range: colorRanges.red, color: "#f7b6b6" }
+                                ],
+                                threshold: {
+                                    line: { color: "#0b1a2b", width: 3 },
+                                    thickness: 0.85,
+                                    value: value
+                                }
+                            }
+                        }],
+                        layout: {
+                            width: GAUGE_SIZE,
+                            height: GAUGE_SIZE,
+                            margin: { t: 34, b: 10, l: 24, r: 24 },
+                            paper_bgcolor: "transparent",
+                            font: { family: "Inter, Segoe UI, Arial, sans-serif", color: "#0b1a2b" }
+                        }
+                    };
+                }
+
+                function addAdvancedGaugeToggle(graphWrapper, gaugeContainer, value, minValue, maxValue, colorRanges, title) {
+                    const advContainer = document.createElement("div");
+                    advContainer.style.width = GAUGE_SIZE + "px";
+                    advContainer.style.height = GAUGE_SIZE + "px";
+                    advContainer.style.display = "none";
+                    advContainer.style.margin = "0 auto";
+
+                    const toggleBtn = document.createElement("button");
+                    toggleBtn.type = "button";
+                    toggleBtn.textContent = "\u26A1 Advanced view";
+                    Object.assign(toggleBtn.style, {
+                        display: "block",
+                        marginTop: "10px",
+                        marginLeft: "auto",
+                        marginRight: "auto",
+                        padding: "6px 16px",
+                        fontSize: "12px",
+                        fontWeight: "600",
+                        border: "none",
+                        borderRadius: "999px",
+                        cursor: "pointer",
+                        background: "linear-gradient(180deg,#0027a7,#02126e)",
+                        color: "#fff",
+                        boxShadow: "0 6px 16px rgba(2,18,110,0.18)"
+                    });
+
+                    let showingAdvanced = false;
+                    let drawn = false;
+
+                    toggleBtn.addEventListener("click", () => {
+                        showingAdvanced = !showingAdvanced;
+
+                        if (showingAdvanced) {
+                            gaugeContainer.style.display = "none";
+                            advContainer.style.display = "block";
+                            toggleBtn.textContent = "\uD83C\uDFAF Classic view";
+                            if (!drawn && window.Plotly) {
+                                const fig = buildAdvancedGaugeFigure(value, minValue, maxValue, colorRanges, title);
+                                Plotly.newPlot(advContainer, fig.data, fig.layout, { displayModeBar: false, responsive: false });
+                                drawn = true;
+                            }
+                        } else {
+                            gaugeContainer.style.display = "block";
+                            advContainer.style.display = "none";
+                            toggleBtn.textContent = "\u26A1 Advanced view";
+                        }
+                    });
+
+                    graphWrapper.appendChild(advContainer);
+                    graphWrapper.appendChild(toggleBtn);
+                }
+
+                addAdvancedGaugeToggle(fspGraphWrapper, fspGraphContainer, FSP, 0, 6, fspColorRanges, "Slagging (FSP)");
+                addAdvancedGaugeToggle(ffftsGraphWrapper, ffftsGraphContainer, FFFTS, 0, 3, ffftsColorRanges, "Fouling (FFFTS)");
+         
+        
+                function createOverallGraph(totalScore, checkboxScore, overallTotal) {
+                    const minValue = 0;
+                    const maxValue = 10;
+
+                    // Graph container
+                    const overallGraphContainer = document.createElement("div");
+                    overallGraphContainer.style.width = OVERALL_GRAPH_WIDTH + "px";
+                    overallGraphContainer.style.height = "32px";
+                    overallGraphContainer.style.border = "1px solid black";
+                    overallGraphContainer.style.borderRadius = "12px";
+                    overallGraphContainer.style.position = "relative";
+                    overallGraphContainer.style.marginBottom = "20px";
+                    overallGraphContainer.style.marginLeft = "50px";
+                    overallGraphContainer.style.display = "flex";
+
+                    let sfWidth = (totalScore / maxValue) * 100;
+                    sfWidth = sfWidth > 100 ? 100 : sfWidth;
+
+                    let cbWidth = ((totalScore + checkboxScore) > maxValue) 
+                        ? Math.max(0, (maxValue - totalScore) / maxValue * 100) 
+                        : (checkboxScore / maxValue) * 100;
+
+                    const totalCombined = totalScore + checkboxScore;
+
+                    // Slagging + Fouling Score Bar
+                    const sfBar = document.createElement("div");
+                    sfBar.style.height = "100%";
+                    sfBar.style.width = `${sfWidth}%`;
+                    sfBar.style.borderRadius = totalCombined >= maxValue ? "12px" : "12px 0 0 12px";
+                    sfBar.style.backgroundColor = getColor(totalScore);
+
+                    // Checkbox Score Bar (overlay)
+                    const cbBar = document.createElement("div");
+                    cbBar.id = "overallCbBar";
+                    cbBar.style.height = "100%";
+                    cbBar.style.width = `${cbWidth}%`;
+                    cbBar.style.borderRadius = totalCombined >= maxValue ? "0 12px 12px 0" : "0";
+                    cbBar.style.backgroundColor = getCheckboxBaseColor(totalScore); // base color
+                    cbBar.style.backgroundImage = getHatchingLines(getHatchColor(totalCombined)); // hatch color depends on total
+
+                    // Append bars
+                    overallGraphContainer.appendChild(sfBar);
+                    overallGraphContainer.appendChild(cbBar);
+
+                    // Tick marks
+                    for (let i = minValue; i <= maxValue; i++) {
+                        const tick = document.createElement("div");
+                        tick.style.position = "absolute";
+                        tick.style.left = `${(i / maxValue) * 100}%`;
+                        tick.style.top = "50%";
+                        tick.style.transform = "translateY(-50%)";
+                        tick.style.height = "10px";
+                        tick.style.width = "1px";
+                        tick.style.backgroundColor = "black";
+
+                        const label = document.createElement("span");
+                        label.style.position = "absolute";
+                        label.style.marginTop = "5px";
+                        label.style.left = `${(i / maxValue) * 100}%`;
+                        label.style.top = "100%";
+                        label.style.transform = "translateX(-50%)";
+                        label.style.fontSize = "12px";
+                        label.textContent = i;
+
+                        overallGraphContainer.appendChild(tick);
+                        overallGraphContainer.appendChild(label);
+                    }
+
+                    // Display score
+                    const totalDisplay = document.createElement("div");
+                    totalDisplay.style.marginBottom = "10px";
+                    totalDisplay.style.marginTop = "10px";
+                    totalDisplay.style.marginLeft = "80px";
+                    totalDisplay.style.fontSize = "18px";
+                    totalDisplay.style.fontWeight = "bold";
+                    totalDisplay.textContent = `Overall Score: ${overallTotal.toFixed(1)} (Slagging + Fouling: ${totalScore.toFixed(1)}, O&M Score: ${checkboxScore.toFixed(1)})`;
+
+                    rightContainerDiv.appendChild(totalDisplay);
+                    rightContainerDiv.appendChild(overallGraphContainer);
+                }
+
+                // Main score color
+                function getColor(score) {
+                    if (score < 3) return "#a6e3a6";
+                    if (score < 6.5) return "yellow";
+                    return "red";
+                }
+
+                // Base color of checkbox segment depends only on totalScore
+                function getCheckboxBaseColor(score) {
+                    if (score < 3) return "#5de65d";
+                    if (score < 6.5) return "#fddf05";
+                    return "#e24242";
+                }
+
+                // Hatch overlay color depends on totalCombined
+                function getHatchColor(totalCombined) {
+                    if (totalCombined > 6.5) return "red";
+                    if (totalCombined > 3) return "yellow";
+                    return "green";
+                }
+                
+                function getHatchingLines(hatchColor) {
+                    return `repeating-linear-gradient(45deg, transparent, transparent 5px, ${hatchColor} 5px, ${hatchColor} 10px)`;
+                }
+
+                
+                document.getElementById("resultsContainer").style.display = "flex";
+                document.getElementById("blendValues").style.display = "flex";
+                blendPropertiesBtn.style.display = "block";
+                let overallGraphWrapper = document.getElementById("overallGraphWrapper");
+                if (!overallGraphWrapper) {
+                    overallGraphWrapper = document.createElement("div");
+                    overallGraphWrapper.id = "overallGraphWrapper";
+                    rightContainerDiv.insertBefore(overallGraphWrapper, rightContainerDiv.firstChild);
+                }
+                overallGraphWrapper.innerHTML = ""; // Clear previous content
+                createOverallGraph(totalScore, checkboxScore, overallTotal);
+
+const plotDiv = document.createElement('div');
+plotDiv.id = "ternary-plot";
+plotDiv.style.width = TERNARY_WIDTH + "px";
+plotDiv.style.height = TERNARY_HEIGHT + "px";
+plotDiv.style.maxWidth = "100%";
+rightContainerDiv.appendChild(plotDiv);
+updatePlot();
+        
+                
+            } 
+        }
+        } 
+      
+        
+
+function updatePlot() {
+    const ternaryPlotElement = document.getElementById('ternary-plot');
+    if (!ternaryPlotElement) {
+        console.error("Ternary plot element #ternary-plot not found.");
+        return;
+    }
+
+    var data = [{
+        type: 'scatterternary',
+        mode: 'markers',
+        a: samples.map(s => s.acidicOxides),
+        b: samples.map(s => s.basicOxides),
+        c: samples.map(s => s.otherOxides),
+        marker: {
+            size: MARKER_SIZE, // <-- use smaller markers
+            color: samples.map(s => s.AFT),
+            colorscale: 'Jet',
+            colorbar: { title: "Fusion Temp (°C)" }
+        },
+        text: samples.map(s => `Fusion Temperature: ${parseFloat(s.AFT).toFixed(2)}°C`),
+        hoverinfo: 'text'
+    }];
+
+    var layout = {
+    autosize: true,   // let Plotly fill the container
+    height: TERNARY_HEIGHT,
+    margin: { l: 50, r: 40, t: 40, b: 40 },
+    ternary: {
+        sum: 100,
+        aaxis: { title: { text: "Thermal Stability", font: { size: 12 } }, showticklabels: true },
+        baxis: { title: { text: "Fusion Accelerator", font: { size: 12 } }, showticklabels: true },
+        caxis: { title: { text: "Hardening Index", font: { size: 12 } }, showticklabels: true, title_standoff: 10 }
+    }
+};
+
+    Plotly.newPlot(ternaryPlotElement, data, layout, {responsive: true});
+}
+        
+    
+
+
+function removeBlend(button) {
+            button.parentElement.remove(); 
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            fetch('./get_coal_types')
+                .then(response => response.json())
+                .then(data => {
+                    window.coalData = data.coal_data; // Store the fetched data globally
+
+                    addBlend();
+                })
+                .catch(error => console.error('Error fetching coal types:', error));
+        });
+        
+        
+
+        function populateDropdown(selectElement) {
+    selectElement.innerHTML = '<option value="">Select Coal Type</option>';
+
+    if (!Array.isArray(window.coalData)) {
+        console.error("coalData is not an array:", window.coalData);
+        return;
+    }
+
+    const sortedCoalData = [...window.coalData].sort((a, b) => {
+        const aText = `${a?.coalType || ""} ${a?.transportId || ""}`.trim();
+        const bText = `${b?.coalType || ""} ${b?.transportId || ""}`.trim();
+
+        return aText.localeCompare(bText, undefined, { sensitivity: "base" });
+    });
+
+    sortedCoalData.forEach(coal => {
+        if (!coal || coal.id == null) return;
+
+        const opt = document.createElement('option');
+        opt.value = coal.id;
+
+        const nameWithId = coal.coalId
+            ? `${coal.coalType || "Unknown Coal"} - ${coal.coalId}`
+            : (coal.coalType || "Unknown Coal");
+
+        opt.textContent = coal.transportId
+            ? `${nameWithId} – ${coal.transportId}`
+            : nameWithId;
+
+        selectElement.appendChild(opt);
+    });
+}
+
+        
+        
+        function fetchCoalProperties(index) {
+            const selectedCoal = document.querySelector(`#coal${index}`).value;
+        
+            if (!selectedCoal) {
+                alert("Please select a coal type first.");
+                return;
+            }
+            const coalInfo = window.coalData.find(coal => coal.id === selectedCoal);
+           
+            if (!coalInfo) {
+                alert("Properties not found.");
+                return;
+            }
+        
+            // Generate table HTML
+            let propertiesHTML = `
+                <table border="1" style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr>
+                            <th style="padding: 8px; border: 1px solid lightgray;">Percentage Properties</th>
+                            <th style="padding: 8px; border: 1px solid lightgray;">Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+        
+            
+            for (const [key, value] of Object.entries(coalInfo.properties)) {
+                propertiesHTML += `
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid lightgray;">${key}</td>
+                        <td style="padding: 8px; border: 1px solid lightgray;">${value}</td>
+                    </tr>
+                `;
+            }
+        
+            propertiesHTML += `</tbody></table>`;
+        
+            document.getElementById("coalPropertiesContent").innerHTML = propertiesHTML;
+            document.getElementById("coalPropertiesModal").style.display = "block";
+        }
+        
+        function closeModal() {
+            document.getElementById("coalPropertiesModal").style.display = "none";
+        }
+        
+        window.onclick = function(event) {
+            const modal = document.getElementById("coalPropertiesModal");
+            if (event.target === modal) {
+                modal.style.display = "none";
+            }
+        };
+    
+    
+
+/* ---- next inline <script> block ---- */
+
+
+
+    
+
+async function callConsumeTrial() {
+  try {
+    const resp = await fetch('./consume-trial', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    const data = await resp.json().catch(() => ({}));
+
+    if (!resp.ok) {
+      // 401 -> not authenticated, 403 -> locked or forbidden
+      if (resp.status === 401) {
+        alert(data.error || 'Not authenticated. Please login.');
+        window.location.href = './login.html';
+        return null;
+      }
+      if (resp.status === 403 && data.lockedUntil) {
+        // account locked
+        const lockedUntil = new Date(data.lockedUntil);
+        const msLeft = lockedUntil - new Date();
+        const hoursLeft = Math.ceil(msLeft / (1000 * 60 * 60));
+        alert(`Account locked. Try after ${hoursLeft} hour(s) (until ${lockedUntil.toLocaleString()}).`);
+        // Optionally redirect to login page
+        window.location.href = './login.html';
+        return data;
+      }
+      // other errors:
+      console.warn('consume-trial error:', data);
+      alert(data.error || 'Could not consume trial. See console.');
+      return null;
+    }
+
+    // Success - update UI if an element exists
+    if (typeof data.trialsLeft !== 'undefined') {
+      const el = document.getElementById('trialsLeft');
+      if (el) el.textContent = String(data.trialsLeft);
+    }
+
+    if (data.lockedUntil) {
+      // The server locked the account in this response (trials reached zero)
+      const lockedUntil = new Date(data.lockedUntil);
+      alert('Trials exhausted. Account locked until ' + lockedUntil.toLocaleString());
+      // Session destroyed server-side; redirect to login
+      window.location.href = '/';
+      return data;
+    }
+
+    // Return server response for further handling if caller needs it
+    return data;
+  } catch (err) {
+    console.error('callConsumeTrial failed', err);
+    alert('Network error while consuming trial.');
+    return null;
+  }
+}
+
+
+/* ---- next inline <script> block ---- */
+
+
+(function(){
+  const navBtns = Array.from(document.querySelectorAll('.common-navbar .nav-buttons button'))
+    .filter(b => b.dataset && b.dataset.target);
+
+  const path = (location.pathname || '').split('/').pop().toLowerCase();
+
+  let matched = false;
+  navBtns.forEach(btn => {
+    const target = (btn.dataset.target || '').toLowerCase();
+    btn.addEventListener('click', () => { if (target) location.href = target; });
+    if ((path && path === target) || (!path && target === 'model.html')) {
+      btn.classList.add('active');
+      matched = true;
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+
+  if (!matched) {
+    const pageHints = ['coal', 'slag', 'model'];
+    for (const btn of navBtns) {
+      const t = btn.dataset.target || '';
+      for (const h of pageHints) {
+        if (t.indexOf(h) !== -1 && document.body.innerText.toLowerCase().includes(h)) {
+          btn.classList.add('active'); matched = true; break;
+        }
+      }
+      if (matched) break;
+    }
+  }
+
+  const logoutBtn = document.getElementById('common-logout-btn');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', () => {
+      try { localStorage.setItem('isLoggedIn','false'); } catch(e) {}
+      window.location.href = './login.html';
+    });
+  }
+})();
+
+
+/* ---- next inline <script> block ---- */
+
+
+/* ----------------- Configuration ----------------- */
+const TERNARY_ID = 'ternary-plot';
+
+/* ----------------- Helpers ----------------- */
+function _escapeHtml(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Build coal table
+function buildCoalTableHTML() {
+  const selects = Array.from(document.querySelectorAll('select[id^="coal"], select[name^="coal"]'));
+  if (!selects.length) return '<p style="font-size:11px;">No coal selected.</p>';
+  let rows = '';
+  for (const sel of selects) {
+    let pct = '';
+    const idMatch = (sel.id || '').match(/\d+$/);
+    if (idMatch) {
+      const idx = idMatch[0];
+      const cand = document.querySelector(`#currentrange${idx}`);
+      if (cand) pct = cand.value;
+    }
+    if (!pct) {
+      const container = sel.closest('.blend') || sel.parentElement;
+      const inp = container?.querySelector('input[type="number"], input[type="text"], input[id^="currentrange"]');
+      if (inp) pct = inp.value;
+    }
+    const name = sel.options[sel.selectedIndex]?.text?.trim() || sel.value || '';
+    if (name || pct) rows += `<tr><td>${_escapeHtml(name)}</td><td>${_escapeHtml(pct)}</td></tr>`;
+  }
+  if (!rows) return '<p style="font-size:11px;">No coal selected.</p>';
+  return `<table><thead><tr><th>Coal</th><th>%</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+// Build selected operational params
+function buildOpParamsHTML() {
+  const selectors = [
+    '#checkboxContainer input[type="checkbox"]',
+    '#checkbox-container input[type="checkbox"]',
+    '.checkbox-container input[type="checkbox"]',
+    'table input[type="checkbox"]'
+  ];
+  const set = new Set();
+  selectors.forEach(s => {
+    try { document.querySelectorAll(s).forEach(cb => set.add(cb)); } catch(e){}
+  });
+  const checkboxes = Array.from(set);
+  const selected = [];
+  checkboxes.forEach(cb => {
+    try {
+      if (cb.checked) {
+        const tr = cb.closest('tr');
+        const labelTd = tr ? tr.querySelectorAll('td')[1] : null;
+        const text = labelTd ? labelTd.textContent.trim() : (cb.getAttribute('data-label') || cb.value || '');
+        if (text) selected.push(text);
+      }
+    } catch (e) {}
+  });
+  if (!selected.length) return '<p style="font-size:11px;">None selected.</p>';
+  return `<ul>${selected.map(s => `<li>${_escapeHtml(s)}</li>`).join('')}</ul>`;
+}
+
+// Build AFB elemental analysis table from blendValues div
+function buildAFBTableHTML() {
+  const blendDiv = document.getElementById('blendValues');
+  if (!blendDiv || !blendDiv.innerHTML.trim()) return '<p style="font-size:11px;">No data available. Run calculation first.</p>';
+  return blendDiv.innerHTML;
+}
+
+/* -----------------------------------------------------------------------
+   Individual Coal (100%) AFT prediction — for the PDF report only.
+   For every distinct coal currently selected in the blend rows, this
+   calls the same "./calculate-aft" predict endpoint used for the blend,
+   but with that single coal's own properties at 100% (i.e. no weighted
+   averaging with the other coals in the blend).
+----------------------------------------------------------------------- */
+
+// Same property lookup fallback logic used by calculateWeightedAverage(),
+// duplicated here (read-only helper) so the existing blend calculation
+// code is left untouched.
+function _getCoalPropertyValue(coalInfo, prop) {
+  const p = coalInfo.properties || {};
+  if (p[prop] !== undefined) return parseFloat(p[prop]) || 0;
+
+  const ascii = prop.replace(/[₀₁₂₃₄₅₆₇₈₉]/g, ch => {
+    const rev = { '₀':'0','₁':'1','₂':'2','₃':'3','₄':'4','₅':'5','₆':'6','₇':'7','₈':'8','₉':'9' };
+    return rev[ch] || ch;
+  });
+  if (p[ascii] !== undefined) return parseFloat(p[ascii]) || 0;
+
+  const simple = ascii.replace(/\s+/g, '');
+  if (p[simple] !== undefined) return parseFloat(p[simple]) || 0;
+
+  return 0;
+}
+
+// Same checkbox-score logic used inside calculateWeightedAverage(), duplicated
+// here so the individual coal AFT is adjusted the same way the blend AFT is.
+function _computeCheckboxesScoreForReport() {
+  const allQuestionss = ["question1", "question2", "question3", "question4", "question5",
+                          "question6", "question7", "question8", "question9", "question10", "question11"];
+  const scoreMappings = {
+    "question1": [9.97, 0], "question2": [6.889, 0], "question3": [23.80875, 0],
+    "question4": [3.315, 0], "question5": [12.083, 0], "question6": [5.454, 0],
+    "question7": [6.2721, 0], "question8": [16.1446, 0], "question9": [18.6817, 0],
+    "question10": [17.9704, 0], "question11": [40.0607, 0]
+  };
+  const selectedValuess = getSelectedCheckboxes();
+  let checkboxesScore = 0;
+  allQuestionss.forEach(q => {
+    checkboxesScore += selectedValuess.includes(q) ? scoreMappings[q][0] : scoreMappings[q][1];
+  });
+  return checkboxesScore;
+}
+
+// Collect each distinct coal currently selected across the blend rows,
+// call the predict endpoint for that coal alone (100%), and return
+// [{ name, aft }, ...]
+async function computeIndividualCoalAFTs() {
+  const results = [];
+  const blends = document.querySelectorAll('.blend');
+  const seen = new Map(); // coalId -> display name (dedupe if same coal picked twice)
+
+  blends.forEach((blend, index) => {
+    const sel = document.querySelector(`#coal${index}`);
+    if (!sel || !sel.value) return;
+    const coalId = sel.value;
+    if (seen.has(coalId)) return;
+    const name = sel.options[sel.selectedIndex]?.text?.trim() || coalId;
+    seen.set(coalId, name);
+  });
+
+  if (!seen.size || !Array.isArray(window.coalData)) return results;
+
+  const checkboxesScore = _computeCheckboxesScoreForReport();
+
+  for (const [coalId, name] of seen.entries()) {
+    const coalInfo = window.coalData.find(c => c.id === coalId);
+    if (!coalInfo) { results.push({ name, aft: null }); continue; }
+
+    const SIO = _getCoalPropertyValue(coalInfo, "SiO₂");
+    const ALO = _getCoalPropertyValue(coalInfo, "Al₂O₃");
+    const FEO = _getCoalPropertyValue(coalInfo, "Fe₂O₃");
+    const CAO = _getCoalPropertyValue(coalInfo, "CaO");
+    const MGO = _getCoalPropertyValue(coalInfo, "MgO");
+    const NAO = _getCoalPropertyValue(coalInfo, "Na₂O");
+    const KO  = _getCoalPropertyValue(coalInfo, "K₂O");
+    const TIO = _getCoalPropertyValue(coalInfo, "TiO₂");
+    const SO  = _getCoalPropertyValue(coalInfo, "SO₃");
+    const PO  = _getCoalPropertyValue(coalInfo, "P₂O₅");
+    const S   = _getCoalPropertyValue(coalInfo, "Sulphur (S)");
+    const MNO = _getCoalPropertyValue(coalInfo, "Mn₃O₄");
+
+    // Same acidic/basic/other oxide grouping used to place the blended
+    // point on the ternary (see the a/b/c math inside calculateWeightedAverage),
+    // computed here for this single coal at 100% so it can be placed on
+    // the same ternary axes for the report-only export.
+    const a = SIO + ALO + TIO;               // acidic oxides -> a axis
+    const b = CAO + MGO + NAO + KO;          // basic oxides  -> b axis
+    const c = FEO + SO + PO + MNO;           // other oxides  -> c axis
+
+    try {
+      const result = await axios.post(
+        './calculate-aft',
+        { values: [SIO, ALO, FEO, CAO, MGO, NAO, KO, SO, TIO, PO, S] },
+        { withCredentials: true, headers: { 'Content-Type': 'application/json' } }
+      );
+      let aft = result.data.prediction;
+      aft -= checkboxesScore;
+      results.push({ name, aft, a, b, c });
+    } catch (e) {
+      console.warn('Individual coal AFT prediction failed for', name, e);
+      results.push({ name, aft: null, a, b, c });
+    }
+  }
+
+  return results;
+}
+
+// Render the individual coal AFT results as a table in the same visual
+// format as the other PDF tables.
+function buildIndividualCoalTableHTML(results) {
+  if (!Array.isArray(results) || !results.length) {
+    return '<p style="font-size:11px;">No individual coal predictions available.</p>';
+  }
+  let rows = '';
+  results.forEach(r => {
+    const aftText = (r.aft == null || isNaN(r.aft)) ? 'N/A' : `${Math.round(r.aft)} °C`;
+    rows += `<tr><td>${_escapeHtml(r.name)}</td><td>${_escapeHtml(aftText)}</td></tr>`;
+  });
+  return `<table><thead><tr><th>Coal Name</th><th>Predicted AFT</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+// capture using html2canvas and return dataURL
+async function captureElementPNG(el, opts = { scale: 2, backgroundColor: '#ffffff' }) {
+  if (!el) return null;
+  const canvas = await html2canvas(el, {
+    scale: opts.scale || 2,
+    useCORS: true,
+    backgroundColor: opts.backgroundColor || '#ffffff'
+  });
+  return canvas.toDataURL('image/png');
+}
+
+/* -----------------------------------------------------------------------
+   renderTernaryPNGWithAFT
+   Arrow-based outside labels turned out to be unreliable across repeated
+   attempts (measuring or computing a marker's screen position after the
+   fact is inherently fragile — timing, clipping at plot edges, etc. all
+   introduce ways for an arrow to land on the wrong point).
+
+   Instead: every point gets a short marker (a number for each individual
+   coal, "B" for the blend) placed directly ON its own dot using Plotly's
+   native per-point text — the same mechanism Plotly itself uses to
+   position the dot, so the label can never be mismatched to the wrong
+   point. A small legend (built separately, see buildTernaryLegendHTML)
+   maps each number back to the coal's full name and AFT.
+
+   - Individual coal dots use the same Jet colorscale as the blend, with
+     the color range spanning ALL AFT values being shown (so dots read as
+     meaningfully different colors even if the blend's own calculation
+     history only has one point, which would otherwise collapse to a
+     single flat color).
+   - Everything here (extra trace, labels, margin, size) is added right
+     before the PNG snapshot and fully reverted right after, so the
+     on-screen UI ternary is completely unaffected.
+   - Report export only. Returns { url, legendItems } — legendItems is
+     the ordered list the report should render as the legend table next
+     to the image (see buildTernaryLegendHTML).
+----------------------------------------------------------------------- */
+async function renderTernaryPNGWithAFT(plotId, opts = { width: 620, height: 440, scale: 1.5 }, individualResults = []) {
+  const div = document.getElementById(plotId);
+  if (!div) return { url: null, legendItems: [] };
+
+  const tIdx = 0;
+
+  // Only coals with a valid predicted AFT and valid a/b/c can be placed
+  // on the ternary. This is report-export only.
+  const validIndividuals = (Array.isArray(individualResults) ? individualResults : [])
+    .filter(r => r && r.aft != null && !isNaN(r.aft) && r.a != null && r.b != null && r.c != null);
+
+  // Blended point's own AFT — read straight off the live trace so it
+  // always matches whatever was last calculated.
+  function getBlendedAFT() {
+    try {
+      const colorArr = div.data?.[tIdx]?.marker?.color;
+      if (Array.isArray(colorArr) && colorArr.length) {
+        const v = colorArr[colorArr.length - 1];
+        if (v != null && !isNaN(v)) return Number(v);
+      }
+    } catch (e) {}
+    return null;
+  }
+  const blendedAFT = getBlendedAFT();
+
+  // Assign each individual coal a short number (matches the marker text
+  // drawn on its dot); the blend always uses "B".
+  const legendItems = validIndividuals.map((r, i) => ({
+    marker: String(i + 1),
+    name: r.name,
+    aft: r.aft
+  }));
+  if (blendedAFT != null) {
+    legendItems.push({ marker: 'B', name: 'Blended AFT', aft: blendedAFT });
+  }
+
+  // --- original layout margin/size (must match updatePlot) ---
+  const ORIG_MARGIN = { l: 50, r: 40, t: 40, b: 40 };
+  const PDF_MARGIN  = { l: 60, r: 60, t: 55, b: 100 };
+
+  // Color range spanning EVERY AFT value actually being shown (individual
+  // coals + blend), so the dots are meaningfully distinguishable even
+  // when the blend trace's own calculation history has just one point.
+  function getSharedColorRange() {
+    const vals = [];
+    if (blendedAFT != null) vals.push(blendedAFT);
+    validIndividuals.forEach(r => {
+      if (r.aft != null && !isNaN(r.aft)) vals.push(Number(r.aft));
+    });
+    if (vals.length >= 2) return [Math.min(...vals), Math.max(...vals)];
+    if (vals.length === 1) return [vals[0] - 1, vals[0] + 1]; // avoid a degenerate single-value range
+    return [null, null];
+  }
+  const [cmin, cmax] = getSharedColorRange();
+
+  if (window.Plotly && typeof Plotly.toImage === 'function') {
+    // Save original state so everything can be restored afterward
+    const orig = {
+      mode:         div.data?.[tIdx]?.mode,
+      text:         div.data?.[tIdx]?.text,
+      textposition: div.data?.[tIdx]?.textposition,
+      textfont:     div.data?.[tIdx]?.textfont,
+      showlegend:   div.data?.[tIdx]?.showlegend,
+      cmin:         div.data?.[tIdx]?.marker?.cmin,
+      cmax:         div.data?.[tIdx]?.marker?.cmax,
+      size:         div.data?.[tIdx]?.marker?.size
+    };
+    const origWidth  = div.style.width;
+    const origHeight = div.style.height;
+    const origTraceCount = div.data ? div.data.length : 1;
+    let individualTraceAdded = false;
+
+    try {
+      // 1. Put "B" directly on the blend marker, hide its legend entry
+      //    (a legend only auto-shows once 2+ traces exist), and apply
+      //    the shared color range.
+      const blendRestyle = {
+        mode:         ['markers+text'],
+        text:         [blendedAFT != null ? ['<b>B</b>'] : null],
+        textposition: ['middle center'],
+        textfont:     [{ size: 22, family: 'Arial, sans-serif', color: '#ffffff' }],
+        'marker.size': [(typeof MARKER_SIZE !== 'undefined' ? MARKER_SIZE : 9) + 16],
+        showlegend:   [false]
+      };
+      if (cmin != null) blendRestyle['marker.cmin'] = [cmin];
+      if (cmax != null) blendRestyle['marker.cmax'] = [cmax];
+      await Plotly.restyle(div, blendRestyle, [tIdx]);
+
+      // 2. Lock the live plot to the export width/height and margins.
+      div.style.width  = opts.width  + 'px';
+      div.style.height = opts.height + 'px';
+      await Plotly.relayout(div, {
+        width: opts.width, height: opts.height,
+        margin: PDF_MARGIN, showlegend: false
+      });
+
+      // 3. Add one trace holding every individual coal, each with its
+      //    own number drawn directly on its own dot — Plotly places the
+      //    text using the exact same per-point data as the dot itself,
+      //    so there is no separate "measure and hope it matches" step.
+      if (validIndividuals.length) {
+        const markerSpec = {
+          size: (typeof MARKER_SIZE !== 'undefined' ? MARKER_SIZE : 9) + 16,
+          color: validIndividuals.map(r => r.aft),
+          colorscale: 'Jet',
+          showscale: false,
+          line: { width: 1, color: '#111' }
+        };
+        if (cmin != null) markerSpec.cmin = cmin;
+        if (cmax != null) markerSpec.cmax = cmax;
+
+        await Plotly.addTraces(div, {
+          type: 'scatterternary',
+          mode: 'markers+text',
+          a: validIndividuals.map(r => r.a),
+          b: validIndividuals.map(r => r.b),
+          c: validIndividuals.map(r => r.c),
+          marker: markerSpec,
+          text: validIndividuals.map((r, i) => `<b>${i + 1}</b>`),
+          textposition: 'middle center',
+          textfont: { size: 20, family: 'Arial, sans-serif', color: '#ffffff' },
+          hoverinfo: 'text',
+          hovertext: validIndividuals.map(r => `${r.name} — AFT: ${Math.round(Number(r.aft))}°C`),
+          showlegend: false
+        });
+        individualTraceAdded = true;
+      }
+
+      // 3b. Belt-and-braces contrast fix: force every ternary marker
+      //     label's actual SVG <text> to render as bold white with a
+      //     thick black outline, so the number/letter stays big and
+      //     legible no matter how bright or dark the marker's own AFT
+      //     color happens to be (white fill + black outline is readable
+      //     on every color in the Jet scale, including dark red/blue).
+      await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+      try {
+        const textEls = div.querySelectorAll('.scatterlayer text');
+        textEls.forEach(t => {
+          t.setAttribute('fill', '#ffffff');
+          t.setAttribute('stroke', '#000000');
+          t.setAttribute('stroke-width', '4');
+          t.setAttribute('stroke-linejoin', 'round');
+          t.setAttribute('paint-order', 'stroke fill');
+          t.setAttribute('font-weight', 'bold');
+          const curSize = parseFloat(t.getAttribute('font-size')) || 12;
+          t.setAttribute('font-size', Math.max(curSize, 20) + 'px');
+        });
+      } catch (e) { console.warn('text contrast tweak failed', e); }
+
+      // 4. Export to PNG
+      const png = await Plotly.toImage(div, {
+        format: 'png',
+        width:  opts.width,
+        height: opts.height,
+        scale:  opts.scale
+      });
+
+      // 5. Restore: drop the temporary individual-coal trace
+      if (individualTraceAdded) {
+        await Plotly.deleteTraces(div, [origTraceCount]);
+      }
+      div.style.width  = origWidth;
+      div.style.height = origHeight;
+      await Plotly.relayout(div, { margin: ORIG_MARGIN, showlegend: null, autosize: true });
+
+      // 6. Restore original text/mode/legend/color-range/size on the blend trace
+      await Plotly.restyle(div, {
+        mode:          [orig.mode         ?? 'markers'],
+        text:          [orig.text         ?? null],
+        textposition:  [orig.textposition ?? null],
+        textfont:      [orig.textfont     ?? null],
+        showlegend:    [orig.showlegend   ?? null],
+        'marker.cmin': [orig.cmin ?? null],
+        'marker.cmax': [orig.cmax ?? null],
+        'marker.size': [orig.size ?? (typeof MARKER_SIZE !== 'undefined' ? MARKER_SIZE : 9)]
+      }, [tIdx]);
+
+      if (png) return { url: png, legendItems };
+
+    } catch (err) {
+      console.warn('Plotly export error, falling back to html2canvas capture:', err);
+      try {
+        if (individualTraceAdded && div.data && div.data.length > origTraceCount) {
+          await Plotly.deleteTraces(div, [origTraceCount]);
+        }
+        div.style.width  = origWidth;
+        div.style.height = origHeight;
+        await Plotly.relayout(div, { margin: ORIG_MARGIN, showlegend: null, autosize: true });
+        await Plotly.restyle(div, {
+          mode:          [orig.mode         ?? 'markers'],
+          text:          [orig.text         ?? null],
+          textposition:  [orig.textposition ?? null],
+          textfont:      [orig.textfont     ?? null],
+          showlegend:    [orig.showlegend   ?? null],
+          'marker.cmin': [orig.cmin ?? null],
+          'marker.cmax': [orig.cmax ?? null],
+          'marker.size': [orig.size ?? (typeof MARKER_SIZE !== 'undefined' ? MARKER_SIZE : 9)]
+        }, [tIdx]);
+      } catch(e){}
+    }
+  }
+
+  // Fallback: screenshot via html2canvas
+  const fallbackUrl = await captureElementPNG(div, { scale: 1.5 });
+  return { url: fallbackUrl, legendItems };
+}
+
+// Small HTML legend mapping each ternary marker (number / "B") to the
+// coal's full name and predicted AFT — renders right alongside the
+// ternary image in the report.
+function buildTernaryLegendHTML(legendItems) {
+  if (!Array.isArray(legendItems) || !legendItems.length) return '';
+  const rows = legendItems.map(it => `
+    <tr>
+      <td style="padding:2px 6px; font-weight:bold; border:1px solid #ccc; text-align:center; width:22px;">${it.marker}</td>
+      <td style="padding:2px 6px; border:1px solid #ccc;">${it.name}</td>
+      <td style="padding:2px 6px; border:1px solid #ccc; text-align:right; white-space:nowrap;">${Math.round(Number(it.aft))}°C</td>
+    </tr>`).join('');
+  return `
+    <table style="border-collapse:collapse; font-size:10px; margin-top:6px; width:100%;">
+      <thead>
+        <tr>
+          <th style="padding:2px 6px; border:1px solid #ccc; background:#0153ac; color:#fff;">#</th>
+          <th style="padding:2px 6px; border:1px solid #ccc; background:#0153ac; color:#fff; text-align:left;">Coal</th>
+          <th style="padding:2px 6px; border:1px solid #ccc; background:#0153ac; color:#fff;">AFT</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+/* -----------------------------------------------------------------------
+   The on-screen "Overall Score" bar uses a diagonal repeating-linear-
+   gradient (red/yellow/green hatch stripes) layered on top of a solid
+   base color for the O&M segment. In the browser, at normal size, those
+   thin 5px stripes optically blend into a smooth color (e.g. yellow base
+   + red hatch reads as orange). html2canvas renders the gradient at full
+   fidelity instead of blending it, so the PDF shows harsh, high-contrast
+   stripes instead of the smooth blended color seen on the webpage.
+
+   Fix: right before capturing the dashboard for the PDF, swap the striped
+   background for a flat, pre-blended solid color (50/50, since the hatch
+   stripes and gaps are equal width), then restore the live striped
+   version afterward so the on-screen UI is unaffected.
+----------------------------------------------------------------------- */
+function _rgbStringToArray(rgbStr) {
+  const m = rgbStr && rgbStr.match(/rgba?\(([^)]+)\)/);
+  if (!m) return [0, 0, 0];
+  const parts = m[1].split(',').map(s => parseFloat(s.trim()));
+  return [parts[0] || 0, parts[1] || 0, parts[2] || 0];
+}
+
+function _blendRgbColors(colorA, colorB, weight = 0.5) {
+  const a = _rgbStringToArray(colorA);
+  const b = _rgbStringToArray(colorB);
+  const r = Math.round(a[0] * (1 - weight) + b[0] * weight);
+  const g = Math.round(a[1] * (1 - weight) + b[1] * weight);
+  const bl = Math.round(a[2] * (1 - weight) + b[2] * weight);
+  return `rgb(${r}, ${g}, ${bl})`;
+}
+
+// Pull the actual stripe color out of a computed repeating-linear-gradient
+// string (skips the fully-transparent gap stops).
+function _extractHatchColorFromGradient(computedBgImage) {
+  if (!computedBgImage || computedBgImage === 'none') return null;
+  const matches = computedBgImage.match(/rgba?\([^)]+\)/g);
+  if (!matches || !matches.length) return null;
+  const solid = matches.filter(c => {
+    const m = c.match(/rgba?\(([^)]+)\)/);
+    if (!m) return false;
+    const parts = m[1].split(',').map(s => parseFloat(s.trim()));
+    const alpha = parts.length === 4 ? parts[3] : 1;
+    return alpha > 0;
+  });
+  return solid.length ? solid[solid.length - 1] : null;
+}
+
+function _svgHatchDataUri(hatchColor) {
+  const svgTile =
+    `<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'>` +
+    `<rect width='10' height='10' fill='none'/>` +
+    `<path d='M-2.5,2.5 L2.5,-2.5 M0,10 L10,0 M7.5,12.5 L12.5,7.5' ` +
+    `stroke='${hatchColor}' stroke-width='5' shape-rendering='crispEdges'/>` +
+    `</svg>`;
+  const encoded = encodeURIComponent(svgTile)
+    .replace(/'/g, '%27')
+    .replace(/"/g, '%22');
+  return `url("data:image/svg+xml,${encoded}")`;
+}
+
+function _flattenOverallScoreBarForExport() {
+  const cbBar = document.getElementById('overallCbBar');
+  if (!cbBar) return null;
+
+  const computed   = getComputedStyle(cbBar);
+  const hatchColor = _extractHatchColorFromGradient(computed.backgroundImage);
+
+  const original = {
+    backgroundImage: cbBar.style.backgroundImage,
+    backgroundColor: cbBar.style.backgroundColor
+  };
+
+  if (hatchColor) {
+    cbBar.style.backgroundImage = _svgHatchDataUri(hatchColor);
+  }
+
+  return original;
+}
+
+function _restoreOverallScoreBarAfterExport(original) {
+  if (!original) return;
+  const cbBar = document.getElementById('overallCbBar');
+  if (!cbBar) return;
+  cbBar.style.backgroundImage = original.backgroundImage;
+  cbBar.style.backgroundColor = original.backgroundColor;
+}
+
+/* Capture the gauges + titles + overall score bar (hides download btn, AFB btn, ternary during capture) */
+async function captureResultsDashboard() {
+  const container = document.getElementById('resultsContainer');
+  if (!container) return null;
+
+  const dlBtn     = document.getElementById('downloadPDF');
+  const blendBtn  = document.getElementById('blendPropertiesBtn');
+  const ternaryDiv = document.getElementById('ternary-plot');
+  const prevDl      = dlBtn      ? dlBtn.style.display      : null;
+  const prevBlend   = blendBtn   ? blendBtn.style.display   : null;
+  const prevTernary = ternaryDiv ? ternaryDiv.style.display : null;
+
+  if (dlBtn)      dlBtn.style.display      = 'none';
+  if (blendBtn)   blendBtn.style.display   = 'none';
+  if (ternaryDiv) ternaryDiv.style.display = 'none';
+
+  const originalBarStyle = _flattenOverallScoreBarForExport();
+
+  let url = null;
+  try {
+    url = await captureElementPNG(container, { scale: 1.6 });
+  } catch(e) { console.warn('dashboard capture err', e); }
+
+  _restoreOverallScoreBarAfterExport(originalBarStyle);
+
+  if (dlBtn      && prevDl      !== null) dlBtn.style.display      = prevDl;
+  if (blendBtn   && prevBlend   !== null) blendBtn.style.display   = prevBlend;
+  if (ternaryDiv && prevTernary !== null) ternaryDiv.style.display = prevTernary;
+
+  return url;
+}
+
+
+/* ----------------- Main PDF builder: SINGLE PAGE ----------------- */
+document.getElementById('downloadPDF').addEventListener('click', async function () {
+  // remove previous temp nodes if any
+  const prev1 = document.getElementById('pdfReportPage');
+  if (prev1) prev1.remove();
+
+  const page1 = document.createElement('div');
+  page1.id = 'pdfReportPage';
+  page1.style.position = 'fixed';
+  page1.style.left = '120%';
+  page1.style.top = '10px';
+  page1.style.zIndex = '99999';
+  page1.style.background = '#ffffff';
+
+  const logoSrc = document.querySelector('.common-navbar img')?.src
+    || document.querySelector('link[rel="icon"]')?.href
+    || 'images/abhitech-logo.png';
+
+  // Predict AFT for each individually selected coal at 100% (same predict
+  // endpoint used for the blend), so it can be shown in its own table
+  // right below the Simulated AFB Coal Elemental Analysis table.
+  let individualCoalResults = [];
+  try {
+    individualCoalResults = await computeIndividualCoalAFTs();
+  } catch (e) {
+    console.warn('computeIndividualCoalAFTs failed', e);
+  }
+
+  page1.innerHTML = `
+    <div class="header">
+      <img src="${logoSrc}" alt="logo" onerror="this.style.display='none'">
+      <div>
+        <h1>Abhitech Energycon Limited — Slagging Report</h1>
+        <div class="meta">Generated: ${new Date().toLocaleString()}</div>
+      </div>
+    </div>
+
+    <div class="two-col-top">
+      <div class="top-left-col">
+        <section>
+          <div class="section-title">Coal Blend &amp; Percent</div>
+          ${buildCoalTableHTML()}
+        </section>
+        <section>
+          <div class="section-title">Operational Parameters</div>
+          ${buildOpParamsHTML()}
+        </section>
+      </div>
+      <div class="top-right-col">
+        <section>
+          <div class="section-title">Simulated AFB Coal Elemental Analysis</div>
+          <div id="afbTableHolder">${buildAFBTableHTML()}</div>
+        </section>
+        <section>
+          <div class="section-title">Individual Coal AFT Predictions</div>
+          <div id="individualCoalTableHolder">${buildIndividualCoalTableHTML(individualCoalResults)}</div>
+        </section>
+      </div>
+    </div>
+
+    <section>
+      <div class="section-title">Slagging &amp; Fouling Dashboard</div>
+      <div class="bottom-row">
+        <div class="dashboard-col">
+          <div id="dashboardHolder"></div>
+        </div>
+        <div class="ternary-col">
+          <div id="ternaryHolder"></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer">Abhitech Energycon Limited — Confidential Report</div>
+  `;
+  document.body.appendChild(page1);
+
+  // Capture dashboard (gauges + overall score bar, no ternary, no buttons)
+  try {
+    const dashUrl = await captureResultsDashboard();
+    if (dashUrl) {
+      const img = document.createElement('img');
+      img.src = dashUrl;
+      img.style.width = '100%';
+      img.style.height = 'auto';
+      img.style.display = 'block';
+      document.getElementById('dashboardHolder').appendChild(img);
+    } else {
+      document.getElementById('dashboardHolder').innerHTML = '<p style="font-size:11px;">(Dashboard not available — run calculation first)</p>';
+    }
+  } catch(e) { console.warn('dashboard capture failed', e); }
+
+  // Ternary with numbered/lettered markers (1,2,3... for individual coals,
+  // "B" for the blend) plus a legend table mapping each marker to the
+  // coal name and its AFT — replaces the earlier arrow-based approach,
+  // which proved unreliable at pointing to the right dot.
+  try {
+    const ternaryResult = await renderTernaryPNGWithAFT(TERNARY_ID, { width: 620, height: 440, scale: 1.5 }, individualCoalResults);
+    if (ternaryResult && ternaryResult.url) {
+      const img = document.createElement('img');
+      img.src = ternaryResult.url;
+      img.style.width = '100%';
+      img.style.height = 'auto';
+      img.style.display = 'block';
+      document.getElementById('ternaryHolder').appendChild(img);
+
+      const legendHTML = buildTernaryLegendHTML(ternaryResult.legendItems);
+      if (legendHTML) {
+        const legendWrap = document.createElement('div');
+        legendWrap.innerHTML = legendHTML;
+        document.getElementById('ternaryHolder').appendChild(legendWrap);
+      }
+    } else {
+      document.getElementById('ternaryHolder').innerHTML = '<p style="font-size:11px;">(Ternary plot not available)</p>';
+    }
+  } catch(e) { console.warn('ternary capture err', e); }
+
+  // Wait for all images to load
+  const imgs = Array.from(page1.querySelectorAll('img'));
+  await Promise.all(imgs.map(i => new Promise(res => { if (i.complete) return res(); i.onload = i.onerror = res; })));
+  await new Promise(r => setTimeout(r, 300));
+
+  // Capture the full page to canvas
+  const canvas = await html2canvas(page1, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+
+  // Build single-page PDF
+  let createPdf;
+  if (window.jspdf && window.jspdf.jsPDF) createPdf = () => new window.jspdf.jsPDF('p', 'mm', 'a4');
+  else if (window.jsPDF) createPdf = () => new window.jsPDF('p', 'mm', 'a4');
+  else { alert('jsPDF not loaded'); page1.remove(); return; }
+
+  const pdf = createPdf();
+  const pageW = pdf.internal.pageSize.getWidth();
+  const pageH = pdf.internal.pageSize.getHeight();
+  const margin = 6;
+
+  if (!canvas || !canvas.width) { alert('Page capture failed'); page1.remove(); return; }
+
+  const imgData = canvas.toDataURL('image/png');
+  let drawW = pageW - margin * 2;
+  let drawH = (canvas.height * drawW) / canvas.width;
+
+  // Scale down to fit single page if needed
+  const maxH = pageH - margin * 2;
+  if (drawH > maxH) {
+    const ratio = maxH / drawH;
+    drawW *= ratio;
+    drawH = maxH;
+  }
+
+  pdf.addImage(imgData, 'PNG', margin, margin, drawW, drawH);
+
+  // Force download
+  const blob = pdf.output('blob');
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'Abhitech_Slagging_Report.pdf';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(link.href);
+
+  // Cleanup
+  page1.remove();
+});
+
+document.getElementById("unitCapacity").addEventListener("change", function() {
+    const selectedValue = this.value;
+    console.log("Selected Unit Capacity:", selectedValue);
+});
+
+
+/* ---- next inline <script> block ---- */
+
+
+if(localStorage.getItem('isLoggedIn') !== 'true') {
+    alert('You must login first!');
+    window.location.href = './login.html'; 
+} else {
+    document.body.style.display = 'block';
+}
+         function logoutUser() {
+  localStorage.setItem('isLoggedIn', 'false'); 
+  window.location.href = './login.html'; 
+} 

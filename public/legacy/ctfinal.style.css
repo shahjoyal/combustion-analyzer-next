@@ -1,0 +1,151 @@
+
+        :root {
+            --primary-1: #0b3bff;
+            --primary-2: #02008a;
+        }
+        body { margin:0; padding:0; font-family: Arial, sans-serif; font-size:14px; color:#111827; }
+        .navbar{ position:fixed; top:0; left:0; right:0; height:72px; padding:10px 22px; display:flex; align-items:center; justify-content:space-between; background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(250,251,255,0.86)); box-shadow:0 10px 30px rgba(9,20,46,0.06); z-index:1100; }
+        .navbar img{ height:46px; object-fit:contain; margin-right:12px; }
+        .navbar h1{ font-weight:700; font-size:18px; color:var(--primary-2); margin:0 14px; }
+        .nav-buttons{ display:flex; gap:10px; align-items:center; }
+        .nav-buttons button{ padding:8px 14px; border-radius:999px; border:none; font-weight:600; cursor:pointer; background: linear-gradient(180deg,var(--primary-1),var(--primary-2)); color:#fff; }
+        .nav-buttons .logout-btn{ background: linear-gradient(180deg,#ff4b4b,#e32d2d); }
+
+        h1.page-title { margin-top:100px; text-align:center; font-size:20px; }
+
+        .toolbar-wrapper { margin-top: 18px; padding: 0 16px; display:flex; justify-content:center; }
+        .toolbar { width:100%; max-width:1100px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
+
+        .left-group, .right-group { display:flex; gap:5px; align-items:center; }
+
+        button { padding: 10px 14px; border-radius:8px; border:none; cursor:pointer; font-weight:600; box-shadow:0 3px 8px rgba(0,0,0,0.08); transition:all .12s; background:#e5e7eb; }
+        button:disabled { opacity:0.5; cursor:not-allowed; transform:none; box-shadow:none; }
+
+        .btn-template { background: linear-gradient(135deg, #22c55e, #16a34a); color:#fff; }
+        .btn-upload { background: linear-gradient(135deg, #3b82f6, #2563eb); color:#fff; }
+        .btn-delete { background: linear-gradient(135deg, #ef4444, #dc2626); color:#fff; }
+        .btn-download { background: linear-gradient(135deg,#0ea5e9,#0284c7); color:#fff; }
+
+        .table-wrapper { margin: 16px; padding: 12px; border-radius:10px; overflow-x:auto; background: linear-gradient(180deg, rgba(2,0,138,0.02), transparent 40%); }
+        table { width:100%; border-collapse:collapse; min-width:900px; background:white; border-radius:8px; overflow:hidden; box-shadow:0 4px 18px rgba(2,6,23,0.04); }
+        thead th { background-color: var(--primary-2); color:#fff; padding:12px 10px; text-align:center; font-weight:700; white-space:nowrap; }
+        tbody td { padding:10px 12px; text-align:center; border-bottom:1px solid #eef2f7; }
+        tbody tr:nth-child(even){ background:#fbfdff; }
+        tbody tr:hover{ background:#f1f5f9; }
+
+        /* Keep first column sticky (Coal ID) */
+         tbody td:first-child {
+            position: sticky;
+            left: 0;
+            background: linear-gradient(90deg,#ffffff,#ffffff);
+            z-index:3;
+            box-shadow: 2px 0 6px rgba(0,0,0,0.04);
+            font-weight:700;
+        }
+
+        /* make checkbox column narrower */
+        thead th:last-child, tbody td:last-child { width:86px; min-width:86px; max-width:130px; }
+
+        @media (max-width:900px) {
+            table { min-width:760px; font-size:13px; }
+            .toolbar { padding:0 8px; }
+        }
+
+        #fileInput { display:none; }
+        .download-dropdown { position:relative; }
+        .download-dropdown .dropdown-menu { position:absolute; top: calc(100% + 6px); left:0; display:none; background:#fff; padding:6px; border-radius:8px; box-shadow:0 8px 20px rgba(0,0,0,0.12); z-index:2000; min-width:170px; }
+        .download-dropdown .dropdown-menu button { display:block; width:100%; text-align:left; background:transparent; border-radius:6px; padding:8px 10px; }
+     /* keep toolbar centered but make groups hug ends of it */
+.toolbar { display:flex; justify-content:space-between; align-items:center; width:100%; max-width:1100px; }
+
+/* left stays left, right will push to the far right of the toolbar */
+.left-group { margin-right: 0; } /* optional */
+.right-group { margin-left: auto; }
+/* make toolbar span page width (minus wrapper padding) */
+.toolbar-wrapper { display:flex; justify-content:center; padding: 0 16px; } /* keep wrapper */
+.toolbar {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    width: calc(100% - 32px); /* full width minus wrapper padding */
+    max-width: none;          /* remove the 1100px cap */
+}
+
+/* groups behave normally inside a full-width toolbar */
+.left-group, .right-group { display:flex; align-items:center; gap:8px; }
+
+   
+   
+
+/* Common navbar override (will replace previous styles visually) */
+:root{
+  --nav-h: 90px;
+  --nav-bg-start: rgba(255,255,255,0.96);
+  --nav-bg-end: rgba(245,247,255,0.88);
+  --nav-blue-1: #02126e;
+  --nav-blue-2: #0027a7;
+  --nav-text: #071a52;
+  --nav-btn-radius: 999px;
+}
+
+/* Strongly scoped to override older rules */
+.common-navbar-wrapper { position: fixed; top: 0; left: 0; right: 0; height: var(--nav-h); z-index: 1300; }
+.common-navbar {
+  box-sizing: border-box;
+  height: 100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 12px;
+  padding: 8px 20px;
+  background: linear-gradient(180deg, var(--nav-bg-start), var(--nav-bg-end));
+  box-shadow: 0 8px 30px rgba(9,20,46,0.06);
+  border-bottom: 1px solid rgba(2,18,110,0.04);
+  backdrop-filter: blur(4px) saturate(1.02);
+  font-family: Inter, Arial, Helvetica, sans-serif;
+}
+
+/* Left: logo + title */
+.common-navbar .brand { display:flex; align-items:center; gap:12px; }
+.common-navbar .brand img { height:46px; width:auto; object-fit:contain; display:block; }
+.common-navbar .brand .title { font-weight:700; color:var(--nav-text); font-size:18px; margin:0; }
+
+/* Center/right: nav buttons */
+.common-navbar .nav-buttons { display:flex; gap:10px; align-items:center; margin-left:12px; }
+.common-navbar .nav-buttons button{
+  padding:8px 14px;
+  border-radius:var(--nav-btn-radius);
+  border: none;
+  font-weight:600;
+  cursor:pointer;
+  background: linear-gradient(180deg,var(--nav-blue-1),var(--nav-blue-2));
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(2,18,110,0.07);
+  transition: transform .12s ease, box-shadow .12s ease, opacity .12s;
+}
+.common-navbar .nav-buttons button:hover{ transform: translateY(-2px); }
+.common-navbar .nav-buttons button.logout-btn{
+  background: linear-gradient(180deg,#ff4b4b,#e32d2d) !important;
+  box-shadow: 0 8px 20px rgba(227,45,45,0.07);
+}
+
+/* Active page visual (different contrast + subtle outline) */
+.common-navbar .nav-buttons button.active {
+  background: linear-gradient(180deg,#ffffff, #f1f6ff) !important;
+  color: var(--nav-blue-2) !important;
+  box-shadow: 0 6px 18px rgba(2,18,110,0.06) !important;
+  border: 1px solid rgba(2,18,110,0.12);
+  transform: translateY(-1px) !important;
+}
+
+/* Mobile: make buttons smaller/wrapping */
+@media (max-width: 720px) {
+  .common-navbar { padding:10px 14px; }
+  .common-navbar .brand .title { font-size:15px; }
+  .common-navbar .nav-buttons { gap:6px; }
+  .common-navbar .nav-buttons button { padding:7px 10px; font-size:13px; }
+}
+
+/* push page content below navbar (only added if page doesn't already do it) */
+html body { --navbar-height: var(--nav-h); }
+/* main, .content, .toolbar-wrapper, #content, #coalForm { margin-top: calc(var(--navbar-height) + 12px) !important; } */

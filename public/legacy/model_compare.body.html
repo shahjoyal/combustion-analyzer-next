@@ -1,0 +1,144 @@
+
+
+<div class="common-navbar-wrapper">
+<nav class="common-navbar">
+  <div class="brand">
+    <img src="./images/abhitech-logo.png" alt="logo">
+    <h1 class="title">Combustion Analyzer</h1>
+  </div>
+
+  <div style="display:flex;gap:15px;align-items:center;">
+    <div class="nav-buttons">
+      <button data-target="coal_table.html">Coal Properties</button>
+      <button data-target="slagging_coal_page.html">Calculation</button>
+      <button data-target="model.html">Cost Optimization Model</button>
+      <!-- <button data-target="date.html">Date Wise Analysis</button> -->
+      <button data-target="compare_models.html" class="active">Compare Models</button>
+    </div>
+    <div class="nav-buttons">
+      <button class="logout-btn" id="logoutBtn">Logout</button>
+    </div>
+  </div>
+</nav>
+</div>
+
+<main>
+<div class="card">
+<h2 class="page-title">Compare Models</h2>
+
+<!-- ① UPLOAD SECTION -->
+<div style="margin-bottom:18px;">
+  <div style="font-size:13px;font-weight:600;color:#02126e;margin-bottom:10px;letter-spacing:0.03em;">UPLOAD DATASET</div>
+  <div class="toolbar">
+    <div class="upload-area" id="uploadArea">
+      <div class="upload-icon">📤</div>
+      <div class="upload-text">
+        <strong>Upload CSV File or Excel File</strong>
+        <div class="upload-sub">Drag & drop or click to browse</div>
+      </div>
+      <input type="file" id="csvFile" accept=".csv,.xlsx,.xls">
+    </div>
+
+    <div class="small-muted" id="fileNameText">No file selected</div>
+
+    <div class="train-mode-toggle">
+      <label class="mode-option">
+        <input type="radio" name="trainMode" value="new" checked>
+        <span>New Data Only</span>
+      </label>
+      <label class="mode-option">
+        <input type="radio" name="trainMode" value="append">
+        <span>Old + New Data</span>
+      </label>
+    </div>
+
+    <button id="downloadCSVTemplateBtn">CSV Template</button>
+    <button id="downloadExcelTemplateBtn">Excel Template</button>
+  </div>
+</div>
+
+<div class="section-divider"></div>
+
+<!-- ② RUN COMPARISON -->
+<div style="display:flex;gap:15px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
+  <button id="runBtn">▶ Run Comparison</button>
+  <div id="loader" class="loader">Running models...</div>
+</div>
+
+<!-- Progress area -->
+<div id="progressArea" class="progress-grid" style="display:none;"></div>
+
+<div class="section-divider"></div>
+
+
+<!-- ③ CURRENT TRAINING DATASET -->
+<div class="trainingset-section">
+  <div class="trainingset-header">
+    <h3>🗂️ Current Training Dataset <span id="trainingSetCount" style="font-size:13px;color:#6b7280;font-weight:400;"></span></h3>
+    <div class="trainingset-controls">
+      <input type="text" id="trainingSetSearch" placeholder="Search rows…" oninput="filterTrainingSet()">
+      <button id="refreshDatasetBtn" style="background:linear-gradient(180deg,#02126e,#0027a7);">↻ Refresh</button>
+      <button id="exportTrainingSetBtn" style="background:linear-gradient(180deg,#0f7a4e,#14a367);">⬇ Export CSV</button>
+    </div>
+  </div>
+  <div class="trainingset-scroll-wrap" id="trainingSetWrap">
+    <div class="trainingset-empty" id="trainingSetEmpty">
+      <div style="font-size:24px;margin-bottom:8px;">📭</div>
+      No training dataset found on server.<br>
+      <span style="font-size:12px;">Upload a file and run comparison to populate it.</span>
+    </div>
+    <table id="trainingSetTable" style="display:none;">
+      <thead id="trainingSetHead"></thead>
+      <tbody id="trainingSetBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section-divider"></div>
+
+<!-- ④ CURRENT MODEL -->
+<div class="comparison-section">
+  <div class="comparison-header">
+    <h3>🧠 Current Model With its  Comparison</h3>
+    <div id="comparisonCacheNote" class="comparison-cache-note">No comparison cached yet.</div>
+  </div>
+
+  <div id="activeModelBox" class="current-model-box">
+    <div>
+      <div class="label">Currently Active Model</div>
+      <div id="activeModelName" class="value">Loading...</div>
+    </div>
+    <div id="activeModelBadge" class="badge loading">loading</div>
+  </div>
+
+  <div id="comparisonResultsEmpty" class="trainingset-empty comparison-empty">
+    <div style="font-size:24px;margin-bottom:8px;">📊</div>
+    Run a comparison to load the results table here.
+  </div>
+
+  <!-- Model comparison result table -->
+  <div id="result"></div>
+
+  <!-- Test-set viewer (rendered after results) -->
+  <div id="testSetSection" style="display:none;" class="testset-section">
+    <div class="testset-header">
+      <h3>📋 Test Set Used by Models <span id="testSetCount" style="font-size:13px;color:#6b7280;font-weight:400;"></span></h3>
+      <div class="testset-controls">
+        <input type="text" id="testSetSearch" placeholder="Search rows…" oninput="filterTestSet()">
+        <button id="exportTestSetBtn" style="background:linear-gradient(180deg,#0f7a4e,#14a367);">⬇ Export CSV</button>
+      </div>
+    </div>
+    <div class="testset-scroll-wrap">
+      <table id="testSetTable">
+        <thead id="testSetHead"></thead>
+        <tbody id="testSetBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+</div>
+</main>
+
+
+

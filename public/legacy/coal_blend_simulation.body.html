@@ -1,0 +1,115 @@
+
+ <div class="navbar">
+    <img src="/images/abhitech-logo.png" alt="Company Logo">
+    <h1>COAL BLENDING RATIO</h1>
+    <div class="nav-buttons">
+      <button onclick="window.location.href='slagging_coal_page.html'">Calculation</button>
+      <button onclick="window.location.href='coal_table.html'">Coal Properties</button>
+      <button onclick="window.location.href='model.html'">Model</button>
+      <button class="logout-btn" onclick="logoutUser()">Logout</button>
+
+      
+    </div>
+  </div>
+  <div style="margin-top:8px;">
+    <input type="file" id="excelFile" accept=".xlsx,.xls,.csv" style="display:none" />
+    <label for="excelFile" class="upload-btn">Upload Excel</label>
+  </div>
+
+  <div id="loader">Loading... please wait</div>
+<button id="downloadPDF" class="icon-btn" title="Download page as PDF">⬇️</button>
+  <div class="main-container">
+    <div class="mills-grid" id="millsGrid">
+      <!-- header row -->
+      <div></div>
+      <!-- START: changed headers to green by default -->
+      <div class="mill green">MILL-A</div>
+      <div class="mill green">MILL-B</div>
+      <div class="mill green">MILL-C</div>
+      <div class="mill green">MILL-D</div>
+      <div class="mill green">MILL-E</div>
+      <div class="mill green">MILL-F</div>
+      <!-- END -->
+      <div class="mill gcv">GCV(Kcal/kg)</div>
+      <div class="mill cost-head">Cost/MT</div>
+
+      <!-- Row 1: Coal selection 1 (first cell = dropdown, columns 2-7 = % under mills) -->
+      <div class="mill"><select class="dropdown" id="coalDrop1"></select></div>
+      <div class="mill"><input type="text" class="percentage-input" data-row="1" data-mill="0" placeholder="%"></div>
+      <div class="mill"><input type="text" class="percentage-input" data-row="1" data-mill="1" placeholder="%"></div>
+      <div class="mill"><input type="text" class="percentage-input" data-row="1" data-mill="2" placeholder="%"></div>
+      <div class="mill"><input type="text" class="percentage-input" data-row="1" data-mill="3" placeholder="%"></div>
+      <div class="mill"><input type="text" class="percentage-input" data-row="1" data-mill="4" placeholder="%"></div>
+      <div class="mill"><input type="text" class="percentage-input" data-row="1" data-mill="5" placeholder="%"></div>
+      <div class="mill"><div id="gcvBox1" class="gcv-box">--</div></div>
+      <div class="mill"><input type="text" id="costBox1" class="cost-input" placeholder="Cost/MT"></div>
+
+      <!-- Row 2: Coal selection 2 -->
+      <div class="mill"><select class="dropdown" id="coalDrop2"></select></div>
+      <div class="mill"><input type="text" class="percentage-input" data-row="2" data-mill="0" placeholder="%"></div>
+      <div class="mill"><input type="text" class="percentage-input" data-row="2" data-mill="1" placeholder="%"></div>
+      <div class="mill"><input type="text" class="percentage-input" data-row="2" data-mill="2" placeholder="%"></div>
+      <div class="mill"><input type="text" class="percentage-input" data-row="2" data-mill="3" placeholder="%"></div>
+      <div class="mill"><input type="text" class="percentage-input" data-row="2" data-mill="4" placeholder="%"></div>
+      <div class="mill"><input type="text" class="percentage-input" data-row="2" data-mill="5" placeholder="%"></div>
+      <div class="mill"><div id="gcvBox2" class="gcv-box">--</div></div>
+      <div class="mill"><input type="text" id="costBox2" class="cost-input" placeholder="Cost/MT"></div>
+
+      <!-- Row 3: Coal selection 3 -->
+      <div class="mill"><select class="dropdown" id="coalDrop3"></select></div>
+      <div class="mill"><input type="text" class="percentage-input" data-row="3" data-mill="0" placeholder="%"></div>
+      <div class="mill"><input type="text" class="percentage-input" data-row="3" data-mill="1" placeholder="%"></div>
+      <div class="mill"><input type="text" class="percentage-input" data-row="3" data-mill="2" placeholder="%"></div>
+      <div class="mill"><input type="text" class="percentage-input" data-row="3" data-mill="3" placeholder="%"></div>
+      <div class="mill"><input type="text" class="percentage-input" data-row="3" data-mill="4" placeholder="%"></div>
+      <div class="mill"><input type="text" class="percentage-input" data-row="3" data-mill="5" placeholder="%"></div>
+      <div class="mill"><div id="gcvBox3" class="gcv-box">--</div></div>
+      <div class="mill"><input type="text" id="costBox3" class="cost-input" placeholder="Cost/MT"></div>
+
+      <!-- Row 4: Coal Flow -->
+      <div class="mill coal-flow">Coal Flow(TPH)</div>
+      <div class="mill"><input type="text" class="flow-input" data-mill="0" placeholder="TPH"></div>
+      <div class="mill"><input type="text" class="flow-input" data-mill="1" placeholder="TPH"></div>
+      <div class="mill"><input type="text" class="flow-input" data-mill="2" placeholder="TPH"></div>
+      <div class="mill"><input type="text" class="flow-input" data-mill="3" placeholder="TPH"></div>
+      <div class="mill"><input type="text" class="flow-input" data-mill="4" placeholder="TPH"></div>
+      <div class="mill"><input type="text" class="flow-input" data-mill="5" placeholder="TPH"></div>
+      <div></div>
+      <div></div>
+
+      <!-- Row 5: AFT (calculated per mill) -->
+      <div class="mill aft-head">AFT(°C)</div>
+      <div class="mill aft" data-mill="0">--</div>
+      <div class="mill aft" data-mill="1">--</div>
+      <div class="mill aft" data-mill="2">--</div>
+      <div class="mill aft" data-mill="3">--</div>
+      <div class="mill aft" data-mill="4">--</div>
+      <div class="mill aft" data-mill="5">--</div>
+      <div></div>
+      <div></div>
+    </div>
+
+    <!-- Summary -->
+    <div class="summary-table" aria-hidden="false">
+      <div class="summary-cell summary-header">Generation (MW)</div>
+      <div class="summary-cell"><input id="generation" class="generation-input" placeholder="MW" /></div>
+
+      <div class="summary-cell summary-header">Total Coal Flow(TPH)</div>
+      <div class="summary-cell" id="totalFlow">0</div>
+
+      <div class="summary-cell summary-header">Average GCV(Kcal/kg)</div>
+      <div class="summary-cell" id="avgGCV">0</div>
+
+      <div class="summary-cell summary-header">Average AFT(°C)</div>
+      <div class="summary-cell" id="avgAFT">--</div>
+
+      <div class="summary-cell summary-header">Heat Rate(Kcal/kWh)</div>
+      <div class="summary-cell" id="heatRate">--</div>
+      
+      <div class="summary-cell summary-header">Cost/MT</div>
+      <div class="summary-cell" id="COSTRATE">--</div>
+    </div>
+  </div>
+
+
+

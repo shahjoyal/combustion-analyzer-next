@@ -1,0 +1,105 @@
+<div class="cx-page">
+
+  <!-- ===== LEFT: brand panel ===== -->
+  <section class="cx-brand">
+    <div class="cx-brand-bg" aria-hidden="true">
+      <div class="cx-glow cx-glow--a"></div>
+      <div class="cx-glow cx-glow--b"></div>
+      <div class="cx-rings">
+        <span></span><span></span><span></span>
+      </div>
+      <div class="cx-dotgrid"></div>
+
+      <!-- Interactive 3D refinery, rendered by login-scene.js (three.js).
+           Sits on top of the flat SVG skyline below, which stays as a
+           graceful fallback if three.js/WebGL can't load. -->
+      <canvas id="cx-three-canvas" class="cx-three-canvas"></canvas>
+      <div class="cx-brand-scrim"></div>
+
+      <svg class="cx-skyline cx-skyline-fallback" viewBox="0 0 900 340" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+        <g fill="#04123a">
+          <rect x="0" y="260" width="60" height="80"></rect>
+          <rect x="55" y="220" width="14" height="120"></rect>
+          <rect x="90" y="240" width="30" height="100"></rect>
+          <rect x="130" y="200" width="18" height="140"></rect>
+          <rect x="160" y="255" width="70" height="85"></rect>
+          <circle cx="150" cy="196" r="6"></circle>
+          <rect x="240" y="215" width="16" height="125"></rect>
+          <rect x="265" y="245" width="55" height="95"></rect>
+          <rect x="330" y="190" width="20" height="150"></rect>
+          <circle cx="340" cy="186" r="7"></circle>
+          <rect x="360" y="235" width="40" height="105"></rect>
+          <rect x="410" y="205" width="16" height="135"></rect>
+          <rect x="435" y="255" width="90" height="85"></rect>
+          <rect x="535" y="215" width="14" height="125"></rect>
+          <rect x="558" y="240" width="34" height="100"></rect>
+          <rect x="600" y="185" width="18" height="155"></rect>
+          <circle cx="609" cy="180" r="7"></circle>
+          <rect x="630" y="250" width="60" height="90"></rect>
+          <rect x="700" y="225" width="16" height="115"></rect>
+          <rect x="725" y="255" width="45" height="85"></rect>
+          <rect x="780" y="200" width="20" height="140"></rect>
+          <circle cx="790" cy="195" r="6"></circle>
+          <rect x="815" y="245" width="55" height="95"></rect>
+        </g>
+        <g class="cx-lights">
+          <circle cx="150" cy="196" r="2.2"></circle>
+          <circle cx="340" cy="186" r="2.2"></circle>
+          <circle cx="609" cy="180" r="2.2"></circle>
+          <circle cx="790" cy="195" r="2.2"></circle>
+          <circle cx="70" cy="240" r="1.6"></circle>
+          <circle cx="245" cy="235" r="1.6"></circle>
+          <circle cx="415" cy="225" r="1.6"></circle>
+          <circle cx="540" cy="235" r="1.6"></circle>
+          <circle cx="705" cy="245" r="1.6"></circle>
+          <circle cx="820" cy="265" r="1.6"></circle>
+        </g>
+      </svg>
+    </div>
+
+    <div class="cx-brand-content">
+      <div class="cx-logo-badge">
+        <img src="./images/abhitech-logo.png" alt="Abhitech logo">
+      </div>
+      <h1 class="cx-brand-title">Combustion <span>Analyzer</span></h1>
+      <div class="cx-brand-rule"></div>
+      <p class="cx-brand-sub">Advanced analysis and optimization for efficient combustion performance</p>
+    </div>
+  </section>
+
+  <!-- ===== RIGHT: login panel ===== -->
+  <section class="cx-auth">
+    <div class="login-container">
+      <div class="cx-mobile-logo">
+        <img src="./images/abhitech-logo.png" alt="Abhitech logo">
+      </div>
+
+      <h2>LOGIN</h2>
+
+      <form id="loginForm" autocomplete="on">
+        <div class="cx-field">
+          <svg class="cx-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M3.5 6.75A2.25 2.25 0 0 1 5.75 4.5h12.5A2.25 2.25 0 0 1 20.5 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25H5.75A2.25 2.25 0 0 1 3.5 17.25V6.75Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+            <path d="M4.5 7 12 12.75 19.5 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <input type="text" id="email" placeholder="Email" required autocomplete="username">
+        </div>
+
+        <div class="cx-field">
+          <svg class="cx-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <rect x="5" y="10.5" width="14" height="9.5" rx="2.2" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M8 10.5V7.75a4 4 0 1 1 8 0V10.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+          <input type="password" id="password" placeholder="Password" required autocomplete="current-password">
+        </div>
+
+        <button type="submit">
+          <span>Login</span>
+        </button>
+      </form>
+
+      <p id="message"></p>
+    </div>
+  </section>
+
+</div>

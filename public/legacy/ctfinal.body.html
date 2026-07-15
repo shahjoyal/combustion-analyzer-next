@@ -1,0 +1,158 @@
+
+    <!-- <div class="navbar">
+        <div style="display:flex; align-items:center;">
+            <img src="/images/abhitech-logo.png" alt="Company Logo">
+            <h1>Combustion Analyzer</h1>
+        </div>
+        <div class="nav-buttons">
+            <button onclick="window.location.href='model.html'">Model</button>
+            <button onclick="window.location.href='slagging_coal_page.html'">Calculation</button>
+            <button class="logout-btn" onclick="logoutUser()">Logout</button>
+        </div>
+    </div> -->
+
+    <h1 class="page-title">Slagging Data Table</h1>
+
+    <div class="toolbar-wrapper">
+        <div class="toolbar">
+            <div class="left-group">
+                <button class="btn-template" id="btn-download-template">Download Template</button>
+
+                <!-- Replaced label with a proper button to fix UI -->
+                <button id="btn-upload" class="btn-upload" type="button">📤 Upload New Data</button>
+                <input type="file" id="fileInput" accept=".xlsx,.xls">
+
+            </div>
+
+            <div class="right-group">
+                <div class="download-dropdown">
+                    <button id="download-selected-btn" class="btn-download" disabled>Download Selected ▾</button>
+                    <div id="download-menu" class="dropdown-menu" aria-hidden="true">
+                        <button type="button" onclick="downloadSelected('excel')">Download as Excel</button>
+                        <button type="button" onclick="downloadSelected('pdf')">Download as PDF</button>
+                    </div>
+                </div>
+
+                <button id="delete-selected-btn" class="btn-delete" disabled>Delete Selected</button>
+
+                <button id="downloadWholePDFBtn" class="btn-download">Download whole page as PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-wrapper">
+        <table id="data-table" role="table" aria-label="coal data table">
+            <thead>
+                <tr id="table-header"></tr>
+            </thead>
+            <tbody id="table-body"></tbody>
+        </table>
+    </div>
+
+
+
+
+<!-- ====== START: COMMON NAVBAR (paste into each HTML file, right after <body>) ====== -->
+<style>
+/* Common navbar override (will replace previous styles visually) */
+:root{
+  --nav-h: 90px;
+  --nav-bg-start: rgba(255,255,255,0.96);
+  --nav-bg-end: rgba(245,247,255,0.88);
+  --nav-blue-1: #02126e;
+  --nav-blue-2: #0027a7;
+  --nav-text: #071a52;
+  --nav-btn-radius: 999px;
+}
+
+/* Strongly scoped to override older rules */
+.common-navbar-wrapper { position: fixed; top: 0; left: 0; right: 0; height: var(--nav-h); z-index: 1300; }
+.common-navbar {
+  box-sizing: border-box;
+  height: 100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 12px;
+  padding: 8px 20px;
+  background: linear-gradient(180deg, var(--nav-bg-start), var(--nav-bg-end));
+  box-shadow: 0 8px 30px rgba(9,20,46,0.06);
+  border-bottom: 1px solid rgba(2,18,110,0.04);
+  backdrop-filter: blur(4px) saturate(1.02);
+  font-family: Inter, Arial, Helvetica, sans-serif;
+}
+
+/* Left: logo + title */
+.common-navbar .brand { display:flex; align-items:center; gap:12px; }
+.common-navbar .brand img { height:46px; width:auto; object-fit:contain; display:block; }
+.common-navbar .brand .title { font-weight:700; color:var(--nav-text); font-size:18px; margin:0; }
+
+/* Center/right: nav buttons */
+.common-navbar .nav-buttons { display:flex; gap:10px; align-items:center; margin-left:12px; }
+.common-navbar .nav-buttons button{
+  padding:8px 14px;
+  border-radius:var(--nav-btn-radius);
+  border: none;
+  font-weight:600;
+  cursor:pointer;
+  background: linear-gradient(180deg,var(--nav-blue-1),var(--nav-blue-2));
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(2,18,110,0.07);
+  transition: transform .12s ease, box-shadow .12s ease, opacity .12s;
+}
+.common-navbar .nav-buttons button:hover{ transform: translateY(-2px); }
+.common-navbar .nav-buttons button.logout-btn{
+  background: linear-gradient(180deg,#ff4b4b,#e32d2d) !important;
+  box-shadow: 0 8px 20px rgba(227,45,45,0.07);
+}
+
+/* Active page visual (different contrast + subtle outline) */
+.common-navbar .nav-buttons button.active {
+  background: linear-gradient(180deg,#ffffff, #f1f6ff) !important;
+  color: var(--nav-blue-2) !important;
+  box-shadow: 0 6px 18px rgba(2,18,110,0.06) !important;
+  border: 1px solid rgba(2,18,110,0.12);
+  transform: translateY(-1px) !important;
+}
+
+/* Mobile: make buttons smaller/wrapping */
+@media (max-width: 720px) {
+  .common-navbar { padding:10px 14px; }
+  .common-navbar .brand .title { font-size:15px; }
+  .common-navbar .nav-buttons { gap:6px; }
+  .common-navbar .nav-buttons button { padding:7px 10px; font-size:13px; }
+}
+
+/* push page content below navbar (only added if page doesn't already do it) */
+html body { --navbar-height: var(--nav-h); }
+/* main, .content, .toolbar-wrapper, #content, #coalForm { margin-top: calc(var(--navbar-height) + 12px) !important; } */
+</style>
+
+<div class="common-navbar-wrapper" role="navigation" aria-label="Main navigation">
+  <nav class="common-navbar">
+    <div class="brand" aria-hidden="false">
+      <img src="/images/abhitech-logo.png" alt="Abhitech logo">
+      <h1 class="title">Combustion Analyzer</h1>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:12px;">
+      <div class="nav-buttons" role="menubar" aria-label="Primary">
+        <!-- important: use the exact filenames from your site -->
+        <button data-target="coal_table.html" title="Coal Properties">Coal Properties</button>
+        <button data-target="slagging_coal_page.html" title="Calculation">Calculation</button>
+        <button data-target="model.html" title="Model">Model</button>
+      </div>
+
+      <div style="width:8px;"></div>
+
+      <!-- keep logout last -->
+      <div class="nav-buttons" aria-hidden="false">
+        <button class="logout-btn" id="common-logout-btn" title="Logout">Logout</button>
+      </div>
+    </div>
+  </nav>
+</div>
+
+
+<!-- ====== END: COMMON NAVBAR ====== -->
+

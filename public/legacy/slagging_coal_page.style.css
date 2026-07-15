@@ -1,0 +1,987 @@
+body {
+            margin: 0;
+            padding: 0;
+            font-size: large;
+            font-family: Arial, sans-serif;
+        }
+
+
+        .content {
+            margin-top: 90px; /* Space below navbar */
+            padding: 10px;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            height: auto;
+        }
+
+        .left-container, .right-container {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            border-radius: 4px;
+            flex-direction: column;
+            position: relative;
+            padding: 1rem;
+        }
+        
+        .blend-row {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .blend {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            gap: 10px;
+            width: 100%;
+        }
+        
+        .blend select, .blend-entry select, .blend input, .blend-entry input {
+            flex: 2;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .blend select, .blend-entry select {
+            min-width: 0;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        button {
+            padding: 8px 12px;
+            cursor: pointer;
+            border: none;
+            background-color: #02008a;
+            color: white;
+            border-radius: 5px;
+        }
+        
+        button:hover {
+            background-color: #0056b3;
+        }
+        
+        #weightedAverageProperties {
+            display: none;
+            margin-top: 20px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-top: 10px;
+            margin-bottom: 15px;
+        }
+        
+        /* Table Header */
+        table th {
+            background: #0153ac;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            font-size: 16px;
+            border: 1px solid #ddd;
+        }
+        
+        /* Table Rows */
+        table td {
+            padding: 10px;
+            text-align: center;
+            font-size: 14px;
+            border: 1px solid #ddd;
+            color: #333;
+        }
+        
+        /* Alternate Row Background */
+        table tr:nth-child(even) {
+            background: #f2f2f2;
+        }
+        
+        /* Hover Effect */
+        table tr:hover {
+            background: #d4e6ff;
+        }
+        
+        
+        /* Light blue background for table headers */
+        th[colspan="3"] {
+            background-color: rgb(24, 0, 158);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        
+        .modal-content {
+            background-color: #fff;
+            margin: 10% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 30%;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+        }
+        
+        .close {
+            font-size: 30px;
+            cursor: pointer;
+            font-weight: bolder;
+        }
+        
+        .blendedcoalProperties {
+            overflow-x: auto;
+            margin-top: 10px;
+            white-space: nowrap;
+            padding: 10px;
+        }
+        
+        .blendedcoalProperties p {
+            display: inline-block;
+            margin-right: 20px;
+            padding: 5px;
+            border: 1px solid #ccc;
+        }
+        
+        .blendedcoalProperties::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+        
+        .blendedcoalProperties::-webkit-scrollbar-thumb {
+            background-color: #888;
+            border-radius: 5px;
+        }
+        
+        .blendedcoalProperties::-webkit-scrollbar-track {
+            background-color: #f1f1f1;
+        }
+        
+        .blend .remove-blend-btn, .blend-entry .remove-blend-btn {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 10px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        
+        .blend .remove-blend-btn:hover, .blend-entry .remove-blend-btn:hover {
+            background-color: #c0392b;
+        }
+        
+        .add-blend-btn {
+            padding: 8px 12px;
+            cursor: pointer;
+            border: none;
+            width: 20%;
+            margin-left: 40%;
+            background-color: #02008a;
+            margin-bottom: 20px;
+            margin-top: 20px;
+            color: white;
+            border-radius: 5px;
+        }
+        
+        .calculate-properties-btn{
+            padding: 8px 12px;
+            cursor: pointer;
+            border: none;
+            background-color: #02008a;
+            width: 30%;
+            margin-left: 35%;
+            margin-top: 20px;
+            color: white;
+            border-radius: 5px;
+        }
+
+        .blendProperties {
+            padding: 8px 12px;
+            cursor: pointer;
+            border: none;
+            background-color: #02008a;
+            width: 45%;
+            margin-left: 27%;
+            margin-top: 20px;
+            color: white;
+            border-radius: 5px;
+        }
+        
+        #totalRangeContainer {
+            text-align: center; 
+        }
+        
+        #totalRange {
+            font-weight: bold; 
+            margin-left: 5px;   
+        }
+
+        .right-container > table {
+            margin-bottom: 30px; 
+        }
+
+            /* Checkbox Card */
+        .checkbox-card {
+            width: 94%;
+            background-color: #f8f9fa;
+            padding: 12px 16px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            margin-top: 15px;
+            border: 1px solid #ccc;
+            box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .checkbox-card h3 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .toggle-icon {
+            font-size: 20px;
+            transition: transform 0.3s ease;
+        }
+
+        /* Collapsible Checkbox Section */
+        .checkbox-container {
+            width: 95%;
+            background-color: #ffffff;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 10px;
+            font-weight: bold;
+            box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);
+            display: none; /* Initially hidden */
+            transition: all 0.3s ease;
+              /* NEW */
+  max-height: 250px;   /* adjust if needed */
+  overflow-y: auto;  
+        }
+
+        .checkbox-table td {
+            padding: 8px;
+        }
+
+        /* Hidden class for smooth collapse */
+        .hidden {
+            display: none;
+        }
+        #plot-section {
+            width: 100%;
+            display: flex;
+            padding-left: 25px;
+            align-items: center; 
+            flex-direction: column;
+            
+        }
+        #ternary-plot {
+            width: 100%;
+            max-height: 500px; /* Keeps it within a reasonable size */
+            padding-top: 10px;
+            
+        }
+        .navbar .logout-btn {
+  padding: 10px 16px;
+  background-color: red !important;
+  color: #fff !important;
+  border: none;
+  cursor: pointer;
+  border-radius: 25px;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+.navbar .logout-btn:hover {
+  background-color: darkred !important;
+}
+        /* Icon button styles */
+.icon-btn {
+  position: absolute;
+  top: 90px;        /* a little lower below navbar */
+  right: 20px;      /* align on right side */
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #1f2937;   /* same as navbar buttons */
+  transition: color 0.2s ease;
+  z-index: 1000;    /* ensure it stays on top */
+}
+
+.icon-btn:hover {
+  color: #000;      /* only color change, no resize */
+}
+
+/* Tooltip styling */
+.icon-btn::after {
+  content: attr(title);
+  position: absolute;
+  top: 120%;             /* place directly below icon */
+  left: 50%;
+  transform: translateX(-50%);
+  background: #111;      /* black box */
+  color: #fff;
+  font-size: 0.75rem;
+  padding: 4px 6px;
+  border-radius: 4px;
+  opacity: 0;
+  pointer-events: none;
+  white-space: nowrap;
+  transition: opacity 0.2s ease;
+}
+
+/* Show tooltip on hover */
+.icon-btn:hover::after {
+  opacity: 1;
+}
+/* ---------------------------
+  Add-on: Left-align after checkbox + modern checkbox visuals
+  Append this to the end of your existing <style> block
+   --------------------------- */
+
+/* Ensure checkbox cell has relative positioning for the custom checkmark */
+.checkbox-table td:first-child { position: relative; }
+
+/* 1) Left-align the description column (text immediately after checkbox) */
+.checkbox-table td:nth-child(2) {
+  text-align: left;            /* key: left align description */
+  padding: 12px 14px;         /* slightly larger padding for breathing room */
+  vertical-align: middle;
+  color: #0b1a2b;             /* dark readable color */
+  font-weight: 500;           /* medium weight for better hierarchy */
+  line-height: 1.35;
+  white-space: normal;        /* allow wrapping */
+}
+
+/* 2) Modern checkbox visuals (works even if default appearance removed) */
+.checkbox-table input[type="checkbox"]{
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  display: inline-block;
+  vertical-align: middle;
+  cursor: pointer;
+  border-radius: 4px;
+  border: 2px solid rgba(2,0,138,0.18); /* subtle blue border */
+  background: #fff;
+  position: relative;
+  transition: all .12s ease;
+  box-sizing: border-box;
+}
+
+/* focus - accessible outline */
+.checkbox-table input[type="checkbox"]:focus{
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(2,0,138,0.10);
+  border-color: rgba(1,28,187,0.35);
+}
+
+/* checked state: blue gradient background + no border */
+.checkbox-table input[type="checkbox"]:checked{
+  background: linear-gradient(180deg, #001cbb, #02008a);
+  border-color: transparent;
+}
+
+/* custom white checkmark using pseudo-element */
+.checkbox-table input[type="checkbox"]::after{
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 2px;
+  width: 5px;
+  height: 9px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) scale(0);
+  transform-origin: center;
+  transition: transform .12s ease;
+  pointer-events: none;
+}
+
+/* reveal checkmark when checked */
+.checkbox-table input[type="checkbox"]:checked::after{
+  transform: rotate(45deg) scale(1);
+}
+
+/* small hover affordance */
+.checkbox-table input[type="checkbox"]:hover{
+  transform: translateY(-1px);
+}
+
+
+
+        
+
+
+    /* PREMIUM UI - paste after existing CSS to override */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+:root{
+  --bg-1: #f4f7fb;
+  --bg-2: #ffffff;
+  --nav-blue-1: #001cbb;
+  --nav-blue-2: #02008a;
+  --muted: #6b7280;
+  --card-shadow: 0 10px 30px rgba(11,23,47,0.06);
+  --card-border: rgba(2,0,138,0.06);
+  --radius-lg: 12px;
+  --radius-md: 8px;
+  --accent: #ff7a59; /* warm accent if needed */
+}
+
+/* Typography + page background */
+html,body{
+  height:100%;
+}
+body{
+  margin:0;
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  font-size:14px;
+  color: #0b1a2b;
+  background: linear-gradient(180deg, var(--bg-1) 0%, #fbfcff 60%);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+
+/* NAVBAR - visually elevated but same position */
+.navbar{
+  background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(250,251,255,0.85));
+  height:72px;
+  padding:12px 24px;
+  align-items:center;
+  box-shadow: 0 6px 18px rgba(11,23,47,0.06);
+  border-bottom: 1px solid rgba(11,23,47,0.04);
+  backdrop-filter: blur(4px);
+}
+
+/* logo & title */
+.navbar img{ height:48px; object-fit:contain; margin-right:12px; }
+.navbar h1{
+  font-size:18px; color:var(--nav-blue-2); font-weight:700;
+  margin:0;
+  letter-spacing:0.2px;
+}
+
+/* nav buttons (pill style) */
+.nav-buttons button{
+  padding:8px 14px;
+  border-radius:999px;
+  border: none;
+  margin-left:8px;
+  font-weight:600;
+  background: linear-gradient(180deg, var(--nav-blue-1), var(--nav-blue-2));
+  color:#fff;
+  box-shadow: 0 8px 20px rgba(2,0,138,0.07);
+  transition: transform .12s ease, box-shadow .12s ease, opacity .12s;
+}
+.nav-buttons button:hover{ transform: translateY(-3px); box-shadow: 0 12px 30px rgba(2,0,138,0.09); }
+.nav-buttons .logout-btn{ background: linear-gradient(180deg,#ff4b4b,#e32d2d); box-shadow: 0 6px 18px rgba(227,45,45,0.08); }
+
+/* content containers (cards) - same widths/positioning preserved */
+.content{ margin-top:92px; padding:18px; display:flex; gap:18px; }
+.left-container, .right-container{
+  background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(250,250,255,0.9));
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--card-shadow);
+  padding:18px;
+  flex:1;
+  min-width:0; /* prevents overflow */
+}
+
+/* blend rows and controls */
+.blend-row{ display:flex; flex-direction:column; gap:12px;   height: 100px;          /* fixed height for the coal list */
+  overflow-y: auto;       /* internal scroll */
+  overflow-x: hidden;
+  padding-right: 6px;  }
+.blend{ display:flex; gap:12px; align-items:center; width:100%; }
+.blend label{ min-width:42px; color:var(--muted); font-weight:600; }
+
+/* inputs & selects - premium fields */
+.blend select, .blend-entry select, .blend input, .blend-entry input{
+  padding:10px 12px;
+  border-radius:10px;
+  border:1px solid rgba(11,23,47,0.06);
+  box-shadow: inset 0 2px 6px rgba(11,23,47,0.02);
+  background: #fff;
+  font-size:14px;
+  transition: box-shadow .12s, transform .08s;
+  outline: none;
+}
+.blend select, .blend-entry select{
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.blend select:focus, .blend input:focus, .blend-entry input:focus{
+  box-shadow: 0 6px 18px rgba(2,0,138,0.08);
+  transform: translateY(-2px);
+  border-color: rgba(2,0,138,0.12);
+}
+
+/* primary buttons */
+button, .add-blend-btn, .calculate-properties-btn, .blendProperties{
+  cursor:pointer;
+  border-radius:12px;
+  font-weight:700;
+  letter-spacing:0.2px;
+}
+.add-blend-btn{ width:180px; margin:20px auto; display:block; }
+.calculate-properties-btn{ width:220px; margin:8px auto 0; display:block; }
+
+/* tables - modern / compact */
+table{
+  width:100%;
+  border-collapse:collapse;
+  background:transparent;
+  border-radius:8px;
+  overflow:hidden;
+  box-shadow:none;
+}
+table thead th{
+  background: linear-gradient(180deg, #071a52, #0b2a7a);
+  color:#fff; font-size:13px; font-weight:700; padding:10px 12px;
+  text-transform:uppercase; letter-spacing:0.6px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+table tbody td{
+  background: #fff; padding:10px 12px; color:#243447; font-size:13px;
+  border-bottom: 1px solid rgba(11,23,47,0.04);
+}
+table tr:nth-child(even) td{ background:#fbfcff; }
+table tr:hover td{ transform:translateY(-1px); background: #f0f6ff; }
+
+/* modal - centered + blur backdrop */
+/* REPLACE your existing .modal block with this */
+.modal {
+  display: none;               /* hidden by default */
+  position: fixed;
+  inset: 0;                    /* top:0; left:0; right:0; bottom:0 */
+  z-index: 1200;
+  align-items: center;
+  justify-content: center;
+  background: rgba(6,18,28,0.4);
+  backdrop-filter: blur(6px) saturate(1.02);
+}
+
+/* show the modal only when JS adds the .show class */
+.modal.show {
+  display: flex;
+}
+
+.modal-content{
+  width: min(720px, 92%);
+  background: linear-gradient(180deg,#fff,#fbfbff);
+  padding:18px; border-radius:14px;
+  box-shadow: 0 30px 80px rgba(11,23,47,0.12);
+  border: 1px solid rgba(11,23,47,0.04);
+}
+
+/* small helpers */
+.icon-btn{ top:88px; right:22px; font-size:18px; background:transparent; }
+.checkbox-card{ border-radius:12px; padding:14px 16px; background:#fff; border:1px solid rgba(11,23,47,0.04); box-shadow:var(--card-shadow); }
+.blendedcoalProperties p{ background:#f7f9ff; border-radius:8px; padding:6px 10px; }
+
+/* responsive */
+@media (max-width:900px){
+  .content{ flex-direction:column; gap:12px; padding:12px; }
+  .nav-buttons button{ padding:8px 10px; font-size:13px; }
+  .navbar img{ height:40px; }
+}
+
+/* Replace existing .icon-btn block with this */
+
+.right-container { position: relative; } /* ensure right-container is positioning context (it already is, but safe) */
+
+.right-container .icon-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: #ffffff;
+  color: #0b1a2b;
+  border: 1px solid rgba(2,0,138,0.10);
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(11,23,47,0.08);
+  z-index: 60;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* small hover effect */
+.right-container .icon-btn:hover,
+.right-container .icon-btn:focus {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(11,23,47,0.12);
+  outline: none;
+}
+
+/* tooltip (keeps your current ::after approach but repositioned) */
+.right-container .icon-btn::after {
+  content: attr(title);
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 50%;
+  transform: translateX(50%);
+  background: #111;
+  color: #fff;
+  font-size: 0.75rem;
+  padding: 6px 8px;
+  border-radius: 6px;
+  opacity: 0;
+  pointer-events: none;
+  white-space: nowrap;
+  transition: opacity 0.18s ease;
+}
+.right-container .icon-btn:hover::after { opacity: 1; }
+
+/* keep hidden utility */
+.icon-btn.hidden { display: none !important; }
+
+/* responsive: on very small widths show only icon */
+@media (max-width:420px) {
+  .right-container .icon-btn { padding: 6px; font-size: 13px; }
+  .right-container .icon-btn::after { display: none; } /* hide tooltip on tiny screens */
+}
+
+
+
+/* Common navbar override (will replace previous styles visually) */
+:root{
+  --nav-h: 90px;
+  --nav-bg-start: rgba(255,255,255,0.96);
+  --nav-bg-end: rgba(245,247,255,0.88);
+  --nav-blue-1: #02126e;
+  --nav-blue-2: #0027a7;
+  --nav-text: #071a52;
+  --nav-btn-radius: 999px;
+}
+
+/* Strongly scoped to override older rules */
+.common-navbar-wrapper { position: fixed; top: 0; left: 0; right: 0; height: var(--nav-h); z-index: 1300; }
+.common-navbar {
+  box-sizing: border-box;
+  height: 100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 12px;
+  padding: 8px 20px;
+  background: linear-gradient(180deg, var(--nav-bg-start), var(--nav-bg-end));
+  box-shadow: 0 8px 30px rgba(9,20,46,0.06);
+  border-bottom: 1px solid rgba(2,18,110,0.04);
+  backdrop-filter: blur(4px) saturate(1.02);
+  font-family: Inter, Arial, Helvetica, sans-serif;
+}
+
+/* Left: logo + title */
+.common-navbar .brand { display:flex; align-items:center; gap:12px; }
+.common-navbar .brand img { height:46px; width:auto; object-fit:contain; display:block; }
+.common-navbar .brand .title { font-weight:700; color:var(--nav-text); font-size:18px; margin:0; }
+
+/* Center/right: nav buttons */
+.common-navbar .nav-buttons { display:flex; gap:10px; align-items:center; margin-left:12px; }
+.common-navbar .nav-buttons button{
+  padding:8px 14px;
+  border-radius:var(--nav-btn-radius);
+  border: none;
+  font-weight:600;
+  cursor:pointer;
+  background: linear-gradient(180deg,var(--nav-blue-1),var(--nav-blue-2));
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(2,18,110,0.07);
+  transition: transform .12s ease, box-shadow .12s ease, opacity .12s;
+}
+.common-navbar .nav-buttons button:hover{ transform: translateY(-2px); }
+.common-navbar .nav-buttons button.logout-btn{
+  background: linear-gradient(180deg,#ff4b4b,#e32d2d) !important;
+  box-shadow: 0 8px 20px rgba(227,45,45,0.07);
+}
+
+/* Active page visual (different contrast + subtle outline) */
+.common-navbar .nav-buttons button.active {
+  background: linear-gradient(180deg,#ffffff, #f1f6ff) !important;
+  color: var(--nav-blue-2) !important;
+  box-shadow: 0 6px 18px rgba(2,18,110,0.06) !important;
+  border: 1px solid rgba(2,18,110,0.12);
+  transform: translateY(-1px) !important;
+}
+
+/* Mobile: make buttons smaller/wrapping */
+@media (max-width: 720px) {
+  .common-navbar { padding:10px 14px; }
+  .common-navbar .brand .title { font-size:15px; }
+  .common-navbar .nav-buttons { gap:6px; }
+  .common-navbar .nav-buttons button { padding:7px 10px; font-size:13px; }
+}
+
+/* push page content below navbar (only added if page doesn't already do it) */
+html body { --navbar-height: var(--nav-h); }
+
+
+#pdfReportPage {
+  width: 900px;
+  padding: 22px;
+  box-sizing: border-box;
+  background: #ffffff;
+  color: #111;
+  font-family: Arial, sans-serif;
+  border: 3px solid #02008a;
+  border-radius: 6px;
+}
+#pdfReportPage .header { display:flex; align-items:center; gap:12px; margin-bottom:14px; border-bottom: 2px solid #02008a; padding-bottom: 10px; }
+#pdfReportPage .header img { width:72px; height:auto; }
+#pdfReportPage h1 { font-size:16px; margin:0; color:#02008a; }
+#pdfReportPage .meta { font-size:10px; color:#666; margin-top:4px; }
+#pdfReportPage section { margin-bottom:10px; }
+#pdfReportPage .section-title { background:#f0f4fb; padding:6px 10px; border-radius:4px; font-weight:700; margin-bottom:6px; color:#02008a; font-size:12px; border-left: 3px solid #02008a; }
+
+/* Two-column top layout: coal+params left, AFB table right */
+#pdfReportPage .two-col-top { display:flex; gap:14px; align-items:flex-start; margin-bottom:10px; }
+#pdfReportPage .top-left-col { flex: 0 0 38%; min-width:0; }
+#pdfReportPage .top-right-col { flex: 1 1 60%; min-width:0; }
+
+#pdfReportPage table { width:100%; border-collapse:collapse; margin-top:4px; }
+#pdfReportPage table th, #pdfReportPage table td { border:1px solid #ddd; padding:4px 6px; font-size:11px; text-align:left; }
+#pdfReportPage table th { background:#0153ac; color:#fff; }
+#pdfReportPage table tr td { background:#fff; }
+#pdfReportPage .footer { text-align:center; font-size:10px; color:#666; margin-top:10px; border-top: 1px solid #ddd; padding-top: 6px; }
+
+/* Dashboard + ternary side by side */
+#pdfReportPage .bottom-row { display:flex; gap:14px; align-items:flex-start; }
+#pdfReportPage .dashboard-col { flex: 1 1 55%; min-width:0; }
+#pdfReportPage .ternary-col { flex: 1 1 43%; min-width:0; }
+
+#pdfReportPage ul { margin:0; padding-left:14px; }
+#pdfReportPage li { font-size:11px; margin-bottom:2px; line-height:1.3; }
+
+
+/* ============================================================
+   DARK PREMIUM THEME — matches the login page's navy/blue look.
+   Appended last on purpose: CSS is cascaded top-to-bottom, so these
+   rules win over the lighter "PREMIUM UI" block above without
+   needing to delete or rewrite it. Nothing here changes structure,
+   IDs, classes, or JS-facing selectors — colors/surfaces only.
+   #pdfReportPage is deliberately left untouched: it's the exported
+   PDF layout and should stay printable white-on-white.
+   ============================================================ */
+
+:root{
+  --cxd-navy-950: #050b1f;
+  --cxd-navy-900: #071230;
+  --cxd-navy-800: #0a1a44;
+  --cxd-blue-500: #2e6bff;
+  --cxd-blue-400: #4f8dff;
+  --cxd-blue-300: #7fb0ff;
+  --cxd-white: #f4f8ff;
+  --cxd-muted: #9db2dd;
+  --cxd-border: rgba(120, 155, 230, 0.24);
+  --cxd-field-bg: rgba(255, 255, 255, 0.045);
+  --cxd-card-shadow: 0 18px 46px rgba(0, 0, 0, 0.45);
+}
+
+/* ---------- page background ---------- */
+html, body.page-slagging {
+  background:
+    radial-gradient(120% 70% at 12% 0%, #102454 0%, transparent 55%),
+    linear-gradient(160deg, #071634 0%, #050c22 55%, #030817 100%) !important;
+  color: var(--cxd-white);
+}
+body.page-slagging * { scrollbar-color: rgba(127, 176, 255, 0.4) transparent; }
+body.page-slagging ::-webkit-scrollbar-thumb { background-color: rgba(127, 176, 255, 0.4); }
+
+/* ---------- headings / labels / static text ---------- */
+body.page-slagging h2,
+body.page-slagging h3,
+body.page-slagging label {
+  color: var(--cxd-white);
+}
+body.page-slagging .checkbox-card h3 { color: var(--cxd-white); }
+body.page-slagging #totalRangeContainer,
+body.page-slagging #totalRange {
+  color: var(--cxd-blue-300);
+}
+
+/* ---------- panels / cards ---------- */
+body.page-slagging .left-container,
+body.page-slagging .right-container {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02)) !important;
+  border: 1px solid var(--cxd-border) !important;
+  box-shadow: var(--cxd-card-shadow) !important;
+  color: var(--cxd-white);
+  animation: cxdFadeUp 0.6s ease both;
+}
+@keyframes cxdFadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+body.page-slagging .checkbox-card,
+body.page-slagging .checkbox-container {
+  background: rgba(255, 255, 255, 0.035) !important;
+  border: 1px solid var(--cxd-border) !important;
+  color: var(--cxd-white);
+}
+body.page-slagging .checkbox-table td:nth-child(2) {
+  color: var(--cxd-white) !important;
+}
+
+/* ---------- inputs & selects ---------- */
+body.page-slagging .blend select,
+body.page-slagging .blend-entry select,
+body.page-slagging .blend input,
+body.page-slagging .blend-entry input,
+body.page-slagging #unitCapacity,
+body.page-slagging #firingType {
+  background: var(--cxd-field-bg) !important;
+  border: 1px solid var(--cxd-border) !important;
+  color: var(--cxd-white) !important;
+  box-shadow: none !important;
+}
+body.page-slagging .blend select option,
+body.page-slagging .blend-entry select option,
+body.page-slagging #unitCapacity option,
+body.page-slagging #firingType option {
+  color: #0b1a2b;
+}
+body.page-slagging .blend select:focus,
+body.page-slagging .blend input:focus,
+body.page-slagging .blend-entry input:focus,
+body.page-slagging #unitCapacity:focus,
+body.page-slagging #firingType:focus {
+  border-color: var(--cxd-blue-400) !important;
+  box-shadow: 0 0 0 3px rgba(47, 107, 255, 0.22) !important;
+  transform: none;
+}
+
+/* checkbox visuals, re-tuned for a dark field */
+body.page-slagging .checkbox-table input[type="checkbox"] {
+  background: rgba(255, 255, 255, 0.06);
+  border: 2px solid rgba(127, 176, 255, 0.4);
+}
+body.page-slagging .checkbox-table input[type="checkbox"]:checked {
+  background: linear-gradient(180deg, var(--cxd-blue-400), var(--cxd-blue-500));
+}
+
+/* ---------- buttons ---------- */
+body.page-slagging button,
+body.page-slagging .add-blend-btn,
+body.page-slagging .calculate-properties-btn,
+body.page-slagging .blendProperties {
+  background: linear-gradient(90deg, #1d4fd6, #3f7dff 50%, #1d4fd6) !important;
+  background-size: 220% 100%;
+  color: #fff !important;
+  box-shadow: 0 12px 26px rgba(29, 79, 214, 0.35);
+  transition: background-position 0.5s ease, transform 0.15s ease, box-shadow 0.2s ease;
+}
+body.page-slagging button:hover,
+body.page-slagging .add-blend-btn:hover,
+body.page-slagging .calculate-properties-btn:hover,
+body.page-slagging .blendProperties:hover {
+  background-position: 100% 0;
+  box-shadow: 0 16px 32px rgba(29, 79, 214, 0.5);
+}
+/* remove-blend / logout style buttons keep their red — just re-tune the glow */
+body.page-slagging .blend .remove-blend-btn,
+body.page-slagging .blend-entry .remove-blend-btn {
+  background: linear-gradient(180deg, #ff5b5b, #e33232) !important;
+  box-shadow: 0 10px 22px rgba(227, 50, 50, 0.3);
+}
+
+body.page-slagging .right-container .icon-btn {
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: var(--cxd-blue-300) !important;
+  border: 1px solid var(--cxd-border) !important;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+}
+body.page-slagging .right-container .icon-btn::after {
+  background: #0a1636;
+  color: var(--cxd-white);
+  border: 1px solid var(--cxd-border);
+}
+
+/* ---------- tables ---------- */
+body.page-slagging table thead th {
+  background: linear-gradient(180deg, #0e2360, #16327e) !important;
+  color: var(--cxd-white) !important;
+  border-bottom: 1px solid var(--cxd-border);
+}
+body.page-slagging table tbody td {
+  background: rgba(255, 255, 255, 0.03) !important;
+  color: var(--cxd-white) !important;
+  border-bottom: 1px solid rgba(120, 155, 230, 0.12);
+}
+body.page-slagging table tr:nth-child(even) td { background: rgba(255, 255, 255, 0.055) !important; }
+body.page-slagging table tr:hover td { background: rgba(47, 107, 255, 0.16) !important; }
+body.page-slagging th[colspan="3"] { background-color: #16327e !important; }
+
+body.page-slagging .blendedcoalProperties p {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid var(--cxd-border);
+  color: var(--cxd-white);
+}
+
+/* ---------- modals ---------- */
+body.page-slagging .modal {
+  background: rgba(3, 7, 20, 0.72) !important;
+}
+body.page-slagging .modal-content {
+  background: linear-gradient(180deg, #0a1638, #071230) !important;
+  border: 1px solid var(--cxd-border) !important;
+  color: var(--cxd-white);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6) !important;
+}
+body.page-slagging .modal-header {
+  border-bottom: 1px solid var(--cxd-border);
+}
+body.page-slagging .close {
+  color: var(--cxd-blue-300);
+}
+
+/* ---------- charts: keep the plotted area itself readable, but
+   frame it in the same dark glass as everything else ---------- */
+body.page-slagging #ternary-plot,
+body.page-slagging #fspGaugeChart,
+body.page-slagging #ffftsGaugeChart,
+body.page-slagging canvas[id^="chart-"] {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(240, 245, 255, 0.98)) !important;
+  border: 1px solid var(--cxd-border);
+}

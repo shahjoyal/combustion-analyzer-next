@@ -1,0 +1,158 @@
+<div id="optimizeLoadingOverlay">
+      <div class="optimize-spinner"></div>
+      <div class="optimize-loading-text">Calculating cost optimal blend…</div>
+      <div class="optimize-loading-subtext">This can take a little while for larger blends — please don't close this tab.</div>
+    </div>
+    <div class="content">
+        <button id="downloadPDF" class="icon-btn" title="Download page as PDF">⬇️</button>
+
+        <header class="page-header" id="pageHeader">
+            <p class="page-eyebrow">Combustion Analyzer</p>
+            <h1 class="page-title">Cost Optimization Model</h1><p class="page-subtitle"></p>
+            
+        </header>
+
+        <form id="coalForm">
+            <section id="coalBlends" class="panel">
+                <div class="panel-header">
+                    <h2>Coal Type</h2>
+                    <span class="panel-hint">Add up to 10 coal types to build your blend</span>
+                </div>
+                <div class="blend-row"></div>
+                <button type="button" class="add-blend-btn" onclick="addBlend()">+ Add Coal</button>
+            </section>
+
+            <div class="panel toolbar-panel">
+                <div id="totalRangeContainer">
+                    <label>Total Current Range: <span id="totalRange">0</span>%</label>
+                </div>
+                <button type="button" id="calculateBtn" class="calculate-btn" onclick="optimizeBlend()">Calculate Optimal Blend</button>
+            </div>
+        </form>
+
+        <div id="coalPropertiesModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Elemental Analysis</h3>
+                    <span class="close" onclick="closeModal()">&times;</span>
+                </div>
+                <div id="coalPropertiesContent"></div>
+            </div>
+        </div>
+        <div id="optimization-result"></div>
+        <div id="scale-bars-container" style="margin-top: 20px;"></div>
+    </div>
+
+
+
+
+
+<!-- ====== START: COMMON NAVBAR (paste into each HTML file, right after <body>) ====== -->
+<style>
+/* Common navbar override — dark premium theme, matches the login page */
+:root{
+  --nav-h: 68px;
+  --nav-bg-start: rgba(10, 20, 48, 0.94);
+  --nav-bg-end: rgba(5, 11, 31, 0.9);
+  --nav-blue-1: #1d4fd6;
+  --nav-blue-2: #2e6bff;
+  --nav-text: #f4f8ff;
+  --nav-btn-radius: 999px;
+}
+
+/* Strongly scoped to override older rules */
+.common-navbar-wrapper { position: fixed; top: 0; left: 0; right: 0; height: var(--nav-h); z-index: 1300; }
+.common-navbar {
+  box-sizing: border-box;
+  height: 100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 10px;
+  padding: 6px 16px;
+  background: linear-gradient(180deg, var(--nav-bg-start), var(--nav-bg-end));
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+  border-bottom: 1px solid rgba(120, 155, 230, 0.22);
+  backdrop-filter: blur(10px) saturate(1.1);
+  font-family: Inter, Arial, Helvetica, sans-serif;
+  overflow-x: auto;
+}
+
+/* Left: logo + title */
+.common-navbar .brand { display:flex; align-items:center; gap:10px; flex-shrink: 0; }
+.common-navbar .brand img { height:34px; width:auto; object-fit:contain; display:block; }
+.common-navbar .brand .title { font-weight:700; color:var(--nav-text); font-size:15px; margin:0; white-space: nowrap; }
+
+/* Center/right: nav buttons */
+.common-navbar .nav-buttons { display:flex; gap:8px; align-items:center; margin-left:10px; flex-wrap: nowrap; }
+.common-navbar .nav-buttons button{
+  padding:7px 12px;
+  font-size:12px;
+  border-radius:var(--nav-btn-radius);
+  border: none;
+  font-weight:600;
+  cursor:pointer;
+  background: linear-gradient(180deg,var(--nav-blue-1),var(--nav-blue-2));
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(29, 79, 214, 0.35);
+  transition: transform .12s ease, box-shadow .12s ease, opacity .12s;
+  white-space: nowrap;
+}
+.common-navbar .nav-buttons button:hover{ transform: translateY(-2px); box-shadow: 0 12px 28px rgba(29, 79, 214, 0.5); }
+.common-navbar .nav-buttons button.logout-btn{
+  background: linear-gradient(180deg,#ff4b4b,#e32d2d) !important;
+  box-shadow: 0 8px 20px rgba(227,45,45,0.25);
+}
+
+/* Active page visual — glassy highlighted pill instead of solid white */
+.common-navbar .nav-buttons button.active {
+  background: rgba(127, 176, 255, 0.16) !important;
+  color: #eaf2ff !important;
+  box-shadow: 0 0 0 1px rgba(127, 176, 255, 0.45) inset, 0 0 18px rgba(47, 107, 255, 0.35) !important;
+  border: 1px solid rgba(127, 176, 255, 0.5);
+  transform: translateY(-1px) !important;
+}
+
+/* Mobile: make buttons smaller/wrapping */
+@media (max-width: 720px) {
+  :root{ --nav-h: 60px; }
+  .common-navbar { padding:8px 12px; }
+  .common-navbar .brand img { height:26px; }
+  .common-navbar .brand .title { font-size:13px; }
+  .common-navbar .nav-buttons { gap:6px; }
+  .common-navbar .nav-buttons button { padding:6px 9px; font-size:11px; }
+}
+
+/* push page content below navbar */
+html body { --navbar-height: var(--nav-h); }
+</style>
+
+<div class="common-navbar-wrapper" role="navigation" aria-label="Main navigation">
+  <nav class="common-navbar">
+    <div class="brand" aria-hidden="false">
+      <img src="./images/abhitech-logo.png" alt="Abhitech logo">
+      <h1 class="title">Combustion Analyzer</h1>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:12px;">
+      <div class="nav-buttons" role="menubar" aria-label="Primary">
+        <!-- important: use the exact filenames from your site -->
+        <button data-target="coal_table.html" title="Coal Properties">Coal Properties</button>
+        <button data-target="slagging_coal_page.html" title="Calculation">Calculation</button>
+        <button data-target="model.html" title="Model">Cost Optimization Model</button>
+        <!-- <button data-target="date.html" title="About">Date Wise Analysis</button> -->
+        <button data-target="model_compare.html" title="Compare Models">Compare Models</button>
+      </div>
+
+      <div style="width:8px;"></div>
+
+      <!-- keep logout last -->
+      <div class="nav-buttons" aria-hidden="false">
+        <button class="logout-btn" id="common-logout-btn" title="Logout">Logout</button>
+      </div>
+    </div>
+  </nav>
+</div>
+
+
+<!-- ====== END: COMMON NAVBAR ====== -->

@@ -1,0 +1,168 @@
+/* public/legacy/premium.css
+ *
+ * A shared, additive "premium" visual layer loaded on top of every legacy
+ * page's own <style> block. Nothing here changes layout structure, removes
+ * elements, or touches IDs/classes the page scripts rely on for behaviour
+ * (getElementById lookups, onclick targets, etc) — it only refines
+ * cosmetics: shadows, gradients, borders, transitions, scrollbars, and a
+ * containment fix so the *page* (html/body) never shows its own scrollbar;
+ * instead a single inner pane scrolls smoothly, which is what removes the
+ * "double scrollbar" / scroll-jank feel across pages.
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --premium-font: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif;
+  --premium-navy-1: #02126e;
+  --premium-navy-2: #0027a7;
+  --premium-ink: #0b1330;
+  --premium-shadow-sm: 0 2px 8px rgba(2, 18, 110, 0.05);
+  --premium-shadow-md: 0 10px 30px rgba(2, 18, 110, 0.08), 0 2px 8px rgba(2, 18, 110, 0.04);
+  --premium-shadow-lg: 0 18px 46px rgba(2, 18, 110, 0.14);
+  --premium-radius: 14px;
+}
+
+/* ---------- premium scrollbars, everywhere, without changing scroll behaviour ----------
+ * (one legacy page's dropdown positioning reads real window.scrollY / listens for
+ * window 'scroll' events, so document/window scrolling stays completely native —
+ * this only restyles how scrollbars *look*, both the page's own and any panel that
+ * already scrolls internally, e.g. tables, modals, side panels) */
+html {
+  scroll-behavior: smooth;
+}
+html, body, * {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 39, 167, 0.45) transparent;
+}
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 39, 167, 0.45);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 39, 167, 0.7);
+}
+
+/* ---------- typography ---------- */
+body {
+  font-family: var(--premium-font);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ---------- navbar: extra depth + glass ---------- */
+.common-navbar-wrapper .common-navbar,
+.navbar {
+  backdrop-filter: blur(10px) saturate(1.15);
+  box-shadow: 0 10px 30px rgba(2, 18, 110, 0.10);
+}
+.common-navbar .nav-buttons button,
+.navbar .nav-buttons button {
+  box-shadow: var(--premium-shadow-sm);
+}
+
+/* ---------- buttons: subtle lift + sheen on hover ---------- */
+button,
+.primary-btn,
+.btn-upload,
+.icon-btn,
+input[type="submit"] {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease !important;
+}
+button:hover:not(:disabled),
+.primary-btn:hover:not(:disabled),
+.btn-upload:hover:not(:disabled),
+.icon-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+}
+button:active:not(:disabled),
+.primary-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* ---------- cards / panels: consistent premium depth ---------- */
+.control-card,
+.card,
+.login-container,
+.unit-capacity,
+#edit-modal,
+.modal,
+.output {
+  border-radius: var(--premium-radius) !important;
+  box-shadow: var(--premium-shadow-md) !important;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.control-card:hover,
+.card:hover {
+  box-shadow: var(--premium-shadow-lg) !important;
+}
+
+/* ---------- inputs: crisper focus state ---------- */
+input,
+select,
+textarea {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(0, 39, 167, 0.18) !important;
+}
+
+/* ---------- tables: refined, modern data-grid feel ---------- */
+table {
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--premium-shadow-sm);
+}
+tbody tr {
+  transition: background-color 0.12s ease;
+}
+tbody tr:hover td {
+  background-color: rgba(0, 39, 167, 0.035);
+}
+
+/* ---------- slagging_coal_page: containment reverted ----------
+   An earlier attempt to stop the page itself from scrolling (making the
+   options/results panels scroll internally instead) kept clipping the
+   "Overall Score" bar in real-world layouts. Reverted so this page scrolls
+   exactly like it did originally — correctness of the score bar matters
+   more than the no-scroll experiment. */
+
+#ternary-plot,
+#fspGaugeChart,
+#ffftsGaugeChart,
+canvas[id^="chart-"] {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 250, 255, 0.96));
+  border-radius: 16px;
+  box-shadow: var(--premium-shadow-md);
+  transition: box-shadow 0.25s ease;
+}
+#ternary-plot:hover,
+#fspGaugeChart:hover,
+#ffftsGaugeChart:hover {
+  box-shadow: var(--premium-shadow-lg);
+}
+
+/* fade-in for chart containers once populated, purely cosmetic */
+@keyframes premiumFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+#ternary-plot .plot-container,
+.js-plotly-plot {
+  animation: premiumFadeIn 0.45s ease both;
+}

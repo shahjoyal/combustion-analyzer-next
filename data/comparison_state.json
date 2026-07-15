@@ -1,0 +1,99 @@
+{
+  "results": {
+    "pureRF": {
+      "rows": 248,
+      "avgAbs": 29.83,
+      "maxError": 167.379735,
+      "minError": 0.001391,
+      "gt20": 124,
+      "gt40": 64,
+      "gt60": 42
+    },
+    "hybridRF": {
+      "rows": 248,
+      "avgAbs": 28.47,
+      "maxError": 151.581877,
+      "minError": 0.004513,
+      "gt20": 127,
+      "gt40": 63,
+      "gt60": 35
+    },
+    "residualRF": {
+      "rows": 248,
+      "avgAbs": 30.17,
+      "maxError": 186.495429,
+      "minError": 0.009596,
+      "gt20": 130,
+      "gt40": 62,
+      "gt60": 36
+    },
+    "ann": {
+      "rows": 248,
+      "avgAbs": 80.32,
+      "maxError": 278.161395,
+      "minError": 2.042877,
+      "gt20": 220,
+      "gt40": 193,
+      "gt60": 156
+    },
+    "baseFormula": {
+      "rows": 248,
+      "avgAbs": 35.61,
+      "maxError": 139.242746,
+      "minError": 0.068272,
+      "gt20": 150,
+      "gt40": 89,
+      "gt60": 50
+    },
+    "lssvm": {
+      "rows": 248,
+      "avgAbs": 34.35,
+      "maxError": 173,
+      "minError": 0,
+      "gt20": 138,
+      "gt40": 88,
+      "gt60": 46
+    },
+    "hybridLSSVM": {
+      "rows": 248,
+      "avgAbs": 32.73,
+      "maxError": 173,
+      "minError": 0,
+      "gt20": 135,
+      "gt40": 78,
+      "gt60": 43
+    },
+    "_testSetCount": 248,
+    "pure_xgb": {
+      "stats": {
+        "rows": 248,
+        "avgAbs": 31.65,
+        "maxError": 297,
+        "minError": 0,
+        "gt20": 124,
+        "gt40": 67,
+        "gt60": 42
+      },
+      "modelPath": "ml-service\\models\\pure_xgb.joblib",
+      "n_features": 11
+    },
+    "hybrid_xgb": {
+      "stats": {
+        "rows": 248,
+        "avgAbs": 31.9,
+        "maxError": 273,
+        "minError": 0,
+        "gt20": 129,
+        "gt40": 74,
+        "gt60": 39
+      },
+      "modelPath": "ml-service\\models\\hybrid_xgb.joblib",
+      "n_features": 12
+    }
+  },
+  "activeModelKey": "baseFormula",
+  "activeModelName": "Base Formula",
+  "timestamp": "2026-07-15T09:04:58.370Z",
+  "fileName": "last_training_upload.csv",
+  "trainMode": "new"
+}
