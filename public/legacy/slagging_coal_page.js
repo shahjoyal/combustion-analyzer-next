@@ -1,4 +1,3 @@
-
 function addBlend() {
     const MAX_COALS = 10; // <-- increased from 5 to 10
     const currentCoals = document.querySelectorAll('.blend').length;
@@ -32,7 +31,47 @@ function addBlend() {
 
     populateDropdown(blendDiv.querySelector(`#coal${index}`));
     updateTotalRange();
+    sizeBlendRowVisible();
 }
+
+// Show exactly 2 coal rows in the list; anything beyond that scrolls
+// internally inside .blend-row instead of growing the page.
+function sizeBlendRowVisible() {
+    const blendRow = document.querySelector('.blend-row');
+    const firstBlend = blendRow ? blendRow.querySelector('.blend') : null;
+    if (!blendRow || !firstBlend) return;
+
+    const rowHeight = firstBlend.getBoundingClientRect().height;
+    if (!rowHeight) return;
+
+    const VISIBLE_ROWS = 2;
+    const gapValue = parseFloat(getComputedStyle(blendRow).rowGap || getComputedStyle(blendRow).gap) || 0;
+    blendRow.style.maxHeight = Math.ceil(rowHeight * VISIBLE_ROWS + gapValue * (VISIBLE_ROWS - 1)) + 'px';
+}
+
+// Show exactly 4 operational-parameter rows; anything beyond that scrolls
+// internally inside #checkboxContainer instead of growing the page.
+function sizeCheckboxRowsVisible() {
+    const container = document.getElementById('checkboxContainer');
+    const firstRow = container ? container.querySelector('.checkbox-table tbody tr') : null;
+    if (!container || !firstRow) return;
+
+    const rowHeight = firstRow.getBoundingClientRect().height;
+    if (!rowHeight) return;
+
+    const VISIBLE_ROWS = 4;
+    const cs = getComputedStyle(container);
+    const verticalPadding = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+    container.style.maxHeight = Math.ceil(rowHeight * VISIBLE_ROWS + verticalPadding) + 'px';
+}
+
+window.addEventListener('resize', () => {
+    sizeBlendRowVisible();
+    const checkboxContainer = document.getElementById('checkboxContainer');
+    if (checkboxContainer && !checkboxContainer.classList.contains('hidden')) {
+        sizeCheckboxRowsVisible();
+    }
+});
 
         function updateTotalRange() {
             totalCurrentRange = 0;
@@ -58,6 +97,7 @@ function addBlend() {
                     checkboxContainer.classList.remove("hidden");
                     checkboxContainer.style.display = "block";
                     toggleIcon.style.transform = "rotate(180deg)";
+                    sizeCheckboxRowsVisible();
                 } else {
                     checkboxContainer.classList.add("hidden");
                     setTimeout(() => (checkboxContainer.style.display = "none"), 300);
@@ -91,8 +131,8 @@ function addBlend() {
         
 
         // ----- size configuration (change numbers to taste) -----
-const TERNARY_WIDTH = "100%";   // px (try 320 / 360 / 420)
-const TERNARY_HEIGHT = 300;  // px (try 240 / 300)
+const TERNARY_WIDTH = "92%";   // px (try 320 / 360 / 420)
+const TERNARY_HEIGHT = 250;  // px (try 240 / 300)
 const MARKER_SIZE = 9;       // ternary marker size (smaller if plot is tiny)
 
 const GAUGE_SIZE = 160;      // px for gauge width/height (try 120 / 150)
@@ -944,9 +984,10 @@ if (dlBtn) {
 
 const plotDiv = document.createElement('div');
 plotDiv.id = "ternary-plot";
-plotDiv.style.width = TERNARY_WIDTH + "px";
+plotDiv.style.width = (typeof TERNARY_WIDTH === "string" && TERNARY_WIDTH.indexOf("%") !== -1) ? TERNARY_WIDTH : (TERNARY_WIDTH + "px");
 plotDiv.style.height = TERNARY_HEIGHT + "px";
 plotDiv.style.maxWidth = "100%";
+plotDiv.style.margin = "0 auto";
 rightContainerDiv.appendChild(plotDiv);
 updatePlot();
         
@@ -1979,4 +2020,4 @@ if(localStorage.getItem('isLoggedIn') !== 'true') {
          function logoutUser() {
   localStorage.setItem('isLoggedIn', 'false'); 
   window.location.href = './login.html'; 
-} 
+}
