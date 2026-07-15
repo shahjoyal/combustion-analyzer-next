@@ -960,6 +960,16 @@ body.page-slagging table tr:nth-child(even) td { background: rgba(255, 255, 255,
 body.page-slagging table tr:hover td { background: rgba(47, 107, 255, 0.16) !important; }
 body.page-slagging th[colspan="3"] { background-color: #16327e !important; }
 
+/* The original light-theme rule "table tr:nth-child(even) { background:
+   #f2f2f2; }" (near the top of this file) still paints a solid light-gray
+   background directly on every other <tr>. That solid color sits UNDER
+   the semi-transparent td backgrounds above and shows straight through,
+   so on this dark theme every second Operational Parameters row (and
+   every other striped table row) turned near-white while its text stayed
+   white — invisible. Neutralize that legacy stripe here so every row
+   keeps the same dark, translucent surface used for the first row. */
+body.page-slagging table tr:nth-child(even) { background: transparent !important; }
+
 body.page-slagging .blendedcoalProperties p {
   background: rgba(255, 255, 255, 0.05) !important;
   border: 1px solid var(--cxd-border);
@@ -991,4 +1001,15 @@ body.page-slagging #ffftsGaugeChart,
 body.page-slagging canvas[id^="chart-"] {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(240, 245, 255, 0.98)) !important;
   border: 1px solid var(--cxd-border);
+}
+
+/* The "Advanced view" gauge (Plotly) uses a transparent paper background
+   with dark navy title/number text, which was fine on the original white
+   page but disappears against this dark theme. Give it the same light
+   card surface as the Classic gauge above so its (unchanged) dark text
+   stays legible. */
+body.page-slagging .advanced-gauge-view {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(240, 245, 255, 0.98)) !important;
+  border: 1px solid var(--cxd-border);
+  border-radius: 10px;
 }

@@ -788,10 +788,10 @@ if (dlBtn) {
                                 steps: [
                                     { range: colorRanges.green, color: "#bdf5bd" },
                                     { range: colorRanges.yellow, color: "#fff3b0" },
-                                    { range: colorRanges.red, color: "#f7b6b6" }
+                                    { range: colorRanges.red, color: "#8b1f1f" }
                                 ],
                                 threshold: {
-                                    line: { color: "#0b1a2b", width: 3 },
+                                    line: { color: "#ffffff", width: 3 },
                                     thickness: 0.85,
                                     value: value
                                 }
@@ -809,6 +809,7 @@ if (dlBtn) {
 
                 function addAdvancedGaugeToggle(graphWrapper, gaugeContainer, value, minValue, maxValue, colorRanges, title) {
                     const advContainer = document.createElement("div");
+                    advContainer.className = "advanced-gauge-view";
                     advContainer.style.width = GAUGE_SIZE + "px";
                     advContainer.style.height = GAUGE_SIZE + "px";
                     advContainer.style.display = "none";
@@ -871,7 +872,7 @@ if (dlBtn) {
                     const overallGraphContainer = document.createElement("div");
                     overallGraphContainer.style.width = OVERALL_GRAPH_WIDTH + "px";
                     overallGraphContainer.style.height = "32px";
-                    overallGraphContainer.style.border = "1px solid black";
+                    overallGraphContainer.style.border = "1px solid white";
                     overallGraphContainer.style.borderRadius = "12px";
                     overallGraphContainer.style.position = "relative";
                     overallGraphContainer.style.marginBottom = "20px";
