@@ -16,6 +16,14 @@ body {
         }
 
         .left-container, .right-container {
+            /* box-sizing:border-box (added) is the key fix: width:100% here,
+               combined with the later "flex:1" rule further down this file,
+               used to make each panel render wider than its actual flex
+               slot, because padding/border were added on top of that 100%
+               under the default content-box sizing. That's what caused the
+               whole row to overflow horizontally (the unwanted left-right
+               scrollbar). */
+            box-sizing: border-box;
             width: 100%;
             padding: 10px;
             border: 1px solid #ccc;
@@ -199,40 +207,41 @@ body {
         }
         
         .add-blend-btn {
-            padding: 8px 12px;
+            padding: 7px 12px;
             cursor: pointer;
             border: none;
             width: 20%;
             margin-left: 40%;
             background-color: #02008a;
-            margin-bottom: 20px;
-            margin-top: 20px;
+            margin-bottom: 10px;
+            margin-top: 10px;
             color: white;
             border-radius: 5px;
         }
         
         .calculate-properties-btn{
-            padding: 8px 12px;
+            padding: 7px 12px;
             cursor: pointer;
             border: none;
             background-color: #02008a;
             width: 30%;
             margin-left: 35%;
-            margin-top: 20px;
+            margin-top: 12px;
             color: white;
             border-radius: 5px;
         }
 
         .blendProperties {
-            padding: 8px 12px;
+            padding: 7px 12px;
             cursor: pointer;
             border: none;
             background-color: #02008a;
-            width: 45%;
-            margin-left: 27%;
-            margin-top: 20px;
+            width: 55%;
+            margin: 0 auto 4px;
+            display: block;
             color: white;
             border-radius: 5px;
+            flex: 0 0 auto;
         }
         
         #totalRangeContainer {
@@ -245,7 +254,7 @@ body {
         }
 
         .right-container > table {
-            margin-bottom: 30px; 
+            margin-bottom: 12px; 
         }
 
             /* Checkbox Card */
@@ -308,9 +317,10 @@ body {
         #ternary-plot {
             width: 92%;
             max-width: 92%;
-            max-height: 260px; /* Keeps it within a reasonable size */
-            padding-top: 10px;
+            height: 100%;
+            padding-top: 6px;
             margin: 0 auto;
+            box-sizing: border-box;
         }
         .navbar .logout-btn {
   padding: 10px 16px;
@@ -512,15 +522,24 @@ body{
 .nav-buttons .logout-btn{ background: linear-gradient(180deg,#ff4b4b,#e32d2d); box-shadow: 0 6px 18px rgba(227,45,45,0.08); }
 
 /* content containers (cards) - same widths/positioning preserved */
-.content{ margin-top:92px; padding:18px; display:flex; gap:18px; }
+.content{ margin-top:92px; padding:14px; display:flex; align-items:flex-start; gap:14px; }
 .left-container, .right-container{
+  box-sizing: border-box;
   background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(250,250,255,0.9));
   border-radius: var(--radius-lg);
   border: 1px solid var(--card-border);
   box-shadow: var(--card-shadow);
-  padding:18px;
+  padding:12px 14px;
   flex:1;
   min-width:0; /* prevents overflow */
+  /* Fit within the visible viewport (below the fixed navbar) so the page
+     itself doesn't need to scroll. If content still doesn't fit on a very
+     short screen, the panel scrolls internally instead of pushing content
+     (like the ternary chart) below the fold. */
+  height: calc(100vh - var(--nav-h, 90px) - 32px);
+  max-height: calc(100vh - var(--nav-h, 90px) - 32px);
+  overflow-y: auto;
+  overflow-x: hidden; /* the panel should never need a left-right scrollbar */
 }
 
 /* blend rows and controls */
@@ -623,6 +642,16 @@ table tr:hover td{ transform:translateY(-1px); background: #f0f6ff; }
   .content{ flex-direction:column; gap:12px; padding:12px; }
   .nav-buttons button{ padding:8px 10px; font-size:13px; }
   .navbar img{ height:40px; }
+  /* Stacked layout: let each panel size to its content and the page
+     scroll normally, instead of forcing every panel to fill the full
+     viewport height (which only matters for the side-by-side desktop
+     layout where the ternary chart needs to fit beside the gauges). */
+  .left-container, .right-container{
+    height: auto;
+    max-height: none;
+    overflow-y: visible;
+  }
+  .ternary-plot-wrapper{ min-height: 260px; }
 }
 
 /* Replace existing .icon-btn block with this */
@@ -1014,15 +1043,21 @@ body.page-slagging .advanced-gauge-view {
   border-radius: 10px;
 }
 
-/* ---------- ternary card: hover-to-expand ----------
-   Normal state: sits inline exactly where it always has. On hover it's
+/* ---------- ternary card: click-to-expand ----------
+   Normal state: sits inline exactly where it always has. On click it's
    re-homed under <body> and switched to position:fixed so it can enlarge
    over the whole page (with a blurred backdrop behind it) regardless of
-   where it started; leaving the card restores everything exactly as it
-   was. */
+   where it started; clicking the × button (or the backdrop) restores
+   everything exactly as it was. */
 .ternary-plot-wrapper {
   position: relative;
   transition: box-shadow 0.2s ease;
+  flex: 1 1 auto;
+  min-height: 0;
+  border-radius: 12px;
+}
+.ternary-plot-wrapper:not(.ternary-expanded):hover {
+  box-shadow: 0 0 0 1px rgba(127, 176, 255, 0.4), 0 10px 24px rgba(0, 0, 0, 0.18);
 }
 .ternary-plot-wrapper.ternary-expanded {
   position: fixed;
@@ -1061,7 +1096,33 @@ body.page-slagging .advanced-gauge-view {
   pointer-events: none;
   transition: opacity 0.2s ease;
 }
-.ternary-hover-backdrop.active { opacity: 1; }
+.ternary-hover-backdrop.active { opacity: 1; pointer-events: auto; }
+.ternary-close-btn {
+  display: none;
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  width: 30px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid rgba(127, 176, 255, 0.4);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--cxd-white, #f4f8ff);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 10;
+  transition: background 0.12s ease, transform 0.12s ease;
+}
+.ternary-close-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  transform: scale(1.06);
+}
+.ternary-plot-wrapper.ternary-expanded .ternary-close-btn {
+  display: flex;
+}
 .ternary-hover-legend {
   display: none;
   gap: 20px;
@@ -1101,13 +1162,17 @@ body.page-slagging .advanced-gauge-view {
    deposition-tendency-map dashboard + key indicators.
 
    The toggle button is a SIBLING of .ternary-plot-wrapper (not a
-   child), positioned absolutely in the card's corner, so hovering or
-   clicking it never triggers the ternary hover-to-expand behaviour.
+   child), positioned absolutely in the card's corner, so clicking it
+   never triggers the ternary click-to-expand behaviour.
    ============================================================ */
 .ternary-card-outer {
   position: relative;
-  padding-top: 24px;
+  padding-top: 16px;
   width: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .advanced-view-corner-btn {

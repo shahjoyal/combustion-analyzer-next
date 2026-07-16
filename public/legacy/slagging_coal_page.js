@@ -131,12 +131,12 @@ window.addEventListener('resize', () => {
         
 
         // ----- size configuration (change numbers to taste) -----
-const TERNARY_WIDTH = "92%";   // px (try 320 / 360 / 420)
-const TERNARY_HEIGHT = 250;  // px (try 240 / 300)
-const MARKER_SIZE = 9;       // ternary marker size (smaller if plot is tiny)
+const TERNARY_WIDTH = "88%";   // px (try 320 / 360 / 420)
+const TERNARY_HEIGHT = 200;  // px fallback/minimum height; the on-screen card now stretches to fill remaining space via flex
+const MARKER_SIZE = 8;       // ternary marker size (smaller if plot is tiny)
 
-const GAUGE_SIZE = 160;      // px for gauge width/height (try 120 / 150)
-const OVERALL_GRAPH_WIDTH = 550; // px for the overall bar (was 550)
+const GAUGE_SIZE = 136;      // px for gauge width/height (try 120 / 150)
+const OVERALL_GRAPH_WIDTH = 480; // px for the overall bar (was 550)
         async function calculateWeightedAverage() {
 
             let totalCurrentRange = 0;
@@ -586,7 +586,10 @@ if (dlBtn) {
                 let chartWrapper = document.createElement("div");   
                 chartWrapper.style.display = "flex";  // Flexbox for side-by-side layout
                 chartWrapper.style.justifyContent = "center"; // Center align
-                chartWrapper.style.gap = "40px"; // Space between charts
+                chartWrapper.style.gap = "24px"; // Space between charts
+                chartWrapper.style.marginTop = "4px";
+                chartWrapper.style.width = "100%";
+                chartWrapper.style.boxSizing = "border-box";
                 rightContainerDiv.appendChild(chartWrapper);
                 
                 // Create Slagging Gauge Chart
@@ -594,8 +597,9 @@ if (dlBtn) {
                 fspGraphWrapper.style.textAlign = "center"; 
                 
                 const fspDisplay = document.createElement("div");
-                fspDisplay.style.marginTop = "20px";
-                fspDisplay.style.marginBottom = "3px";
+                fspDisplay.style.marginTop = "6px";
+                fspDisplay.style.marginBottom = "2px";
+                fspDisplay.style.fontSize = "15px";
                 fspDisplay.style.fontWeight = "bold"; 
                 fspDisplay.textContent = `Slagging Potential : ${FSPD}`;
                 
@@ -603,6 +607,7 @@ if (dlBtn) {
                 fspGraphContainer.id = "fspGaugeChart";
                 fspGraphContainer.style.width = GAUGE_SIZE + "px";
                 fspGraphContainer.style.height = GAUGE_SIZE + "px";
+                fspGraphContainer.style.margin = "0 auto";
                 
                 fspGraphWrapper.appendChild(fspDisplay);
                 fspGraphWrapper.appendChild(fspGraphContainer);
@@ -613,8 +618,9 @@ if (dlBtn) {
                 ffftsGraphWrapper.style.textAlign = "center"; 
                 
                 const ffftsDisplay = document.createElement("div");
-                ffftsDisplay.style.marginTop = "20px";
-                ffftsDisplay.style.marginBottom = "3px";
+                ffftsDisplay.style.marginTop = "6px";
+                ffftsDisplay.style.marginBottom = "2px";
+                ffftsDisplay.style.fontSize = "15px";
                 ffftsDisplay.style.fontWeight = "bold";
                 ffftsDisplay.textContent = `Fouling Potential: ${FFFD}`;
                 
@@ -622,6 +628,7 @@ if (dlBtn) {
                 ffftsGraphContainer.id = "ffftsGaugeChart";
                 ffftsGraphContainer.style.width = GAUGE_SIZE + "px";
                 ffftsGraphContainer.style.height = GAUGE_SIZE + "px";
+                ffftsGraphContainer.style.margin = "0 auto";
                 
                 ffftsGraphWrapper.appendChild(ffftsDisplay);
                 ffftsGraphWrapper.appendChild(ffftsGraphContainer);
@@ -633,7 +640,7 @@ if (dlBtn) {
                 // Create a separate table container BELOW charts
                 let tableContainer = document.createElement("div");
                 tableContainer.style.width = "100%";
-                tableContainer.style.marginTop = "20px";
+                tableContainer.style.marginTop = "8px";
                 rightContainerDiv.appendChild(tableContainer);
                 
                 // Load Google Charts
@@ -777,10 +784,10 @@ if (dlBtn) {
                             type: "indicator",
                             mode: "gauge+number",
                             value: value,
-                            title: { text: title, font: { size: 14 } },
-                            number: { font: { size: 28 } },
+                            title: { text: title, font: { size: 11 } },
+                            number: { font: { size: 20 }, valueformat: ".1f" },
                             gauge: {
-                                axis: { range: [minValue, maxValue] },
+                                axis: { range: [minValue, maxValue], tickfont: { size: 9 } },
                                 bar: { color: "#0027a7", thickness: 0.28 },
                                 bgcolor: "white",
                                 borderwidth: 1,
@@ -800,7 +807,7 @@ if (dlBtn) {
                         layout: {
                             width: GAUGE_SIZE,
                             height: GAUGE_SIZE,
-                            margin: { t: 34, b: 10, l: 24, r: 24 },
+                            margin: { t: 26, b: 8, l: 20, r: 20 },
                             paper_bgcolor: "transparent",
                             font: { family: "Inter, Segoe UI, Arial, sans-serif", color: "#0b1a2b" }
                         }
@@ -820,11 +827,11 @@ if (dlBtn) {
                     toggleBtn.textContent = "\u26A1 Advanced view";
                     Object.assign(toggleBtn.style, {
                         display: "block",
-                        marginTop: "10px",
+                        marginTop: "5px",
                         marginLeft: "auto",
                         marginRight: "auto",
-                        padding: "6px 16px",
-                        fontSize: "12px",
+                        padding: "4px 14px",
+                        fontSize: "11px",
                         fontWeight: "600",
                         border: "none",
                         borderRadius: "999px",
@@ -870,13 +877,14 @@ if (dlBtn) {
 
                     // Graph container
                     const overallGraphContainer = document.createElement("div");
-                    overallGraphContainer.style.width = OVERALL_GRAPH_WIDTH + "px";
-                    overallGraphContainer.style.height = "32px";
+                    overallGraphContainer.style.width = `min(${OVERALL_GRAPH_WIDTH}px, 86%)`;
+                    overallGraphContainer.style.height = "26px";
                     overallGraphContainer.style.border = "1px solid white";
                     overallGraphContainer.style.borderRadius = "12px";
                     overallGraphContainer.style.position = "relative";
-                    overallGraphContainer.style.marginBottom = "20px";
-                    overallGraphContainer.style.marginLeft = "50px";
+                    overallGraphContainer.style.marginBottom = "18px";
+                    overallGraphContainer.style.marginLeft = "auto";
+                    overallGraphContainer.style.marginRight = "auto";
                     overallGraphContainer.style.display = "flex";
 
                     let sfWidth = (totalScore / maxValue) * 100;
@@ -934,10 +942,10 @@ if (dlBtn) {
 
                     // Display score
                     const totalDisplay = document.createElement("div");
-                    totalDisplay.style.marginBottom = "10px";
-                    totalDisplay.style.marginTop = "10px";
-                    totalDisplay.style.marginLeft = "80px";
-                    totalDisplay.style.fontSize = "18px";
+                    totalDisplay.style.marginBottom = "6px";
+                    totalDisplay.style.marginTop = "6px";
+                    totalDisplay.style.textAlign = "center";
+                    totalDisplay.style.fontSize = "16px";
                     totalDisplay.style.fontWeight = "bold";
                     totalDisplay.textContent = `Overall Score: ${overallTotal.toFixed(1)} (Slagging + Fouling: ${totalScore.toFixed(1)}, O&M Score: ${checkboxScore.toFixed(1)})`;
 
@@ -1001,7 +1009,12 @@ const ternaryWrapper = document.createElement('div');
 ternaryWrapper.id = "ternaryPlotWrapper";
 ternaryWrapper.className = "ternary-plot-wrapper";
 ternaryWrapper.style.width = (typeof TERNARY_WIDTH === "string" && TERNARY_WIDTH.indexOf("%") !== -1) ? TERNARY_WIDTH : (TERNARY_WIDTH + "px");
-ternaryWrapper.style.height = TERNARY_HEIGHT + "px";
+// Fill whatever vertical space is left in the right panel instead of a
+// fixed pixel height, so the chart always fits the available area rather
+// than getting cut off / forcing the page to scroll. TERNARY_HEIGHT is
+// kept only as a minimum so it never gets squeezed unreadably small.
+ternaryWrapper.style.flex = "1 1 auto";
+ternaryWrapper.style.minHeight = TERNARY_HEIGHT + "px";
 ternaryWrapper.style.maxWidth = "100%";
 ternaryWrapper.style.margin = "0 auto";
 ternaryWrapper.appendChild(plotDiv);
@@ -1014,6 +1027,10 @@ ternaryWrapper.appendChild(plotDiv);
 const ternaryCardOuter = document.createElement('div');
 ternaryCardOuter.id = "ternaryCardOuter";
 ternaryCardOuter.className = "ternary-card-outer";
+ternaryCardOuter.style.flex = "1 1 auto";
+ternaryCardOuter.style.minHeight = "0";
+ternaryCardOuter.style.display = "flex";
+ternaryCardOuter.style.flexDirection = "column";
 
 const advancedDashboard = document.createElement('div');
 advancedDashboard.id = "advancedDashboard";
@@ -1101,9 +1118,8 @@ function updatePlot() {
     }];
 
     var layout = {
-    autosize: true,   // let Plotly fill the container
-    height: TERNARY_HEIGHT,
-    margin: { l: 50, r: 40, t: 40, b: 40 },
+    autosize: true,   // let Plotly fill the container (whatever height flex gives it)
+    margin: { l: 50, r: 40, t: 36, b: 36 },
     // Plotly auto-shows its own legend once a 2nd trace exists (the
     // hover-expand view adds one for the individual coal points), which
     // would otherwise print this trace's auto-generated "trace 0" label
@@ -1704,20 +1720,27 @@ async function computeIndividualCoalAFTs() {
 }
 
 /* -----------------------------------------------------------------------
-   Ternary hover-to-expand
-   Hovering the on-screen ternary card enlarges it and dims/blurs the rest
+   Ternary click-to-expand
+   Clicking the on-screen ternary card enlarges it and dims/blurs the rest
    of the page behind it, so it's easier to read. While expanded, each
    currently selected coal's own predicted AFT is overlaid on the SAME
    ternary axes as the existing blend plot (which is left completely
    untouched — only an extra trace is added and then removed again), with
-   a small legend distinguishing the two. Moving the mouse away restores
-   everything exactly as it was.
+   a small legend distinguishing the two. Clicking the close (×) button,
+   or clicking anywhere on the dimmed backdrop, restores everything
+   exactly as it was.
 ----------------------------------------------------------------------- */
 let _ternaryHoverBackdrop = null;
+// Holds the collapse() function for whichever ternary card is currently
+// expanded, so the single shared backdrop click-listener (bound once,
+// below) always closes the right one even though a fresh wrapper/plotDiv
+// is created on every Calculate.
+let _currentTernaryCollapse = null;
 function _getTernaryHoverBackdrop() {
   if (_ternaryHoverBackdrop && document.body.contains(_ternaryHoverBackdrop)) return _ternaryHoverBackdrop;
   const bd = document.createElement('div');
   bd.className = 'ternary-hover-backdrop';
+  bd.addEventListener('click', () => { if (_currentTernaryCollapse) _currentTernaryCollapse(); });
   document.body.appendChild(bd);
   _ternaryHoverBackdrop = bd;
   return bd;
@@ -1739,14 +1762,13 @@ function _getTernaryBlendSignature() {
 function _setupTernaryHoverExpand(wrapper, plotDiv) {
   let expanded = false;
   let individualTraceAdded = false;
-  let leaveTimer = null;
   let originalParent = null;
   let originalNextSibling = null;
 
   async function expand() {
     if (expanded) return;
     expanded = true;
-    clearTimeout(leaveTimer);
+    _currentTernaryCollapse = collapse;
 
     // Re-home under <body> so the enlarged card and backdrop sit above
     // (and blur) the whole page, not just whatever panel it started in.
@@ -1767,6 +1789,20 @@ function _setupTernaryHoverExpand(wrapper, plotDiv) {
       wrapper.appendChild(legend);
     }
     legend.style.display = 'flex';
+
+    let closeBtn = wrapper.querySelector('.ternary-close-btn');
+    if (!closeBtn) {
+      closeBtn = document.createElement('button');
+      closeBtn.type = 'button';
+      closeBtn.className = 'ternary-close-btn';
+      closeBtn.innerHTML = '&times;';
+      closeBtn.title = 'Close';
+      closeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        collapse();
+      });
+      wrapper.appendChild(closeBtn);
+    }
 
     if (window.Plotly) {
       try {
@@ -1820,6 +1856,7 @@ function _setupTernaryHoverExpand(wrapper, plotDiv) {
 
   async function collapse() {
     expanded = false;
+    if (_currentTernaryCollapse === collapse) _currentTernaryCollapse = null;
     wrapper.classList.remove('ternary-expanded');
     const legend = wrapper.querySelector('.ternary-hover-legend');
     if (legend) legend.style.display = 'none';
@@ -1839,14 +1876,18 @@ function _setupTernaryHoverExpand(wrapper, plotDiv) {
           await Plotly.deleteTraces(plotDiv, [1]);
           individualTraceAdded = false;
         }
-        await Plotly.relayout(plotDiv, { width: null, height: TERNARY_HEIGHT, autosize: true });
+        await Plotly.relayout(plotDiv, { width: null, height: null, autosize: true });
         Plotly.Plots.resize(plotDiv);
       } catch (e) {}
     }
   }
 
-  wrapper.addEventListener('mouseenter', () => { clearTimeout(leaveTimer); expand(); });
-  wrapper.addEventListener('mouseleave', () => { leaveTimer = setTimeout(collapse, 80); });
+  wrapper.style.cursor = 'zoom-in';
+  wrapper.title = 'Click to enlarge';
+  wrapper.addEventListener('click', (e) => {
+    if (expanded) return; // ignore clicks on the chart itself while already expanded; use the × or backdrop to close
+    expand();
+  });
 }
 
 // Render the individual coal AFT results as a table in the same visual
