@@ -983,12 +983,14 @@ if (dlBtn) {
                 overallGraphWrapper.innerHTML = ""; // Clear previous content
                 createOverallGraph(totalScore, checkboxScore, overallTotal);
 
-// Clean up any leftover expanded ternary card from a previous calculation
-// (e.g. if the user re-clicked Calculate while still hovering it) before
-// building the new one.
+// Clean up any leftover expanded ternary card / advanced dashboard from a
+// previous calculation (e.g. if the user re-clicked Calculate while still
+// hovering it) before building the new one.
 const staleTernaryWrapper = document.getElementById('ternaryPlotWrapper');
 if (staleTernaryWrapper) staleTernaryWrapper.remove();
 if (_ternaryHoverBackdrop) _ternaryHoverBackdrop.classList.remove('active');
+const staleTernaryOuter = document.getElementById('ternaryCardOuter');
+if (staleTernaryOuter) staleTernaryOuter.remove();
 
 const plotDiv = document.createElement('div');
 plotDiv.id = "ternary-plot";
@@ -1003,7 +1005,67 @@ ternaryWrapper.style.height = TERNARY_HEIGHT + "px";
 ternaryWrapper.style.maxWidth = "100%";
 ternaryWrapper.style.margin = "0 auto";
 ternaryWrapper.appendChild(plotDiv);
-rightContainerDiv.appendChild(ternaryWrapper);
+
+// ---- Outer card: ternary plot OR advanced dashboard, toggled by a corner
+// button that sits OUTSIDE ternaryWrapper (a sibling, never a descendant)
+// so hovering/clicking it can never trigger the ternary hover-to-expand
+// behaviour set up below. Everything about the ternary card itself is
+// left completely untouched. ----
+const ternaryCardOuter = document.createElement('div');
+ternaryCardOuter.id = "ternaryCardOuter";
+ternaryCardOuter.className = "ternary-card-outer";
+
+const advancedDashboard = document.createElement('div');
+advancedDashboard.id = "advancedDashboard";
+advancedDashboard.className = "advanced-dashboard hidden";
+
+const advancedViewToggleBtn = document.createElement('button');
+advancedViewToggleBtn.type = "button";
+advancedViewToggleBtn.id = "advancedViewToggleBtn";
+advancedViewToggleBtn.className = "advanced-view-corner-btn";
+advancedViewToggleBtn.title = "Switch between the ternary plot and the advanced view";
+advancedViewToggleBtn.innerHTML = '<span class="advanced-view-corner-btn-icon">\u2726</span><span class="advanced-view-corner-btn-label">Advanced View</span>';
+
+const advDashData = { SIO, ALO, FEO, CAO, MGO, NAO, KO, S, FT: predictedAFT, HT, IDT, FSP, FSPD, FFFTS, FFFD, omScore: checkboxScore };
+buildAdvancedDashboard(advancedDashboard, advDashData);
+
+let showingAdvancedDashboard = false;
+let advancedChartsDrawn = false;
+advancedViewToggleBtn.addEventListener('click', () => {
+    showingAdvancedDashboard = !showingAdvancedDashboard;
+    const label = advancedViewToggleBtn.querySelector('.advanced-view-corner-btn-label');
+
+    if (showingAdvancedDashboard) {
+        ternaryWrapper.style.display = 'none';
+        advancedDashboard.classList.remove('hidden');
+        advancedViewToggleBtn.classList.add('active');
+        if (label) label.textContent = 'Ternary View';
+
+        if (window.Plotly) {
+            if (!advancedChartsDrawn) {
+                drawRadarChart(advDashData);
+                drawAshFusionChart(advDashData);
+                drawTendencyMapChart(advDashData);
+                advancedChartsDrawn = true;
+            } else {
+                ['radarChart', 'ashFusionChart', 'tendencyMapChart'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) { try { Plotly.Plots.resize(el); } catch (e) {} }
+                });
+            }
+        }
+    } else {
+        ternaryWrapper.style.display = '';
+        advancedDashboard.classList.add('hidden');
+        advancedViewToggleBtn.classList.remove('active');
+        if (label) label.textContent = 'Advanced View';
+    }
+});
+
+ternaryCardOuter.appendChild(ternaryWrapper);
+ternaryCardOuter.appendChild(advancedDashboard);
+ternaryCardOuter.appendChild(advancedViewToggleBtn);
+rightContainerDiv.appendChild(ternaryCardOuter);
 updatePlot();
 _setupTernaryHoverExpand(ternaryWrapper, plotDiv);
         
@@ -1058,8 +1120,190 @@ function updatePlot() {
 
     Plotly.newPlot(ternaryPlotElement, data, layout, {responsive: true});
 }
-        
-    
+
+/* -----------------------------------------------------------------------
+   Advanced view: Compositional Radar / Ash Fusion Characteristics /
+   Ash Deposition Tendency Map + Key Indicators.
+
+   Everything here is built from values already calculated in
+   calculateWeightedAverage() (oxide weight %, predicted AFT, IDT/HT,
+   FSP, FFFTS, O&M checkbox score) — no invented figures. The Ash Fusion
+   card draws flat reference lines at the real IDT/HT/FT temperatures
+   (no fake heating-rate curve, since only single-point values exist).
+----------------------------------------------------------------------- */
+function _advCard(titleText, chartId) {
+    const card = document.createElement('div');
+    card.className = 'advanced-card';
+    const title = document.createElement('div');
+    title.className = 'advanced-card-title';
+    title.textContent = titleText;
+    const chartDiv = document.createElement('div');
+    chartDiv.id = chartId;
+    chartDiv.className = 'advanced-card-chart';
+    card.appendChild(title);
+    card.appendChild(chartDiv);
+    return card;
+}
+
+function buildAdvancedDashboard(container, d) {
+    container.innerHTML = '';
+
+    const grid = document.createElement('div');
+    grid.className = 'advanced-dashboard-grid';
+    grid.appendChild(_advCard('Compositional Radar', 'radarChart'));
+    grid.appendChild(_advCard('Ash Fusion Characteristics', 'ashFusionChart'));
+    grid.appendChild(_advCard('Ash Deposition Tendency Map', 'tendencyMapChart'));
+    container.appendChild(grid);
+
+    container.appendChild(buildKeyIndicatorsRow(d));
+}
+
+function drawRadarChart(d) {
+    const el = document.getElementById('radarChart');
+    if (!el || !window.Plotly) return;
+
+    const categories = ['SiO\u2082', 'Al\u2082O\u2083', 'Fe\u2082O\u2083', 'CaO', 'MgO', 'Na\u2082O + K\u2082O'];
+    const values = [d.SIO, d.ALO, d.FEO, d.CAO, d.MGO, (d.NAO || 0) + (d.KO || 0)];
+    const r = values.concat([values[0]]);
+    const theta = categories.concat([categories[0]]);
+
+    const data = [{
+        type: 'scatterpolar',
+        r: r,
+        theta: theta,
+        fill: 'toself',
+        name: 'Blend',
+        line: { color: '#4f8dff' },
+        fillcolor: 'rgba(79,141,255,0.28)',
+        marker: { color: '#4f8dff', size: 6 }
+    }];
+    const layout = {
+        polar: {
+            bgcolor: 'transparent',
+            radialaxis: { visible: true, showline: true, gridcolor: 'rgba(120,155,230,0.25)', tickfont: { color: '#9db2dd', size: 9 } },
+            angularaxis: { gridcolor: 'rgba(120,155,230,0.25)', tickfont: { color: '#f4f8ff', size: 10 } }
+        },
+        showlegend: false,
+        paper_bgcolor: 'transparent',
+        plot_bgcolor: 'transparent',
+        margin: { l: 34, r: 34, t: 20, b: 20 },
+        font: { color: '#f4f8ff' }
+    };
+    Plotly.newPlot(el, data, layout, { displayModeBar: false, responsive: true });
+}
+
+function drawAshFusionChart(d) {
+    const el = document.getElementById('ashFusionChart');
+    if (!el || !window.Plotly) return;
+
+    const refs = [
+        { label: 'IDT', value: d.IDT, color: '#4f8dff' },
+        { label: 'HT', value: d.HT, color: '#ffb703' },
+        { label: 'FT', value: d.FT, color: '#ff5b5b' }
+    ].filter(r => r.value != null && !isNaN(r.value));
+
+    const shapes = refs.map(r => ({
+        type: 'line', xref: 'paper', x0: 0, x1: 1, y0: r.value, y1: r.value,
+        line: { color: r.color, width: 2 }
+    }));
+    const annotations = refs.map(r => ({
+        xref: 'paper', x: 1, y: r.value, xanchor: 'left', yanchor: 'middle', xshift: 6,
+        text: `${r.label}: ${Math.round(r.value)}\u00b0C`, showarrow: false,
+        font: { color: r.color, size: 11 }
+    }));
+
+    const yVals = refs.map(r => r.value);
+    const yMin = yVals.length ? Math.min(...yVals) - 60 : 1000;
+    const yMax = yVals.length ? Math.max(...yVals) + 60 : 1500;
+
+    const data = [{ x: [0, 1], y: [null, null], mode: 'markers', hoverinfo: 'skip', showlegend: false }];
+    const layout = {
+        shapes: shapes,
+        annotations: annotations,
+        xaxis: { visible: false, range: [0, 1] },
+        yaxis: { title: { text: 'Temperature (\u00b0C)', font: { color: '#9db2dd', size: 11 } }, range: [yMin, yMax], gridcolor: 'rgba(120,155,230,0.15)', tickfont: { color: '#9db2dd', size: 10 } },
+        paper_bgcolor: 'transparent',
+        plot_bgcolor: 'transparent',
+        margin: { l: 55, r: 85, t: 20, b: 20 },
+        font: { color: '#f4f8ff' }
+    };
+    Plotly.newPlot(el, data, layout, { displayModeBar: false, responsive: true });
+}
+
+function drawTendencyMapChart(d) {
+    const el = document.getElementById('tendencyMapChart');
+    if (!el || !window.Plotly) return;
+
+    // Background field is a simple visual gradient (like the color bands
+    // already used on the FSP/FFFTS gauges) — not a fitted model. The
+    // marker position is the real computed oxide ratio for this blend.
+    const n = 30;
+    const xs = [], ys = [], zs = [];
+    for (let i = 0; i < n; i++) xs.push(i / (n - 1));
+    for (let j = 0; j < n; j++) ys.push(j / (n - 1));
+    for (let j = 0; j < n; j++) {
+        const row = [];
+        for (let i = 0; i < n; i++) row.push((1 - xs[i]) * 0.5 + ys[j] * 0.5);
+        zs.push(row);
+    }
+
+    const x = d.SIO / ((d.SIO + d.ALO) || 1);
+    const y = d.CAO / ((d.CAO + d.MGO) || 1);
+    const pointLabel = d.FFFD ? (d.FFFD + ' Fouling') : '';
+
+    const data = [
+        {
+            type: 'contour', x: xs, y: ys, z: zs, showscale: false,
+            colorscale: [[0, '#2ecc71'], [0.5, '#f1c40f'], [1, '#e74c3c']],
+            contours: { coloring: 'heatmap' }, line: { width: 0 }, opacity: 0.85, hoverinfo: 'skip'
+        },
+        {
+            type: 'scatter', mode: 'markers+text', x: [x], y: [y],
+            text: [pointLabel], textposition: 'top center',
+            textfont: { color: '#fff', size: 11 },
+            marker: { size: 12, color: '#fff', line: { color: '#0a1a44', width: 2 } },
+            hoverinfo: 'text', showlegend: false
+        }
+    ];
+    const layout = {
+        xaxis: { title: { text: 'SiO\u2082 / (SiO\u2082 + Al\u2082O\u2083)', font: { color: '#9db2dd', size: 10 } }, range: [0, 1], gridcolor: 'rgba(255,255,255,0.15)', tickfont: { color: '#9db2dd', size: 9 } },
+        yaxis: { title: { text: 'CaO / (CaO + MgO)', font: { color: '#9db2dd', size: 10 } }, range: [0, 1], gridcolor: 'rgba(255,255,255,0.15)', tickfont: { color: '#9db2dd', size: 9 } },
+        paper_bgcolor: 'transparent',
+        plot_bgcolor: 'transparent',
+        margin: { l: 55, r: 15, t: 15, b: 45 },
+        font: { color: '#f4f8ff' },
+        showlegend: false
+    };
+    Plotly.newPlot(el, data, layout, { displayModeBar: false, responsive: true });
+}
+
+function buildKeyIndicatorsRow(d) {
+    const row = document.createElement('div');
+    row.className = 'advanced-key-indicators';
+
+    const items = [
+        { label: 'Fluid Temp (FT)', value: (d.FT != null && !isNaN(d.FT)) ? Math.round(d.FT) + ' \u00b0C' : 'N/A', icon: '\uD83D\uDD25' },
+        { label: 'Total Sulfur', value: (d.S != null && !isNaN(d.S)) ? d.S.toFixed(2) + ' wt%' : 'N/A', icon: '\u24C8' },
+        { label: 'Slagging (FSP)', value: (d.FSP != null) ? d.FSP.toFixed(1) + '/6 \u00b7 ' + d.FSPD : 'N/A', icon: '\u26A0\uFE0F' },
+        { label: 'Fouling (FFFTS)', value: (d.FFFTS != null) ? d.FFFTS.toFixed(1) + '/3 \u00b7 ' + d.FFFD : 'N/A', icon: '\u2601\uFE0F' },
+        { label: 'Initial Deformation (IDT)', value: (d.IDT != null && !isNaN(d.IDT)) ? Math.round(d.IDT) + ' \u00b0C' : 'N/A', icon: '\uD83C\uDF21\uFE0F' },
+        { label: 'O&M Score', value: (d.omScore != null) ? d.omScore.toFixed(2) + ' / 3.5' : 'N/A', icon: '\u2699\uFE0F' }
+    ];
+
+    items.forEach(it => {
+        const card = document.createElement('div');
+        card.className = 'advanced-indicator-card';
+        card.innerHTML =
+            '<div class="advanced-indicator-icon">' + it.icon + '</div>' +
+            '<div class="advanced-indicator-body">' +
+                '<div class="advanced-indicator-value">' + it.value + '</div>' +
+                '<div class="advanced-indicator-label">' + it.label + '</div>' +
+            '</div>';
+        row.appendChild(card);
+    });
+
+    return row;
+}
 
 
 function removeBlend(button) {
