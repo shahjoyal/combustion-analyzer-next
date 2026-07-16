@@ -254,6 +254,7 @@ body {
    ============================================================ */
 .cx-auth {
   position: relative;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -263,44 +264,136 @@ body {
     var(--cx-navy-900);
 }
 
-.login-container {
-  width: 100%;
-  max-width: 400px;
-  text-align: center;
-  animation: cxFadeUp 0.9s ease both 0.3s;
-}
-
 @keyframes cxFadeUp {
   0%   { opacity: 0; transform: translateY(22px); }
   100% { opacity: 1; transform: translateY(0); }
 }
 
-.cx-mobile-logo { display: none; }
+/* ---------- animated background: particle network + drifting glow ---------- */
+.cx-auth-bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
 
-.login-container h2 {
-  margin: 0 0 14px;
-  font-size: 26px;
+.cx-particles-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  opacity: 0.85;
+}
+
+.cx-auth-glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: 0.45;
+}
+.cx-auth-glow--a {
+  width: 380px;
+  height: 380px;
+  top: -120px;
+  right: -80px;
+  background: radial-gradient(circle, rgba(47, 107, 255, 0.55), transparent 70%);
+  animation: cxDrift 13s ease-in-out infinite;
+}
+.cx-auth-glow--b {
+  width: 320px;
+  height: 320px;
+  bottom: -100px;
+  left: -80px;
+  background: radial-gradient(circle, rgba(90, 70, 220, 0.4), transparent 70%);
+  animation: cxDrift 16s ease-in-out infinite reverse;
+}
+
+.cx-auth-dotgrid {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(140, 175, 255, 0.10) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(circle at 80% 30%, black, transparent 75%);
+  -webkit-mask-image: radial-gradient(circle at 80% 30%, black, transparent 75%);
+}
+
+/* ---------- floating glass card ---------- */
+.cx-card {
+  position: relative;
+  z-index: 3;
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+  padding: 40px 36px 32px;
+  border-radius: 26px;
+  border: 1px solid rgba(140, 175, 255, 0.22);
+  background:
+    linear-gradient(180deg, rgba(28, 46, 92, 0.55) 0%, rgba(10, 18, 42, 0.55) 100%);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.03) inset,
+    0 30px 70px rgba(2, 6, 20, 0.55),
+    0 0 60px rgba(47, 107, 255, 0.10);
+  animation: cxFadeUp 0.9s ease both 0.2s, cxCardGlow 6s ease-in-out infinite 1.2s;
+}
+@keyframes cxCardGlow {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(255,255,255,0.03) inset, 0 30px 70px rgba(2,6,20,0.55), 0 0 60px rgba(47,107,255,0.10); }
+  50%      { box-shadow: 0 0 0 1px rgba(255,255,255,0.03) inset, 0 30px 70px rgba(2,6,20,0.55), 0 0 90px rgba(47,107,255,0.20); }
+}
+
+.cx-card-logo {
+  width: 84px;
+  height: 84px;
+  margin: 0 auto 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(140, 175, 255, 0.28);
+  box-shadow: 0 0 0 7px rgba(47, 107, 255, 0.07), 0 14px 30px rgba(0, 0, 0, 0.4);
+  animation: cxFloat 4.5s ease-in-out infinite;
+}
+.cx-card-logo img {
+  width: 74%;
+  height: 74%;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.4));
+}
+
+.cx-card-title {
+  margin: 0 0 6px;
+  font-size: 25px;
   font-weight: 800;
-  letter-spacing: 1.5px;
+  letter-spacing: 0.2px;
   color: var(--cx-white);
 }
-.login-container h2::after {
-  content: '';
-  display: block;
-  width: 54px;
+
+.cx-card-sub {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--cx-muted);
+  line-height: 1.5;
+}
+
+.cx-card-rule {
+  width: 46px;
   height: 3px;
-  margin: 10px auto 0;
+  margin: 18px auto;
   border-radius: 3px;
   background: linear-gradient(90deg, var(--cx-blue-400), var(--cx-blue-300));
   box-shadow: 0 0 12px var(--cx-blue-glow);
-  animation: cxExpand 0.8s ease forwards 0.5s;
+  animation: cxExpand 0.8s ease forwards 0.55s;
   transform-origin: center;
   width: 0;
 }
-@keyframes cxExpand { to { width: 54px; } }
+@keyframes cxExpand { to { width: 46px; } }
 
 #loginForm {
-  margin-top: 30px;
+  margin-top: 6px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -337,6 +430,7 @@ body {
   backdrop-filter: blur(6px);
   transition: border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
 }
+.cx-field--password input { padding-right: 46px; }
 .cx-field input::placeholder { color: #7b8cb8; }
 
 .cx-field input:focus {
@@ -349,7 +443,28 @@ body {
   color: var(--cx-blue-300);
 }
 
-button[type="submit"] {
+.cx-toggle-pass {
+  position: absolute;
+  right: 12px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: #7b8cb8;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+.cx-toggle-pass:hover { color: var(--cx-blue-300); background: rgba(47, 107, 255, 0.1); }
+.cx-eye { width: 19px; height: 19px; position: absolute; transition: opacity 0.15s ease, transform 0.15s ease; }
+.cx-eye--closed { opacity: 0; transform: scale(0.8); }
+.cx-toggle-pass[aria-pressed="true"] .cx-eye--open { opacity: 0; transform: scale(0.8); }
+.cx-toggle-pass[aria-pressed="true"] .cx-eye--closed { opacity: 1; transform: scale(1); }
+
+.cx-submit {
   position: relative;
   margin-top: 6px;
   padding: 15px;
@@ -368,23 +483,41 @@ button[type="submit"] {
   transition: background-position 0.5s ease, transform 0.2s ease, box-shadow 0.25s ease;
   animation: cxFadeUp 0.7s ease both 0.62s;
 }
-button[type="submit"]:hover {
+.cx-submit:hover {
   background-position: 100% 0;
   transform: translateY(-2px);
   box-shadow: 0 16px 34px rgba(29, 79, 214, 0.55);
 }
-button[type="submit"]:active {
+.cx-submit:active {
   transform: translateY(0);
   box-shadow: 0 8px 18px rgba(29, 79, 214, 0.4);
 }
-button[type="submit"] span { position: relative; z-index: 1; }
+.cx-submit span { position: relative; z-index: 1; }
 
 #message {
   min-height: 20px;
-  margin-top: 16px;
+  margin-top: 14px;
   font-size: 14px;
   color: #ff7b7b;
   transition: all 0.3s ease;
+}
+
+.cx-card-divider {
+  height: 1px;
+  margin: 20px 0 16px;
+  background: linear-gradient(90deg, transparent, rgba(140, 175, 255, 0.25), transparent);
+  animation: cxFadeUp 0.7s ease both 0.7s;
+}
+
+.cx-card-footer {
+  margin: 0;
+  font-size: 12.5px;
+  color: #7b8cb8;
+  animation: cxFadeUp 0.7s ease both 0.78s;
+}
+.cx-card-footer span {
+  color: var(--cx-blue-300);
+  font-weight: 600;
 }
 
 /* ============================================================
@@ -412,29 +545,19 @@ button[type="submit"] span { position: relative; z-index: 1; }
     padding: 28px 18px;
   }
 
-  .cx-mobile-logo {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 18px;
-    animation: cxFloat 4.5s ease-in-out infinite;
-  }
-  .cx-mobile-logo img {
-    width: 78px;
-    height: 78px;
-    object-fit: contain;
-    filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.4));
-  }
-
-  .login-container { max-width: 100%; }
-  .login-container h2 { font-size: 22px; }
+  .cx-card { max-width: 100%; padding: 34px 24px 26px; }
+  .cx-card-logo { width: 72px; height: 72px; margin-bottom: 14px; }
+  .cx-card-title { font-size: 22px; }
 
   .cx-field input { padding: 14px 14px 14px 44px; font-size: 16px; }
-  button[type="submit"] { padding: 14px; font-size: 16px; }
+  .cx-field--password input { padding-right: 44px; }
+  .cx-submit { padding: 14px; font-size: 16px; }
 }
 
 @media (max-width: 360px) {
   .cx-auth { padding: 22px 14px; }
-  .login-container h2 { font-size: 20px; }
+  .cx-card { padding: 28px 18px 22px; }
+  .cx-card-title { font-size: 20px; }
 }
 
 /* Respect reduced motion preference */

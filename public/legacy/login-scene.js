@@ -20,9 +20,15 @@
   if (window.innerWidth <= 560) return; // panel is hidden on small phones
   if (!window.WebGLRenderingContext) return;
 
-  var THREE_CDN = 'https://unpkg.com/three@0.160.0/build/three.module.min.js';
+  // Self-hosted (not loaded from a CDN): a remote dynamic import() is the
+  // classic reason this kind of scene "sometimes just doesn't show up" —
+  // it depends on a third-party host being fast/reachable on every single
+  // page load, with no retry if that one request stalls or is blocked by
+  // a network policy. Shipping the file ourselves makes it as reliable as
+  // any other asset on the page.
+  var THREE_LOCAL = '/legacy/vendor/three.module.min.js';
 
-  import(/* webpackIgnore: true */ THREE_CDN)
+  import(/* webpackIgnore: true */ THREE_LOCAL)
     .then(function (THREE) {
       initScene(THREE);
     })
@@ -292,7 +298,15 @@
     function animate() {
       raf = requestAnimationFrame(animate);
       if (paused) return;
-      if (!sized) return; // don't render (or reveal) until size is correct
+      if (!sized) {
+        // Keep retrying every frame (cheap: just reads layout + bails)
+        // instead of depending solely on the initial synchronous call or
+        // on ResizeObserver firing at exactly the right moment. Covers
+        // the case where the panel hasn't been laid out yet the first
+        // time this script runs.
+        applySize(stage.clientWidth, stage.clientHeight);
+        if (!sized) return;
+      }
 
       var t = clock.getElapsedTime();
       var dt = Math.min(clock.getDelta(), 0.05);
