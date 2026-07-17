@@ -542,6 +542,21 @@ body{
   overflow-x: hidden; /* the panel should never need a left-right scrollbar */
 }
 
+/* Results panel: dark instrument-cluster theme so it matches the
+   gauge/overall-score dashboard it hosts, instead of the near-white
+   glass background shared with the (untouched) left form panel. */
+.right-container{
+  background:
+    radial-gradient(130% 90% at 20% -10%, rgba(47,107,255,0.16), transparent 55%),
+    linear-gradient(165deg, #0b1230 0%, #060a1c 55%, #04070f 100%);
+  border: 1px solid rgba(120,160,255,0.28);
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,0.4),
+    0 20px 46px rgba(2, 8, 30, 0.55),
+    inset 0 1px 0 rgba(255,255,255,0.04);
+  color: #eaf2ff;
+}
+
 /* blend rows and controls */
 .blend-row{ display:flex; flex-direction:column; gap:12px;   max-height: 140px;          /* fallback; JS sizes this to exactly 2 coal rows */
   overflow-y: auto;       /* internal scroll */
@@ -1032,17 +1047,6 @@ body.page-slagging canvas[id^="chart-"] {
   border: 1px solid var(--cxd-border);
 }
 
-/* The "Advanced view" gauge (Plotly) uses a transparent paper background
-   with dark navy title/number text, which was fine on the original white
-   page but disappears against this dark theme. Give it the same light
-   card surface as the Classic gauge above so its (unchanged) dark text
-   stays legible. */
-body.page-slagging .advanced-gauge-view {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(240, 245, 255, 0.98)) !important;
-  border: 1px solid var(--cxd-border);
-  border-radius: 10px;
-}
-
 /* ---------- ternary card: click-to-expand ----------
    Normal state: sits inline exactly where it always has. On click it's
    re-homed under <body> and switched to position:fixed so it can enlarge
@@ -1278,4 +1282,130 @@ body.page-slagging .advanced-gauge-view {
 @media (max-width: 480px) {
   .advanced-view-corner-btn-label { display: none; }
   .advanced-view-corner-btn { padding: 4px 6px !important; }
+}
+/* ============================================================
+   CAR-DASHBOARD STYLE GAUGES (Slagging / Fouling / Overall)
+   Dark instrument-cluster panel replacing the old light gauges
+   and horizontal score bar.
+   ============================================================ */
+
+.car-dashboard-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 6px;
+  padding: 18px 26px;
+  /* One shared white card: a large border-radius relative to the panel's
+     height turns the rectangle into a pill/stadium shape (rounded ends
+     where the two dials sit, flat top/bottom across the middle), so both
+     gauges + the center bar read as one continuous console instead of two
+     separate circles — matching the reference dashboard image. The dark
+     navy "dial" color lives on each dial face instead (see buildCarGaugeSVG
+     in the JS), so it reads as two dark dials set into one white console. */
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(248, 250, 255, 0.94));
+  border: 1.5px solid rgba(120, 160, 255, 0.28);
+  border-radius: 999px;
+  box-shadow: 0 10px 28px rgba(20, 30, 60, 0.12), inset 0 1px 0 rgba(255,255,255,0.6);
+  position: relative;
+  overflow: visible;
+}
+
+.car-gauge-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  position: relative;
+  z-index: 1;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+.car-gauge-dial {
+  cursor: pointer;
+  border-radius: 50%;
+  transition: transform 0.15s ease, filter 0.15s ease;
+  filter: drop-shadow(0 6px 16px rgba(20,30,60,0.25));
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.car-gauge-dial:hover {
+  transform: translateY(-2px) scale(1.02);
+  filter: drop-shadow(0 8px 20px rgba(95,168,255,0.35));
+}
+.car-gauge-dial svg { display: block; }
+
+/* ---- central vertical "fuel gauge" style overall score bar ---- */
+.car-center-bar-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  position: relative;
+  z-index: 1;
+  min-width: 84px;
+  align-self: center;
+}
+
+.car-overall-value {
+  font-size: 26px;
+  font-weight: 800;
+  color: #14213d;
+  line-height: 1;
+}
+
+.car-vertical-bar {
+  position: relative;
+  width: 34px;
+  height: 150px;
+  border-radius: 17px;
+  background: #060a1c;
+  border: 1px solid rgba(120,160,255,0.4);
+  box-shadow: inset 0 0 12px rgba(0,0,0,0.65), 0 0 18px rgba(47,107,255,0.12);
+  overflow: hidden;
+  margin: 4px 18px 4px 4px;
+}
+
+.car-vertical-bar-tick {
+  position: absolute;
+  left: 100%;
+  width: 6px;
+  height: 1px;
+  background: rgba(60,80,140,0.4);
+  transform: translateY(50%);
+}
+
+.car-vertical-bar-tick-label {
+  position: absolute;
+  left: calc(100% + 9px);
+  transform: translateY(50%);
+  font-size: 10px;
+  color: #5a6b95;
+  white-space: nowrap;
+}
+
+.car-overall-caption {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  color: #14213d;
+  margin-top: 4px;
+}
+
+.car-overall-breakdown {
+  font-size: 10.5px;
+  color: #5a6b95;
+  text-align: center;
+  white-space: nowrap;
+}
+
+@media (max-width: 620px) {
+  .car-dashboard-panel { gap: 8px; padding: 16px 8px 12px; flex-wrap: wrap; border-radius: 24px; }
+  .car-center-bar-wrap { order: 3; min-width: 60px; }
+  .car-vertical-bar { margin-right: 10px; }
 }

@@ -143,18 +143,26 @@ tbody tr:hover td {
    more than the no-scroll experiment. */
 
 #ternary-plot,
-#fspGaugeChart,
-#ffftsGaugeChart,
 canvas[id^="chart-"] {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 250, 255, 0.96));
   border-radius: 16px;
   box-shadow: var(--premium-shadow-md);
   transition: box-shadow 0.25s ease;
 }
-#ternary-plot:hover,
-#fspGaugeChart:hover,
-#ffftsGaugeChart:hover {
+#ternary-plot:hover {
   box-shadow: var(--premium-shadow-lg);
+}
+
+/* The car-dashboard gauges (#fspGaugeChart, #ffftsGaugeChart) are dark
+   instrument-style SVG dials, not plot canvases — explicitly excluded
+   above and reset here so no other premium rule (e.g. the generic
+   .card / .control-card treatment) can ever paint a white/light card
+   background behind them. */
+#fspGaugeChart,
+#ffftsGaugeChart,
+.car-gauge-dial {
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 /* fade-in for chart containers once populated, purely cosmetic */

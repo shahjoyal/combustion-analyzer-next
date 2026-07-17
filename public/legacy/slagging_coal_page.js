@@ -135,7 +135,7 @@ const TERNARY_WIDTH = "88%";   // px (try 320 / 360 / 420)
 const TERNARY_HEIGHT = 200;  // px fallback/minimum height; the on-screen card now stretches to fill remaining space via flex
 const MARKER_SIZE = 8;       // ternary marker size (smaller if plot is tiny)
 
-const GAUGE_SIZE = 136;      // px for gauge width/height (try 120 / 150)
+const GAUGE_SIZE = 240;      // px for gauge width/height — car-dashboard dials need room for tick labels + the value/title/status text now embedded inside the dial face
 const OVERALL_GRAPH_WIDTH = 480; // px for the overall bar (was 550)
         async function calculateWeightedAverage() {
 
@@ -579,104 +579,220 @@ if (dlBtn) {
                 rightContainerDiv.appendChild(blendPropertiesBtn);
                 
                 
-                google.charts.load('current', { 'packages': ['gauge'] });
-        
-                
-        
-                let chartWrapper = document.createElement("div");   
-                chartWrapper.style.display = "flex";  // Flexbox for side-by-side layout
-                chartWrapper.style.justifyContent = "center"; // Center align
-                chartWrapper.style.gap = "24px"; // Space between charts
-                chartWrapper.style.marginTop = "4px";
-                chartWrapper.style.width = "100%";
-                chartWrapper.style.boxSizing = "border-box";
+                // ============================================================
+                // CAR-DASHBOARD STYLE GAUGES
+                // Two circular instrument-cluster dials (Slagging / Fouling), each
+                // with its outer-facing bezel ring only (the side facing the center
+                // console is left open so the two dials read as one console), plus
+                // a vertical "fuel style" score bar in between them. The
+                // click-to-reveal-table behaviour on each dial works exactly as
+                // before.
+                // ============================================================
+
+                let chartWrapper = document.createElement("div");
+                chartWrapper.className = "car-dashboard-panel";
                 rightContainerDiv.appendChild(chartWrapper);
-                
-                // Create Slagging Gauge Chart
-                const fspGraphWrapper = document.createElement("div");
-                fspGraphWrapper.style.textAlign = "center"; 
-                
-                const fspDisplay = document.createElement("div");
-                fspDisplay.style.marginTop = "6px";
-                fspDisplay.style.marginBottom = "2px";
-                fspDisplay.style.fontSize = "15px";
-                fspDisplay.style.fontWeight = "bold"; 
-                fspDisplay.textContent = `Slagging Potential : ${FSPD}`;
-                
-                const fspGraphContainer = document.createElement("div");
+
+                // Color ranges for FSP (0 to 6)
+                const fspColorRanges = {
+                    green: [0, 2],
+                    yellow: [2, 4],
+                    red: [4, 6]
+                };
+
+                // Color ranges for FFTS (0 to 3)
+                const ffftsColorRanges = {
+                    green: [0, 1],
+                    yellow: [1, 2],
+                    red: [2, 3]
+                };
+
+                // ---- polar-coordinate helpers for the circular dial ----
+                function _polarPt(cx, cy, r, angleDeg) {
+                    const rad = (angleDeg - 90) * Math.PI / 180;
+                    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+                }
+                function _arcPath(cx, cy, r, startAngle, endAngle) {
+                    const start = _polarPt(cx, cy, r, endAngle);
+                    const end = _polarPt(cx, cy, r, startAngle);
+                    const largeArc = (endAngle - startAngle) <= 180 ? "0" : "1";
+                    return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 0 ${end.x} ${end.y}`;
+                }
+
+                const DIAL_SWEEP = 270;   // total degrees the dial covers
+                const DIAL_START = -135; // angle of the minimum value (bottom-left)
+
+                function _valueToAngle(value, minValue, maxValue) {
+                    const clamped = Math.min(Math.max(value, minValue), maxValue);
+                    return DIAL_START + ((clamped - minValue) / (maxValue - minValue)) * DIAL_SWEEP;
+                }
+
+                // Maps a Low/Moderate/High status word to the same green/yellow/red
+                // used for the dial's color bands, so the status text under the
+                // value reads in the matching color (as in the reference dashboard).
+                function _statusColor(statusText) {
+                    if (statusText === "Low") return "#3ddc84";
+                    if (statusText === "High") return "#ff5050";
+                    return "#ffd23d"; // Moderate
+                }
+
+                // Renders one car-style circular gauge as an inline SVG string.
+                // Each dial draws its own dark navy face + bezel ring (the "dial
+                // colour"), and both dials sit on the shared white
+                // .car-dashboard-panel pill background, so the two dials read as
+                // one instrument cluster set into a single white console (see the
+                // reference dashboard image). titleText/statusText are drawn
+                // inside the dial face below the value, matching the image.
+                function buildCarGaugeSVG(value, minValue, maxValue, colorRanges, size, titleText, statusText) {
+                    const cx = size / 2, cy = size / 2;
+                    const outerR = size / 2 - 6;
+                    const bandR  = outerR - 11;
+                    const tickR1 = bandR - 9;
+                    const tickR2 = bandR - 3;
+                    const labelR = bandR - 21;
+                    const needleR = bandR - 15;
+
+                    const bands = [
+                        { range: colorRanges.green,  color: "#3ddc84" },
+                        { range: colorRanges.yellow, color: "#ffd23d" },
+                        { range: colorRanges.red,    color: "#ff5050" }
+                    ].map(b => {
+                        const a1 = _valueToAngle(b.range[0], minValue, maxValue);
+                        const a2 = _valueToAngle(b.range[1], minValue, maxValue);
+                        return `<path d="${_arcPath(cx, cy, bandR, a1, a2)}" fill="none" stroke="${b.color}" stroke-width="6" stroke-linecap="round" opacity="0.92"/>`;
+                    }).join("");
+
+                    let ticks = "";
+                    const range = maxValue - minValue;
+                    const step = range <= 4 ? 0.5 : 1;
+                    for (let v = minValue; v <= maxValue + 1e-6; v += step) {
+                        const isMajor = Math.abs(v - Math.round(v)) < 1e-6;
+                        const angle = _valueToAngle(v, minValue, maxValue);
+                        const p1 = _polarPt(cx, cy, tickR1, angle);
+                        const p2 = _polarPt(cx, cy, tickR2, angle);
+                        ticks += `<line x1="${p1.x.toFixed(2)}" y1="${p1.y.toFixed(2)}" x2="${p2.x.toFixed(2)}" y2="${p2.y.toFixed(2)}" stroke="${isMajor ? '#bcd4ff' : 'rgba(188,212,255,0.45)'}" stroke-width="${isMajor ? 2 : 1}"/>`;
+                        if (isMajor) {
+                            const lp = _polarPt(cx, cy, labelR, angle);
+                            ticks += `<text x="${lp.x.toFixed(2)}" y="${(lp.y + 3).toFixed(2)}" text-anchor="middle" font-size="9" fill="#8fb0ff" font-family="Inter, Arial, sans-serif">${Math.round(v)}</text>`;
+                        }
+                    }
+
+                    const needleAngle = _valueToAngle(value, minValue, maxValue);
+                    const needleTip = _polarPt(cx, cy, needleR, needleAngle);
+                    const needleBaseL = _polarPt(cx, cy, 6, needleAngle - 90);
+                    const needleBaseR = _polarPt(cx, cy, 6, needleAngle + 90);
+                    const uid = "g" + Math.random().toString(36).slice(2, 9);
+
+                    // Scale factor relative to the 240px reference size the text
+                    // layout below was tuned against, so GAUGE_SIZE can still be
+                    // tweaked without the text overflowing the dial face.
+                    const s = size / 240;
+                    const valueFontSize = 46 * s;
+                    const titleFontSize = 15 * s;
+                    const statusFontSize = 16 * s;
+                    const valueY = cy + outerR * 0.42;
+                    const titleY = valueY + valueFontSize * 0.72;
+                    const statusY = titleY + titleFontSize * 1.55;
+
+                    return `
+                    <svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+                      <defs>
+                        <radialGradient id="face-${uid}" cx="50%" cy="42%" r="70%">
+                          <stop offset="0%" stop-color="#152249"/>
+                          <stop offset="70%" stop-color="#0a1330"/>
+                          <stop offset="100%" stop-color="#05081a"/>
+                        </radialGradient>
+                        <filter id="glow-${uid}" x="-60%" y="-60%" width="220%" height="220%">
+                          <feGaussianBlur stdDeviation="1.5" result="blur"/>
+                          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                        </filter>
+                      </defs>
+                      <circle cx="${cx}" cy="${cy}" r="${outerR}" fill="url(#face-${uid})"/>
+                      <circle cx="${cx}" cy="${cy}" r="${outerR}" fill="none" stroke="rgba(120,160,255,0.35)" stroke-width="1.5"/>
+                      <circle cx="${cx}" cy="${cy}" r="${outerR - 1.5}" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+                      ${bands}
+                      ${ticks}
+                      <line x1="${needleBaseL.x.toFixed(2)}" y1="${needleBaseL.y.toFixed(2)}" x2="${needleTip.x.toFixed(2)}" y2="${needleTip.y.toFixed(2)}" stroke="#5fa8ff" stroke-width="3" stroke-linecap="round" filter="url(#glow-${uid})"/>
+                      <line x1="${needleBaseR.x.toFixed(2)}" y1="${needleBaseR.y.toFixed(2)}" x2="${needleTip.x.toFixed(2)}" y2="${needleTip.y.toFixed(2)}" stroke="#5fa8ff" stroke-width="3" stroke-linecap="round" filter="url(#glow-${uid})"/>
+                      <circle cx="${cx}" cy="${cy}" r="6.5" fill="#0a1330" stroke="#5fa8ff" stroke-width="2"/>
+                      <text x="${cx}" y="${valueY.toFixed(1)}" text-anchor="middle" font-size="${valueFontSize.toFixed(1)}" font-weight="800" fill="#eaf2ff" font-family="Inter, Arial, sans-serif">${value.toFixed(1)}</text>
+                      <text x="${cx}" y="${titleY.toFixed(1)}" text-anchor="middle" font-size="${titleFontSize.toFixed(1)}" font-weight="600" fill="#cfe0ff" font-family="Inter, Arial, sans-serif">${titleText}</text>
+                      <text x="${cx}" y="${statusY.toFixed(1)}" text-anchor="middle" font-size="${statusFontSize.toFixed(1)}" font-weight="700" fill="${_statusColor(statusText)}" font-family="Inter, Arial, sans-serif">(${statusText})</text>
+                    </svg>`;
+                }
+
+                // Builds one full gauge cluster (just the dial now — the title and
+                // status live inside the SVG face itself). Returns
+                // { wrapper, dialContainer } so click / advanced-view wiring
+                // can attach to it afterwards.
+                function buildGaugeCluster() {
+                    const wrapper = document.createElement("div");
+                    wrapper.className = "car-gauge-wrap";
+
+                    const dialContainer = document.createElement("div");
+                    dialContainer.className = "car-gauge-dial";
+                    dialContainer.style.width = GAUGE_SIZE + "px";
+                    dialContainer.style.height = GAUGE_SIZE + "px";
+                    wrapper.appendChild(dialContainer);
+
+                    return { wrapper, dialContainer };
+                }
+
+                // ---- Slagging dial ----
+                const fspCluster = buildGaugeCluster();
+                const fspGraphWrapper = fspCluster.wrapper;
+                const fspGraphContainer = fspCluster.dialContainer;
                 fspGraphContainer.id = "fspGaugeChart";
-                fspGraphContainer.style.width = GAUGE_SIZE + "px";
-                fspGraphContainer.style.height = GAUGE_SIZE + "px";
-                fspGraphContainer.style.margin = "0 auto";
-                
-                fspGraphWrapper.appendChild(fspDisplay);
-                fspGraphWrapper.appendChild(fspGraphContainer);
+                fspGraphContainer.innerHTML = buildCarGaugeSVG(FSP, 0, 6, fspColorRanges, GAUGE_SIZE, "Slagging Potential", FSPD);
                 chartWrapper.appendChild(fspGraphWrapper);
-                
-                // Create Fouling Gauge Chart
-                const ffftsGraphWrapper = document.createElement("div");
-                ffftsGraphWrapper.style.textAlign = "center"; 
-                
-                const ffftsDisplay = document.createElement("div");
-                ffftsDisplay.style.marginTop = "6px";
-                ffftsDisplay.style.marginBottom = "2px";
-                ffftsDisplay.style.fontSize = "15px";
-                ffftsDisplay.style.fontWeight = "bold";
-                ffftsDisplay.textContent = `Fouling Potential: ${FFFD}`;
-                
-                const ffftsGraphContainer = document.createElement("div");
+
+                // ---- central vertical overall-score bar ----
+                const carCenterBar = document.createElement("div");
+                carCenterBar.className = "car-center-bar-wrap";
+                carCenterBar.id = "carCenterBar";
+                chartWrapper.appendChild(carCenterBar);
+
+                // ---- Fouling dial ----
+                const ffftsCluster = buildGaugeCluster();
+                const ffftsGraphWrapper = ffftsCluster.wrapper;
+                const ffftsGraphContainer = ffftsCluster.dialContainer;
                 ffftsGraphContainer.id = "ffftsGaugeChart";
-                ffftsGraphContainer.style.width = GAUGE_SIZE + "px";
-                ffftsGraphContainer.style.height = GAUGE_SIZE + "px";
-                ffftsGraphContainer.style.margin = "0 auto";
-                
-                ffftsGraphWrapper.appendChild(ffftsDisplay);
-                ffftsGraphWrapper.appendChild(ffftsGraphContainer);
+                ffftsGraphContainer.innerHTML = buildCarGaugeSVG(FFFTS, 0, 3, ffftsColorRanges, GAUGE_SIZE, "Fouling Potential", FFFD);
                 chartWrapper.appendChild(ffftsGraphWrapper);
-                
-                // Append chartWrapper to the rightContainerDiv
-                rightContainerDiv.appendChild(chartWrapper);
-                
-                // Create a separate table container BELOW charts
+
+                // Create a separate table container BELOW the dashboard panel
                 let tableContainer = document.createElement("div");
                 tableContainer.style.width = "100%";
                 tableContainer.style.marginTop = "8px";
                 rightContainerDiv.appendChild(tableContainer);
-                
-                // Load Google Charts
-                google.charts.setOnLoadCallback(() => createGaugeChart("fspGaugeChart", FSP, 0, 6, fspColorRanges));
-                google.charts.setOnLoadCallback(() => createffftGaugeChart("ffftsGaugeChart", FFFTS, 0, 3, ffftsColorRanges));
-                
+
                 // Table toggle logic
                 let fspTableVisible = false;
                 let fspTableElement = null;
-                
+
                 let ffftsTableVisible = false;
                 let ffftsTableElement = null;
-                
+
                 // Function to update table layout dynamically
                 function updateTableLayout() {
                     tableContainer.innerHTML = ""; // Clear previous content
-                
+
                     if (fspTableVisible && fspTableElement) {
                         fspTableElement.style.width = "100%";
                         fspTableElement.style.marginBottom = "10px";
                         tableContainer.appendChild(fspTableElement);
                     }
-                
+
                     if (ffftsTableVisible && ffftsTableElement) {
                         ffftsTableElement.style.width = "100%";
                         tableContainer.appendChild(ffftsTableElement);
                     }
-                
-                    // Ensure the overall graph stays at the bottom
-                    tableContainer.appendChild(overallGraphWrapper);
                 }
-                
-                // Toggle logic for Slagging Table
+
+                // Toggle logic for Slagging Table (click anywhere on the dial)
                 fspGraphContainer.addEventListener("click", () => {
                     fspTableVisible = !fspTableVisible;
-                
+
                     if (fspTableVisible) {
                         if (!fspTableElement) {
                             fspTableElement = document.createElement("div");
@@ -685,14 +801,14 @@ if (dlBtn) {
                     } else {
                         fspTableElement = null;
                     }
-                
+
                     updateTableLayout();
                 });
-                
-                // Toggle logic for Fouling Table
+
+                // Toggle logic for Fouling Table (click anywhere on the dial)
                 ffftsGraphContainer.addEventListener("click", () => {
                     ffftsTableVisible = !ffftsTableVisible;
-                
+
                     if (ffftsTableVisible) {
                         if (!ffftsTableElement) {
                             ffftsTableElement = document.createElement("div");
@@ -701,256 +817,94 @@ if (dlBtn) {
                     } else {
                         ffftsTableElement = null;
                     }
-                
+
                     updateTableLayout();
                 });
-                
-                
-                // Function to create Google Gauge Chart
-                function createGaugeChart(containerId, value, minValue, maxValue, colorRanges) {
-                    const data = google.visualization.arrayToDataTable([
-                        ['Label', 'Value'],
-                        ['Value', value]
-                    ]);
-                
-                    const options = {
-                        width: GAUGE_SIZE,
-                        height: GAUGE_SIZE,
-                        min: minValue,
-                        max: maxValue,
-                        redFrom: colorRanges.red[0], redTo: colorRanges.red[1],
-                        yellowFrom: colorRanges.yellow[0], yellowTo: colorRanges.yellow[1],
-                        greenFrom: colorRanges.green[0], greenTo: colorRanges.green[1],
-                        greenColor: '#5de65d', // Light Green
-                        yellowColor: '#ffff76', // Light Yellow
-                        redColor: '#e24242', // Light Red
-                        majorTicks: ['0', '1', '2', '3', '4', '5', '6'], // 6 bold tick marks
-                        minorTicks: 2
-                        
-                    };   
-                
-                    const chart = new google.visualization.Gauge(document.getElementById(containerId));
-                    chart.draw(data, options);
-                }
-        
-                function createffftGaugeChart(containerId, value, minValue, maxValue, colorRanges) {
-                    const data = google.visualization.arrayToDataTable([
-                        ['Label', 'Value'],
-                        ['Value', value]
-                    ]);
-                
-                    const options = {
-                        width: GAUGE_SIZE,
-                        height: GAUGE_SIZE,
-                        min: minValue,
-                        max: maxValue,
-                        redFrom: colorRanges.red[0], redTo: colorRanges.red[1],
-                        yellowFrom: colorRanges.yellow[0], yellowTo: colorRanges.yellow[1],
-                        greenFrom: colorRanges.green[0], greenTo: colorRanges.green[1],
-                        greenColor: '#5de65d', // Light Green
-                        yellowColor: '#ffff76', // Light Yellow
-                        redColor: '#e24242', // Light Red
-                        majorTicks: ['0', '1', '2', '3'], // 4 bold tick marks
-                        minorTicks: 2
-                        
-                    };
-                    const chart = new google.visualization.Gauge(document.getElementById(containerId));
-                    chart.draw(data, options);
-                }
-        
-                // Color ranges for FSP (0 to 6)
-                const fspColorRanges = {
-                    green: [0, 2],
-                    yellow: [2, 4],
-                    red: [4, 6]
-                };
-        
-                // Color ranges for FFTS (0 to 4)
-                const ffftsColorRanges = {
-                    green: [0, 1],
-                    yellow: [1, 2],
-                    red: [2, 3]
-                };
 
-                // ---- Advanced chart toggle -----------------------------------------
-                // Adds a small "Advanced view" button beside each gauge that swaps in
-                // a Plotly indicator-gauge using the SAME value/thresholds as the
-                // Google gauge above. Purely additive: the original gauge, its own
-                // click-to-show-table behaviour, and every calculation stay exactly
-                // as they were.
-                function buildAdvancedGaugeFigure(value, minValue, maxValue, colorRanges, title) {
-                    return {
-                        data: [{
-                            type: "indicator",
-                            mode: "gauge+number",
-                            value: value,
-                            title: { text: title, font: { size: 11 } },
-                            number: { font: { size: 20 }, valueformat: ".1f" },
-                            gauge: {
-                                axis: { range: [minValue, maxValue], tickfont: { size: 9 } },
-                                bar: { color: "#0027a7", thickness: 0.28 },
-                                bgcolor: "white",
-                                borderwidth: 1,
-                                bordercolor: "rgba(11,26,43,0.15)",
-                                steps: [
-                                    { range: colorRanges.green, color: "#bdf5bd" },
-                                    { range: colorRanges.yellow, color: "#fff3b0" },
-                                    { range: colorRanges.red, color: "#8b1f1f" }
-                                ],
-                                threshold: {
-                                    line: { color: "#ffffff", width: 3 },
-                                    thickness: 0.85,
-                                    value: value
-                                }
-                            }
-                        }],
-                        layout: {
-                            width: GAUGE_SIZE,
-                            height: GAUGE_SIZE,
-                            margin: { t: 26, b: 8, l: 20, r: 20 },
-                            paper_bgcolor: "transparent",
-                            font: { family: "Inter, Segoe UI, Arial, sans-serif", color: "#0b1a2b" }
-                        }
-                    };
-                }
-
-                function addAdvancedGaugeToggle(graphWrapper, gaugeContainer, value, minValue, maxValue, colorRanges, title) {
-                    const advContainer = document.createElement("div");
-                    advContainer.className = "advanced-gauge-view";
-                    advContainer.style.width = GAUGE_SIZE + "px";
-                    advContainer.style.height = GAUGE_SIZE + "px";
-                    advContainer.style.display = "none";
-                    advContainer.style.margin = "0 auto";
-
-                    const toggleBtn = document.createElement("button");
-                    toggleBtn.type = "button";
-                    toggleBtn.textContent = "\u26A1 Advanced view";
-                    Object.assign(toggleBtn.style, {
-                        display: "block",
-                        marginTop: "5px",
-                        marginLeft: "auto",
-                        marginRight: "auto",
-                        padding: "4px 14px",
-                        fontSize: "11px",
-                        fontWeight: "600",
-                        border: "none",
-                        borderRadius: "999px",
-                        cursor: "pointer",
-                        background: "linear-gradient(180deg,#0027a7,#02126e)",
-                        color: "#fff",
-                        boxShadow: "0 6px 16px rgba(2,18,110,0.18)"
-                    });
-
-                    let showingAdvanced = false;
-                    let drawn = false;
-
-                    toggleBtn.addEventListener("click", () => {
-                        showingAdvanced = !showingAdvanced;
-
-                        if (showingAdvanced) {
-                            gaugeContainer.style.display = "none";
-                            advContainer.style.display = "block";
-                            toggleBtn.textContent = "\uD83C\uDFAF Classic view";
-                            if (!drawn && window.Plotly) {
-                                const fig = buildAdvancedGaugeFigure(value, minValue, maxValue, colorRanges, title);
-                                Plotly.newPlot(advContainer, fig.data, fig.layout, { displayModeBar: false, responsive: false });
-                                drawn = true;
-                            }
-                        } else {
-                            gaugeContainer.style.display = "block";
-                            advContainer.style.display = "none";
-                            toggleBtn.textContent = "\u26A1 Advanced view";
-                        }
-                    });
-
-                    graphWrapper.appendChild(advContainer);
-                    graphWrapper.appendChild(toggleBtn);
-                }
-
-                addAdvancedGaugeToggle(fspGraphWrapper, fspGraphContainer, FSP, 0, 6, fspColorRanges, "Slagging (FSP)");
-                addAdvancedGaugeToggle(ffftsGraphWrapper, ffftsGraphContainer, FFFTS, 0, 3, ffftsColorRanges, "Fouling (FFFTS)");
-         
-        
+                // Builds the vertical "fuel gauge" style overall-score bar that sits
+                // between the two dials, replacing the old horizontal bar. Same
+                // color logic / same #overallCbBar id (used by the PDF export code)
+                // as before — only the orientation and container have changed.
                 function createOverallGraph(totalScore, checkboxScore, overallTotal) {
                     const minValue = 0;
                     const maxValue = 10;
+                    const BAR_HEIGHT = 190;
 
-                    // Graph container
+                    carCenterBar.innerHTML = "";
+
+                    const totalDisplay = document.createElement("div");
+                    totalDisplay.className = "car-overall-value";
+                    totalDisplay.textContent = overallTotal.toFixed(1);
+                    carCenterBar.appendChild(totalDisplay);
+
                     const overallGraphContainer = document.createElement("div");
-                    overallGraphContainer.style.width = `min(${OVERALL_GRAPH_WIDTH}px, 86%)`;
-                    overallGraphContainer.style.height = "26px";
-                    overallGraphContainer.style.border = "1px solid white";
-                    overallGraphContainer.style.borderRadius = "12px";
-                    overallGraphContainer.style.position = "relative";
-                    overallGraphContainer.style.marginBottom = "18px";
-                    overallGraphContainer.style.marginLeft = "auto";
-                    overallGraphContainer.style.marginRight = "auto";
-                    overallGraphContainer.style.display = "flex";
+                    overallGraphContainer.className = "car-vertical-bar";
+                    overallGraphContainer.style.height = BAR_HEIGHT + "px";
 
-                    let sfWidth = (totalScore / maxValue) * 100;
-                    sfWidth = sfWidth > 100 ? 100 : sfWidth;
+                    let sfHeight = (totalScore / maxValue) * 100;
+                    sfHeight = sfHeight > 100 ? 100 : sfHeight;
 
-                    let cbWidth = ((totalScore + checkboxScore) > maxValue) 
-                        ? Math.max(0, (maxValue - totalScore) / maxValue * 100) 
+                    let cbHeight = ((totalScore + checkboxScore) > maxValue)
+                        ? Math.max(0, (maxValue - totalScore) / maxValue * 100)
                         : (checkboxScore / maxValue) * 100;
 
                     const totalCombined = totalScore + checkboxScore;
 
-                    // Slagging + Fouling Score Bar
+                    // Slagging + Fouling Score segment (grows from the bottom)
                     const sfBar = document.createElement("div");
-                    sfBar.style.height = "100%";
-                    sfBar.style.width = `${sfWidth}%`;
-                    sfBar.style.borderRadius = totalCombined >= maxValue ? "12px" : "12px 0 0 12px";
+                    sfBar.style.position = "absolute";
+                    sfBar.style.left = "0";
+                    sfBar.style.right = "0";
+                    sfBar.style.bottom = "0";
+                    sfBar.style.height = `${sfHeight}%`;
+                    sfBar.style.borderRadius = totalCombined >= maxValue ? "10px" : "0 0 10px 10px";
                     sfBar.style.backgroundColor = getColor(totalScore);
+                    sfBar.style.transition = "height .4s ease";
 
-                    // Checkbox Score Bar (overlay)
+                    // Checkbox / O&M Score segment (overlay, stacked above the first)
                     const cbBar = document.createElement("div");
                     cbBar.id = "overallCbBar";
-                    cbBar.style.height = "100%";
-                    cbBar.style.width = `${cbWidth}%`;
-                    cbBar.style.borderRadius = totalCombined >= maxValue ? "0 12px 12px 0" : "0";
-                    cbBar.style.backgroundColor = getCheckboxBaseColor(totalScore); // base color
-                    cbBar.style.backgroundImage = getHatchingLines(getHatchColor(totalCombined)); // hatch color depends on total
+                    cbBar.style.position = "absolute";
+                    cbBar.style.left = "0";
+                    cbBar.style.right = "0";
+                    cbBar.style.bottom = `${sfHeight}%`;
+                    cbBar.style.height = `${cbHeight}%`;
+                    cbBar.style.borderRadius = totalCombined >= maxValue ? "10px 10px 0 0" : "0";
+                    cbBar.style.backgroundColor = getCheckboxBaseColor(totalScore);
+                    cbBar.style.backgroundImage = getHatchingLines(getHatchColor(totalCombined));
+                    cbBar.style.transition = "height .4s ease, bottom .4s ease";
 
-                    // Append bars
                     overallGraphContainer.appendChild(sfBar);
                     overallGraphContainer.appendChild(cbBar);
 
-                    // Tick marks
+                    // Tick marks (0 at the bottom, 10 at the top)
                     for (let i = minValue; i <= maxValue; i++) {
+                        const fromBottomPct = (i / maxValue) * 100;
+
                         const tick = document.createElement("div");
-                        tick.style.position = "absolute";
-                        tick.style.left = `${(i / maxValue) * 100}%`;
-                        tick.style.top = "50%";
-                        tick.style.transform = "translateY(-50%)";
-                        tick.style.height = "10px";
-                        tick.style.width = "1px";
-                        tick.style.backgroundColor = "black";
+                        tick.className = "car-vertical-bar-tick";
+                        tick.style.bottom = `${fromBottomPct}%`;
 
                         const label = document.createElement("span");
-                        label.style.position = "absolute";
-                        label.style.marginTop = "5px";
-                        label.style.left = `${(i / maxValue) * 100}%`;
-                        label.style.top = "100%";
-                        label.style.transform = "translateX(-50%)";
-                        label.style.fontSize = "12px";
+                        label.className = "car-vertical-bar-tick-label";
+                        label.style.bottom = `${fromBottomPct}%`;
                         label.textContent = i;
 
                         overallGraphContainer.appendChild(tick);
                         overallGraphContainer.appendChild(label);
                     }
 
-                    // Display score
-                    const totalDisplay = document.createElement("div");
-                    totalDisplay.style.marginBottom = "6px";
-                    totalDisplay.style.marginTop = "6px";
-                    totalDisplay.style.textAlign = "center";
-                    totalDisplay.style.fontSize = "16px";
-                    totalDisplay.style.fontWeight = "bold";
-                    totalDisplay.textContent = `Overall Score: ${overallTotal.toFixed(1)} (Slagging + Fouling: ${totalScore.toFixed(1)}, O&M Score: ${checkboxScore.toFixed(1)})`;
+                    carCenterBar.appendChild(overallGraphContainer);
 
-                    rightContainerDiv.appendChild(totalDisplay);
-                    rightContainerDiv.appendChild(overallGraphContainer);
+                    const overallLabel = document.createElement("div");
+                    overallLabel.className = "car-overall-caption";
+                    overallLabel.textContent = "OVERALL SCORE";
+                    carCenterBar.appendChild(overallLabel);
+
+                    const breakdownLabel = document.createElement("div");
+                    breakdownLabel.className = "car-overall-breakdown";
+                    breakdownLabel.textContent = `S+F: ${totalScore.toFixed(1)} \u00B7 O&M: ${checkboxScore.toFixed(1)}`;
+                    carCenterBar.appendChild(breakdownLabel);
                 }
 
                 // Main score color
@@ -973,22 +927,15 @@ if (dlBtn) {
                     if (totalCombined > 3) return "yellow";
                     return "green";
                 }
-                
+
                 function getHatchingLines(hatchColor) {
                     return `repeating-linear-gradient(45deg, transparent, transparent 5px, ${hatchColor} 5px, ${hatchColor} 10px)`;
                 }
 
-                
+
                 document.getElementById("resultsContainer").style.display = "flex";
                 document.getElementById("blendValues").style.display = "flex";
                 blendPropertiesBtn.style.display = "block";
-                let overallGraphWrapper = document.getElementById("overallGraphWrapper");
-                if (!overallGraphWrapper) {
-                    overallGraphWrapper = document.createElement("div");
-                    overallGraphWrapper.id = "overallGraphWrapper";
-                    rightContainerDiv.insertBefore(overallGraphWrapper, rightContainerDiv.firstChild);
-                }
-                overallGraphWrapper.innerHTML = ""; // Clear previous content
                 createOverallGraph(totalScore, checkboxScore, overallTotal);
 
 // Clean up any leftover expanded ternary card / advanced dashboard from a
