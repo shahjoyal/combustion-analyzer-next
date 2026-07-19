@@ -744,11 +744,19 @@ if (dlBtn) {
                 fspGraphContainer.innerHTML = buildCarGaugeSVG(FSP, 0, 6, fspColorRanges, GAUGE_SIZE, "Slagging Potential", FSPD);
                 chartWrapper.appendChild(fspGraphWrapper);
 
-                // ---- central vertical overall-score bar ----
+                // ---- central overall-score stack: value floats above the
+                // connector's top border line, the bordered box in the middle
+                // holds the full-rectangle bottom-up score fill, and the
+                // OVERALL SCORE caption + breakdown float below the bottom
+                // border line ----
+                const carCenterStack = document.createElement("div");
+                carCenterStack.className = "car-center-stack";
+                chartWrapper.appendChild(carCenterStack);
+
                 const carCenterBar = document.createElement("div");
                 carCenterBar.className = "car-center-bar-wrap";
                 carCenterBar.id = "carCenterBar";
-                chartWrapper.appendChild(carCenterBar);
+                carCenterStack.appendChild(carCenterBar);
 
                 // ---- Fouling dial ----
                 const ffftsCluster = buildGaugeCluster();
@@ -819,90 +827,97 @@ if (dlBtn) {
                     updateTableLayout();
                 });
 
-                // Builds the vertical "fuel gauge" style overall-score bar that sits
-                // between the two dials, replacing the old horizontal bar. Same
-                // color logic / same #overallCbBar id (used by the PDF export code)
-                // as before — only the orientation and container have changed.
+                // Builds the overall-score stack. Same functionality as the
+                // original narrow bar — fill height is proportional to the
+                // score out of 10 (e.g. score of 2 = 20% filled) and the
+                // color steps green -> yellow -> red as the score climbs —
+                // just stretched across the whole connector rectangle now.
+                // The value/caption are absolutely positioned above/below
+                // the box (not normal-flow siblings) so they never push the
+                // box itself out of vertical alignment with the circles —
+                // that's what was breaking the top border's connection to
+                // the circle rings.
                 function createOverallGraph(totalScore, checkboxScore, overallTotal) {
-                    const minValue = 0;
                     const maxValue = 10;
-                    const BAR_HEIGHT = 120; // shrunk further (was 190, then 150) to fit the smaller circle+connector shape
+                    const clampedTotal = Math.min(Math.max(overallTotal, 0), maxValue);
+                    const fillPct = (clampedTotal / maxValue) * 100;
 
-                    carCenterBar.innerHTML = "";
+                    carCenterStack.innerHTML = "";
 
+                    // The bordered connector box, rebuilt fresh each call
+                    const carCenterBar = document.createElement("div");
+                    carCenterBar.className = "car-center-bar-wrap";
+                    carCenterBar.id = "carCenterBar";
+                    carCenterBar.setAttribute(
+                        "data-tooltip",
+                        `${overallTotal.toFixed(1)} / ${maxValue} \u00B7 ${getOverallZoneLabel(clampedTotal)}`
+                    );
+
+                    // Soft glow bleeding upward from the fill into the dark
+                    // unfilled area, same hue as the fill color. Taller than
+                    // the solid fill itself (capped at 100%) so it fades out
+                    // gradually above the fill's top edge; the solid fill
+                    // (painted after, below) covers its lower portion.
+                    const glowPct = Math.min(100, fillPct + 30);
+                    const scoreGlow = document.createElement("div");
+                    scoreGlow.className = "car-score-glow";
+                    scoreGlow.style.height = `${glowPct}%`;
+                    scoreGlow.style.background = `linear-gradient(180deg, transparent 0%, ${getOverallZoneGlow(clampedTotal)} 100%)`;
+                    carCenterBar.appendChild(scoreGlow);
+
+                    // Bottom-up solid fill occupying the full width/height of the box
+                    const scoreFill = document.createElement("div");
+                    scoreFill.className = "car-score-fill";
+                    scoreFill.style.height = `${fillPct}%`;
+                    scoreFill.style.background = getOverallZoneColor(clampedTotal);
+                    carCenterBar.appendChild(scoreFill);
+
+                    // Value — absolutely positioned just above the box's top border
                     const totalDisplay = document.createElement("div");
                     totalDisplay.className = "car-overall-value";
                     totalDisplay.textContent = overallTotal.toFixed(1);
                     carCenterBar.appendChild(totalDisplay);
 
-                    const overallGraphContainer = document.createElement("div");
-                    overallGraphContainer.className = "car-vertical-bar";
-                    overallGraphContainer.style.height = BAR_HEIGHT + "px";
-
-                    let sfHeight = (totalScore / maxValue) * 100;
-                    sfHeight = sfHeight > 100 ? 100 : sfHeight;
-
-                    let cbHeight = ((totalScore + checkboxScore) > maxValue)
-                        ? Math.max(0, (maxValue - totalScore) / maxValue * 100)
-                        : (checkboxScore / maxValue) * 100;
-
-                    const totalCombined = totalScore + checkboxScore;
-
-                    // Slagging + Fouling Score segment (grows from the bottom)
-                    const sfBar = document.createElement("div");
-                    sfBar.style.position = "absolute";
-                    sfBar.style.left = "0";
-                    sfBar.style.right = "0";
-                    sfBar.style.bottom = "0";
-                    sfBar.style.height = `${sfHeight}%`;
-                    sfBar.style.borderRadius = totalCombined >= maxValue ? "10px" : "0 0 10px 10px";
-                    sfBar.style.backgroundColor = getColor(totalScore);
-                    sfBar.style.transition = "height .4s ease";
-
-                    // Checkbox / O&M Score segment (overlay, stacked above the first)
-                    const cbBar = document.createElement("div");
-                    cbBar.id = "overallCbBar";
-                    cbBar.style.position = "absolute";
-                    cbBar.style.left = "0";
-                    cbBar.style.right = "0";
-                    cbBar.style.bottom = `${sfHeight}%`;
-                    cbBar.style.height = `${cbHeight}%`;
-                    cbBar.style.borderRadius = totalCombined >= maxValue ? "10px 10px 0 0" : "0";
-                    cbBar.style.backgroundColor = getCheckboxBaseColor(totalScore);
-                    cbBar.style.backgroundImage = getHatchingLines(getHatchColor(totalCombined));
-                    cbBar.style.transition = "height .4s ease, bottom .4s ease";
-
-                    overallGraphContainer.appendChild(sfBar);
-                    overallGraphContainer.appendChild(cbBar);
-
-                    // Tick marks (0 at the bottom, 10 at the top)
-                    for (let i = minValue; i <= maxValue; i++) {
-                        const fromBottomPct = (i / maxValue) * 100;
-
-                        const tick = document.createElement("div");
-                        tick.className = "car-vertical-bar-tick";
-                        tick.style.bottom = `${fromBottomPct}%`;
-
-                        const label = document.createElement("span");
-                        label.className = "car-vertical-bar-tick-label";
-                        label.style.bottom = `${fromBottomPct}%`;
-                        label.textContent = i;
-
-                        overallGraphContainer.appendChild(tick);
-                        overallGraphContainer.appendChild(label);
-                    }
-
-                    carCenterBar.appendChild(overallGraphContainer);
+                    // Caption + breakdown — absolutely positioned just below the
+                    // box's bottom border, grouped so they stack as one unit
+                    const captionGroup = document.createElement("div");
+                    captionGroup.className = "car-overall-caption-group";
 
                     const overallLabel = document.createElement("div");
                     overallLabel.className = "car-overall-caption";
                     overallLabel.textContent = "OVERALL SCORE";
-                    carCenterBar.appendChild(overallLabel);
+                    captionGroup.appendChild(overallLabel);
 
                     const breakdownLabel = document.createElement("div");
                     breakdownLabel.className = "car-overall-breakdown";
                     breakdownLabel.textContent = `S+F: ${totalScore.toFixed(1)} \u00B7 O&M: ${checkboxScore.toFixed(1)}`;
-                    carCenterBar.appendChild(breakdownLabel);
+                    captionGroup.appendChild(breakdownLabel);
+
+                    carCenterBar.appendChild(captionGroup);
+
+                    carCenterStack.appendChild(carCenterBar);
+                }
+
+                // Zone color for the overall-score connector fill (0-10 scale),
+                // same green/yellow/red thresholds used elsewhere on this page.
+                function getOverallZoneColor(score) {
+                    if (score > 6.5) return "#ff5050";
+                    if (score > 3) return "#ffd23d";
+                    return "#3ddc84";
+                }
+
+                // Same zone color, but as an rgba string for the soft glow
+                // layer above the fill.
+                function getOverallZoneGlow(score) {
+                    if (score > 6.5) return "rgba(255, 80, 80, 0.55)";
+                    if (score > 3) return "rgba(255, 210, 61, 0.55)";
+                    return "rgba(61, 220, 132, 0.55)";
+                }
+
+                function getOverallZoneLabel(score) {
+                    if (score > 6.5) return "High";
+                    if (score > 3) return "Moderate";
+                    return "Low";
                 }
 
                 // Main score color

@@ -1375,61 +1375,105 @@ body.page-slagging #ffftsGaugeChart {
 }
 .car-gauge-dial svg { display: block; }
 
-/* ---- the straight-edged connector between the two circles ---- */
-.car-center-bar-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
+/* ---- outer stack: just wraps the connector box now. Sized purely by
+   the box itself so the box's vertical position/alignment against the
+   circles is never affected by the value/caption text (they're
+   absolutely positioned outside the box, see below). ---- */
+.car-center-stack {
   position: relative;
   z-index: 1; /* sits under the circles */
+  flex: 0 0 auto;
+}
+
+/* ---- the straight-edged connector between the two circles: the
+   bordered box itself, fully occupied by the score fill. overflow is
+   left visible (not hidden) so the value/caption can sit just outside
+   its top/bottom border lines. ---- */
+.car-center-bar-wrap {
+  position: relative;
   box-sizing: border-box;
   width: var(--car-connector-w);
   height: var(--car-connector-h);
-  flex: 0 0 auto;
-  padding: 10px 16px;
-  background: linear-gradient(180deg, #10193a 0%, #0a1330 100%);
+  background: #060a1c;
   border-top: 5px solid #fff;
   border-bottom: 5px solid #fff;
   box-shadow: 0 10px 26px rgba(20, 30, 60, 0.20);
+  cursor: pointer;
 }
 
+/* Value — sits just above the box's top border line */
 .car-overall-value {
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  transform: translate(-50%, -8px);
   font-size: 22px;
   font-weight: 800;
   color: #eaf2ff;
   line-height: 1;
-}
-
-.car-vertical-bar {
-  position: relative;
-  width: 30px;
-  height: 120px;
-  border-radius: 15px;
-  background: #060a1c;
-  border: 1px solid rgba(120,160,255,0.5);
-  box-shadow: inset 0 0 12px rgba(0,0,0,0.65), 0 0 18px rgba(47,107,255,0.18);
-  overflow: hidden;
-  margin: 4px 16px 4px 4px;
-}
-
-.car-vertical-bar-tick {
-  position: absolute;
-  left: 100%;
-  width: 6px;
-  height: 1px;
-  background: rgba(140,170,230,0.5);
-  transform: translateY(50%);
-}
-
-.car-vertical-bar-tick-label {
-  position: absolute;
-  left: calc(100% + 9px);
-  transform: translateY(50%);
-  font-size: 10px;
-  color: #9fb3dd;
   white-space: nowrap;
+}
+
+/* Soft glow bleeding upward from the fill into the dark unfilled area,
+   same hue as the fill color — sits behind the solid fill (painted
+   first) so only the portion above the fill's top edge is visible. */
+.car-score-glow {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 0%; /* set inline per score */
+  pointer-events: none;
+  transition: height .5s ease, background .4s ease;
+}
+
+/* Bottom-up score fill occupying the whole rectangle (full width/height
+   of the box) — same functionality as the original narrow bar: height
+   is the score's percentage of the 0-10 scale (score of 2 = 20% filled)
+   and the color steps green -> yellow -> red as the score climbs. Just
+   stretched across the whole connector now instead of a thin strip. */
+.car-score-fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 0%; /* set inline per score */
+  transition: height .5s ease, background .4s ease;
+}
+
+.car-center-bar-wrap::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(10, 16, 38, 0.94);
+  color: #eaf2ff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(120,160,255,0.35);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease;
+  z-index: 3;
+}
+.car-center-bar-wrap:hover::after {
+  opacity: 1;
+}
+
+/* Caption + breakdown — sit just below the box's bottom border line */
+.car-overall-caption-group {
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  transform: translate(-50%, 8px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
 }
 
 .car-overall-caption {
@@ -1437,7 +1481,6 @@ body.page-slagging #ffftsGaugeChart {
   font-weight: 800;
   letter-spacing: 0.7px;
   color: #eaf2ff;
-  margin-top: 2px;
 }
 
 .car-overall-breakdown {
@@ -1459,7 +1502,6 @@ body.page-slagging #ffftsGaugeChart {
   }
   .car-center-bar-wrap {
     width: 210px;
-    height: auto;
-    padding: 10px 16px;
+    height: 150px;
   }
 }
