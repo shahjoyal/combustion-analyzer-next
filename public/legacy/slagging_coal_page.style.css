@@ -1285,9 +1285,38 @@ body.page-slagging canvas[id^="chart-"] {
 }
 /* ============================================================
    CAR-DASHBOARD STYLE GAUGES (Slagging / Fouling / Overall)
-   Dark instrument-cluster panel replacing the old light gauges
-   and horizontal score bar.
+   Shape: two circular dials connected by a straight-edged center
+   bar — a "dumbbell" / dog-bone silhouette — instead of the old
+   single stadium/pill outline. This matches the reference
+   circle + connector markup supplied for the fix.
+
+   HOW THE SHAPE WORKS
+   - .car-gauge-wrap (x2) are true circles (border-radius:50%) with
+     their own navy fill + white ring border, positioned as normal
+     flex items (first and last child of .car-dashboard-panel).
+   - .car-center-bar-wrap is the flat "connector" in between: a
+     rectangle with a white top border + white bottom border only
+     (left/right edges are left bare, no border-radius) so it reads
+     as a straight bar rather than another pill.
+   - The two circles are pulled inward on top of the connector using
+     negative margins (see :first-child / :last-child rules below),
+     so the connector's straight left/right edges tuck in behind the
+     circles instead of poking out — exactly like the reference
+     circle-connector-circle layout. Both dimensions (circle size,
+     connector height, overlap depth) are tuned together so the
+     connector's corners always land inside the circle; if either
+     GAUGE_SIZE (in the JS) or BAR_HEIGHT is changed a lot, re-check
+     that OVERLAP stays >= roughly (R - sqrt(R^2 - (H/2)^2)) where R
+     is the circle radius and H is the connector height, or the
+     rectangle's corners will start peeking out past the circle edge.
    ============================================================ */
+
+:root {
+  --car-circle-size: 230px;   /* circle diameter (dial is 200px, so ~15px bezel each side) */
+  --car-connector-h: 210px;   /* connector height (fits value + 120px bar + captions) */
+  --car-connector-w: 300px;   /* connector total width (includes the hidden/overlapped part) */
+  --car-overlap: 72px;        /* how far each circle is pulled in on top of the connector */
+}
 
 .car-dashboard-panel {
   display: flex;
@@ -1297,18 +1326,7 @@ body.page-slagging canvas[id^="chart-"] {
   width: 100%;
   box-sizing: border-box;
   margin-top: 6px;
-  padding: 18px 26px;
-  /* One shared white card: a large border-radius relative to the panel's
-     height turns the rectangle into a pill/stadium shape (rounded ends
-     where the two dials sit, flat top/bottom across the middle), so both
-     gauges + the center bar read as one continuous console instead of two
-     separate circles — matching the reference dashboard image. The dark
-     navy "dial" color lives on each dial face instead (see buildCarGaugeSVG
-     in the JS), so it reads as two dark dials set into one white console. */
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(248, 250, 255, 0.94));
-  border: 1.5px solid rgba(120, 160, 255, 0.28);
-  border-radius: 999px;
-  box-shadow: 0 10px 28px rgba(20, 30, 60, 0.12), inset 0 1px 0 rgba(255,255,255,0.6);
+  padding: 16px 10px;
   position: relative;
   overflow: visible;
 }
@@ -1317,58 +1335,73 @@ body.page-slagging canvas[id^="chart-"] {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0;
+  justify-content: center;
   position: relative;
-  z-index: 1;
-  background: transparent !important;
-  box-shadow: none !important;
-  border: none !important;
+  z-index: 2; /* sits above the connector so it hides the connector's straight edge */
+  width: var(--car-circle-size);
+  height: var(--car-circle-size);
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: radial-gradient(circle at 42% 38%, #16234c 0%, #0a1330 65%, #05081a 100%);
+  border: 6px solid #fff;
+  box-shadow: 0 10px 26px rgba(20, 30, 60, 0.30);
+  transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
 }
+.car-gauge-wrap:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 12px 30px rgba(20, 30, 60, 0.35);
+}
+/* pull each circle in over the connector — first child overlaps on its
+   right, last child overlaps on its left, so only their outer/outward
+   margins stay untouched */
+.car-gauge-wrap:first-child { margin-right: calc(-1 * var(--car-overlap)); }
+.car-gauge-wrap:last-child  { margin-left:  calc(-1 * var(--car-overlap)); }
 
 .car-gauge-dial {
   cursor: pointer;
   border-radius: 50%;
-  transition: transform 0.15s ease, filter 0.15s ease;
-  filter: drop-shadow(0 6px 16px rgba(20,30,60,0.25));
   background: transparent !important;
   box-shadow: none !important;
 }
-.car-gauge-dial:hover {
-  transform: translateY(-2px) scale(1.02);
-  filter: drop-shadow(0 8px 20px rgba(95,168,255,0.35));
-}
 .car-gauge-dial svg { display: block; }
 
-/* ---- central vertical "fuel gauge" style overall score bar ---- */
+/* ---- the straight-edged connector between the two circles ---- */
 .car-center-bar-wrap {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 0 14px;
+  justify-content: center;
+  gap: 4px;
   position: relative;
-  z-index: 1;
-  min-width: 84px;
-  align-self: center;
+  z-index: 1; /* sits under the circles */
+  box-sizing: border-box;
+  width: var(--car-connector-w);
+  height: var(--car-connector-h);
+  flex: 0 0 auto;
+  padding: 10px 16px;
+  background: linear-gradient(180deg, #10193a 0%, #0a1330 100%);
+  border-top: 5px solid #fff;
+  border-bottom: 5px solid #fff;
+  box-shadow: 0 10px 26px rgba(20, 30, 60, 0.20);
 }
 
 .car-overall-value {
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 800;
-  color: #14213d;
+  color: #eaf2ff;
   line-height: 1;
 }
 
 .car-vertical-bar {
   position: relative;
-  width: 34px;
-  height: 150px;
-  border-radius: 17px;
+  width: 30px;
+  height: 120px;
+  border-radius: 15px;
   background: #060a1c;
-  border: 1px solid rgba(120,160,255,0.4);
-  box-shadow: inset 0 0 12px rgba(0,0,0,0.65), 0 0 18px rgba(47,107,255,0.12);
+  border: 1px solid rgba(120,160,255,0.5);
+  box-shadow: inset 0 0 12px rgba(0,0,0,0.65), 0 0 18px rgba(47,107,255,0.18);
   overflow: hidden;
-  margin: 4px 18px 4px 4px;
+  margin: 4px 16px 4px 4px;
 }
 
 .car-vertical-bar-tick {
@@ -1376,7 +1409,7 @@ body.page-slagging canvas[id^="chart-"] {
   left: 100%;
   width: 6px;
   height: 1px;
-  background: rgba(60,80,140,0.4);
+  background: rgba(140,170,230,0.5);
   transform: translateY(50%);
 }
 
@@ -1385,27 +1418,38 @@ body.page-slagging canvas[id^="chart-"] {
   left: calc(100% + 9px);
   transform: translateY(50%);
   font-size: 10px;
-  color: #5a6b95;
+  color: #9fb3dd;
   white-space: nowrap;
 }
 
 .car-overall-caption {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
-  letter-spacing: 0.8px;
-  color: #14213d;
-  margin-top: 4px;
+  letter-spacing: 0.7px;
+  color: #eaf2ff;
+  margin-top: 2px;
 }
 
 .car-overall-breakdown {
-  font-size: 10.5px;
-  color: #5a6b95;
+  font-size: 9.5px;
+  color: #9fb3dd;
   text-align: center;
   white-space: nowrap;
 }
 
 @media (max-width: 620px) {
-  .car-dashboard-panel { gap: 8px; padding: 16px 8px 12px; flex-wrap: wrap; border-radius: 24px; }
-  .car-center-bar-wrap { order: 3; min-width: 60px; }
-  .car-vertical-bar { margin-right: 10px; }
+  /* Below this width there isn't room for the overlapping circle/connector
+     silhouette, so fall back to a simple stacked column: circle, connector,
+     circle, no overlap. */
+  .car-dashboard-panel { flex-direction: column; padding: 14px 10px; gap: 12px; }
+  .car-gauge-wrap {
+    width: 190px;
+    height: 190px;
+    margin: 0 !important;
+  }
+  .car-center-bar-wrap {
+    width: 210px;
+    height: auto;
+    padding: 10px 16px;
+  }
 }

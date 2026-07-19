@@ -135,7 +135,7 @@ const TERNARY_WIDTH = "88%";   // px (try 320 / 360 / 420)
 const TERNARY_HEIGHT = 200;  // px fallback/minimum height; the on-screen card now stretches to fill remaining space via flex
 const MARKER_SIZE = 8;       // ternary marker size (smaller if plot is tiny)
 
-const GAUGE_SIZE = 240;      // px for gauge width/height — car-dashboard dials need room for tick labels + the value/title/status text now embedded inside the dial face
+const GAUGE_SIZE = 200;      // px for gauge width/height — car-dashboard dials need room for tick labels + the value/title/status text now embedded inside the dial face (reduced from 240 to shrink the overall dashboard footprint)
 const OVERALL_GRAPH_WIDTH = 480; // px for the overall bar (was 550)
         async function calculateWeightedAverage() {
 
@@ -708,8 +708,6 @@ if (dlBtn) {
                         </filter>
                       </defs>
                       <circle cx="${cx}" cy="${cy}" r="${outerR}" fill="url(#face-${uid})"/>
-                      <circle cx="${cx}" cy="${cy}" r="${outerR}" fill="none" stroke="rgba(120,160,255,0.35)" stroke-width="1.5"/>
-                      <circle cx="${cx}" cy="${cy}" r="${outerR - 1.5}" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
                       ${bands}
                       ${ticks}
                       <line x1="${needleBaseL.x.toFixed(2)}" y1="${needleBaseL.y.toFixed(2)}" x2="${needleTip.x.toFixed(2)}" y2="${needleTip.y.toFixed(2)}" stroke="#5fa8ff" stroke-width="3" stroke-linecap="round" filter="url(#glow-${uid})"/>
@@ -828,7 +826,7 @@ if (dlBtn) {
                 function createOverallGraph(totalScore, checkboxScore, overallTotal) {
                     const minValue = 0;
                     const maxValue = 10;
-                    const BAR_HEIGHT = 190;
+                    const BAR_HEIGHT = 120; // shrunk further (was 190, then 150) to fit the smaller circle+connector shape
 
                     carCenterBar.innerHTML = "";
 
