@@ -1038,13 +1038,23 @@ body.page-slagging .close {
 }
 
 /* ---------- charts: keep the plotted area itself readable, but
-   frame it in the same dark glass as everything else ---------- */
+   frame it in the same dark glass as everything else ----------
+   NOTE: #fspGaugeChart / #ffftsGaugeChart (the car-dashboard gauge
+   dials) are intentionally excluded here. They previously picked up
+   this near-white background + 1px border, which peeked through the
+   small margin around the SVG's dark circular face and read as an
+   unwanted second "inner ring" next to the .car-gauge-wrap's own
+   6px white outer ring. The gauges should stay fully transparent so
+   only the outer ring shows (see .car-gauge-dial / premium.css). */
 body.page-slagging #ternary-plot,
-body.page-slagging #fspGaugeChart,
-body.page-slagging #ffftsGaugeChart,
 body.page-slagging canvas[id^="chart-"] {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(240, 245, 255, 0.98)) !important;
   border: 1px solid var(--cxd-border);
+}
+body.page-slagging #fspGaugeChart,
+body.page-slagging #ffftsGaugeChart {
+  background: transparent !important;
+  border: none !important;
 }
 
 /* ---------- ternary card: click-to-expand ----------
