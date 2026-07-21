@@ -672,8 +672,8 @@ if (dlBtn) {
                 // corner turns 1 smooth curve into 2 sharp vertices, so the
                 // open "C" track now reads as a half-octagon with 4 corners
                 // total (2 per side) instead of a rounded horseshoe.
-                const _TRACK_D_LEFT  = "M420 470 H145 L80 405 V155 L145 90 H420";
-                const _TRACK_D_RIGHT = "M100 470 H375 L440 405 V155 L375 90 H100";
+                const _TRACK_D_LEFT  = "M420 470 H230 L80 320 V240 L230 90 H420";
+                const _TRACK_D_RIGHT = "M100 470 H290 L440 320 V240 L290 90 H100";
 
                 function buildCarGaugeSVG(value, minValue, maxValue, colorRanges, size, titleText, statusText, mirror, uid) {
                     uid = uid || ("g" + Math.random().toString(36).slice(2, 9));
@@ -698,10 +698,10 @@ if (dlBtn) {
                     // vertical edge midpoint, matching the new 4-corner
                     // half-octagon shape instead of the old rounded curve.
                     const leftTickPos = [
-                        { x: 438, y: 505 }, { x: 26, y: 415 }, { x: 24, y: 292 }, { x: 26, y: 148 }, { x: 438, y: 70 }
+                        { x: 438, y: 505 }, { x: 26, y: 335 }, { x: 24, y: 280 }, { x: 26, y: 225 }, { x: 438, y: 70 }
                     ];
                     const rightTickPos = [
-                        { x: 82, y: 505 }, { x: 494, y: 415 }, { x: 496, y: 292 }, { x: 494, y: 148 }, { x: 82, y: 70 }
+                        { x: 82, y: 505 }, { x: 494, y: 335 }, { x: 496, y: 280 }, { x: 494, y: 225 }, { x: 82, y: 70 }
                     ];
                     const tickPos = mirror ? leftTickPos : rightTickPos;
                     const tickLabels = tickVals.map((v, i) =>
