@@ -1331,7 +1331,7 @@ function updatePlot() {
             size: MARKER_SIZE, // <-- use smaller markers
             color: samples.map(s => s.AFT),
             colorscale: 'Jet',
-            colorbar: { title: "Fusion Temp (°C)" }
+            showscale: false
         },
         text: samples.map(s => `Fusion Temperature: ${parseFloat(s.AFT).toFixed(2)}°C`),
         hoverinfo: 'text'
@@ -1360,13 +1360,6 @@ function updatePlot() {
     ternary: {
         bgcolor: 'rgba(0,0,0,0)',
         sum: 100,
-        // The colorbar on the right takes up its own slice of width that
-        // Plotly doesn't account for when centering the triangle, so
-        // without this the triangle sits closer to the left edge of the
-        // card than the right. Nudging the domain's left edge inward
-        // shifts the whole triangle (and its axis labels) to the right to
-        // compensate.
-        domain: { x: [0.09, 1] },
         aaxis: {
             title: { text: "Thermal Stability", font: AXIS_LABEL_FONT },
             showticklabels: true,
@@ -2002,6 +1995,79 @@ async function computeIndividualCoalAFTs() {
    or clicking anywhere on the dimmed backdrop, restores everything
    exactly as it was.
 ----------------------------------------------------------------------- */
+// Builds the data/layout for the EXPANDED (click-to-enlarge) view: a real
+// 3D scatter plot (acidic oxides / basic oxides / AFT as X/Y/Z) instead of
+// the flat 2D ternary triangle used for the on-screen card. Styling
+// (dark-glass transparent background, glowing off-white axes/labels, Jet
+// colorscale) intentionally mirrors updatePlot() exactly so the expanded
+// view feels like the same chart, just in 3D.
+function _build3DExpandedPlot() {
+    const GLOW_WHITE = "#f4f8ff";
+    const GLOW_WHITE_SOFT = "rgba(244, 248, 255, 0.55)";
+    const AXIS_LABEL_FONT = { size: 12, color: GLOW_WHITE };
+    const TICK_FONT = { size: 10, color: GLOW_WHITE_SOFT };
+
+    const data = [{
+        type: 'scatter3d',
+        mode: 'markers',
+        name: 'Blended AFT',
+        x: samples.map(s => s.acidicOxides),
+        y: samples.map(s => s.basicOxides),
+        z: samples.map(s => s.AFT),
+        marker: {
+            size: MARKER_SIZE + 2, // slightly bigger; small markers get lost in 3D
+            color: samples.map(s => s.AFT),
+            colorscale: 'Jet',
+            showscale: false,
+            line: { width: 1, color: 'rgba(255,255,255,0.6)' }
+        },
+        text: samples.map(s => `Fusion Temperature: ${parseFloat(s.AFT).toFixed(2)}°C`),
+        hoverinfo: 'text'
+    }];
+
+    const layout = {
+        autosize: true,
+        margin: { l: 10, r: 10, t: 30, b: 10 },
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        showlegend: false,
+        scene: {
+            bgcolor: 'rgba(0,0,0,0)',
+            camera: { eye: { x: 1.5, y: 1.5, z: 0.9 } },
+            xaxis: {
+                title: { text: "Thermal Stability (Acidic Oxides %)", font: AXIS_LABEL_FONT },
+                showticklabels: true,
+                tickfont: TICK_FONT,
+                color: GLOW_WHITE_SOFT,
+                gridcolor: GLOW_WHITE_SOFT,
+                zerolinecolor: GLOW_WHITE_SOFT,
+                backgroundcolor: 'rgba(0,0,0,0)'
+            },
+            yaxis: {
+                title: { text: "Fusion Accelerator (Basic Oxides %)", font: AXIS_LABEL_FONT },
+                showticklabels: true,
+                tickfont: TICK_FONT,
+                color: GLOW_WHITE_SOFT,
+                gridcolor: GLOW_WHITE_SOFT,
+                zerolinecolor: GLOW_WHITE_SOFT,
+                backgroundcolor: 'rgba(0,0,0,0)'
+            },
+            zaxis: {
+                title: { text: "AFT (°C)", font: AXIS_LABEL_FONT },
+                showticklabels: true,
+                tickfont: TICK_FONT,
+                color: GLOW_WHITE_SOFT,
+                gridcolor: GLOW_WHITE_SOFT,
+                zerolinecolor: GLOW_WHITE_SOFT,
+                backgroundcolor: 'rgba(0,0,0,0)'
+            }
+        },
+        font: { color: GLOW_WHITE }
+    };
+
+    return { data, layout };
+}
+
 let _ternaryHoverBackdrop = null;
 // Holds the collapse() function for whichever ternary card is currently
 // expanded, so the single shared backdrop click-listener (bound once,
@@ -2076,11 +2142,18 @@ function _setupTernaryHoverExpand(wrapper, plotDiv) {
       wrapper.appendChild(closeBtn);
     }
 
+    // Swap the flat 2D ternary triangle out for a real 3D scatter plot
+    // (same data, same dark-glass styling) for the enlarged view.
     if (window.Plotly) {
       try {
-        const rect = plotDiv.getBoundingClientRect();
-        await Plotly.relayout(plotDiv, { width: rect.width, height: rect.height, autosize: false });
-        Plotly.Plots.resize(plotDiv);
+        const { data: data3d, layout: layout3d } = _build3DExpandedPlot();
+        await Plotly.newPlot(plotDiv, data3d, layout3d, { responsive: true });
+        requestAnimationFrame(() => {
+          const svgLayers = plotDiv.querySelectorAll('.main-svg');
+          svgLayers.forEach(svg => {
+            svg.style.filter = 'drop-shadow(0 0 3px rgba(244, 248, 255, 0.55))';
+          });
+        });
       } catch (e) {}
     }
 
@@ -2101,12 +2174,12 @@ function _setupTernaryHoverExpand(wrapper, plotDiv) {
           individualTraceAdded = false;
         }
         await Plotly.addTraces(plotDiv, {
-          type: 'scatterternary',
+          type: 'scatter3d',
           mode: 'markers',
           name: 'Individual Coal AFT',
-          a: valid.map(r => r.a),
-          b: valid.map(r => r.b),
-          c: valid.map(r => r.c),
+          x: valid.map(r => r.a),
+          y: valid.map(r => r.b),
+          z: valid.map(r => r.aft),
           marker: {
             symbol: 'diamond',
             size: (typeof MARKER_SIZE !== 'undefined' ? MARKER_SIZE : 9) + 4,
@@ -2142,14 +2215,12 @@ function _setupTernaryHoverExpand(wrapper, plotDiv) {
       }
     }
 
+    // Rebuild the original flat 2D ternary plot (this naturally drops the
+    // extra "Individual Coal AFT" trace too, since it's a fresh newPlot).
     if (window.Plotly) {
       try {
-        if (individualTraceAdded) {
-          await Plotly.deleteTraces(plotDiv, [1]);
-          individualTraceAdded = false;
-        }
-        await Plotly.relayout(plotDiv, { width: null, height: null, autosize: true });
-        Plotly.Plots.resize(plotDiv);
+        individualTraceAdded = false;
+        updatePlot();
       } catch (e) {}
     }
   }
