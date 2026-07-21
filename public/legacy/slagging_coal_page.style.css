@@ -1,7 +1,10 @@
 body {
             margin: 0;
             padding: 0;
-            font-size: large;
+            font-size: 15px; /* was 'large' -- a keyword whose actual px size depends on the
+                                 browser/OS default font settings, so it rendered at different
+                                 sizes on different machines. A fixed value keeps it identical
+                                 everywhere. */
             font-family: Arial, sans-serif;
         }
 
@@ -555,6 +558,75 @@ body{
     0 20px 46px rgba(2, 8, 30, 0.55),
     inset 0 1px 0 rgba(255,255,255,0.04);
   color: #eaf2ff;
+}
+
+/* ============================================================
+   EQUAL 4-QUADRANT LAYOUT
+   Left column (Coal Selection / Operational Parameters) and right
+   column (Gauges / Ternary Plot) are each split into two equal
+   halves. Because both columns already share the same overall
+   height (calc(100vh - navbar - 32px), set above), splitting each
+   column 50/50 makes all four quadrants come out the same height as
+   each other too -- and since that height is viewport-based, the
+   whole 2x2 layout scales proportionally on any laptop screen size
+   instead of relying on fixed pixel heights. Only sizing changed
+   here; none of the existing functionality/markup targets were
+   touched.
+   ============================================================ */
+
+/* left column: form becomes a full-height flex column so its two
+   panels can split the space evenly */
+.left-container form#coalForm {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  gap: 14px;
+}
+
+.coal-selection-panel,
+.operational-parameters-panel {
+  flex: 1 1 50%;
+  min-height: 0; /* required for flex children to actually respect the 50% cap instead of growing to fit content */
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;   /* independent internal scrolling, same behaviour as before -- just scoped to each half now instead of the whole left panel */
+  overflow-x: hidden;
+  padding-right: 4px;
+}
+
+/* right column: the gauge dashboard and the ternary card are already
+   direct children of #resultsContainer (built by the JS) -- just
+   give each one an equal 50% share instead of the gauges taking
+   their natural size and the ternary chart absorbing whatever's
+   left over */
+.right-container#resultsContainer {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+#resultsContainer > .car-dashboard-panel {
+  flex: 1 1 50%;
+  min-height: 0;
+  overflow: auto;
+}
+#resultsContainer > .ternary-card-outer {
+  flex: 1 1 50%;
+  min-height: 0;
+  overflow: auto;
+}
+
+@media (max-width:900px){
+  .left-container form#coalForm { height: auto; }
+  .coal-selection-panel,
+  .operational-parameters-panel {
+    flex: 0 0 auto;
+    max-height: 50vh;
+  }
+  #resultsContainer > .car-dashboard-panel,
+  #resultsContainer > .ternary-card-outer {
+    flex: 0 0 auto;
+  }
 }
 
 /* blend rows and controls */
