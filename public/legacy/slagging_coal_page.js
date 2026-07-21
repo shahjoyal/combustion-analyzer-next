@@ -2734,7 +2734,7 @@ document.getElementById("unitCapacity").addEventListener("change", function() {
 });
 
 
-/* ---- next inline <script> blockk ---- */
+/* ---- next inline <script> blockk ------ */
 
 
 if(localStorage.getItem('isLoggedIn') !== 'true') {
