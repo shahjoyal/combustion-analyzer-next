@@ -1264,9 +1264,20 @@ function updatePlot() {
         hoverinfo: 'text'
     }];
 
+    // Glowy "dark glass" look: fully transparent chart background so the
+    // dark page shows through, with the triangle border / gridlines /
+    // labels all rendered in a soft glowing off-white. Only the heatmap
+    // markers + the triangle outline should read as visible "content".
+    const GLOW_WHITE = "#f4f8ff";
+    const GLOW_WHITE_SOFT = "rgba(244, 248, 255, 0.55)";
+    const AXIS_LABEL_FONT = { size: 12, color: GLOW_WHITE };
+    const TICK_FONT = { size: 10, color: GLOW_WHITE_SOFT };
+
     var layout = {
     autosize: true,   // let Plotly fill the container (whatever height flex gives it)
     margin: { l: 50, r: 40, t: 36, b: 36 },
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: 'rgba(0,0,0,0)',
     // Plotly auto-shows its own legend once a 2nd trace exists (the
     // hover-expand view adds one for the individual coal points), which
     // would otherwise print this trace's auto-generated "trace 0" label
@@ -1274,14 +1285,48 @@ function updatePlot() {
     // card, so keep Plotly's own legend off entirely.
     showlegend: false,
     ternary: {
+        bgcolor: 'rgba(0,0,0,0)',
         sum: 100,
-        aaxis: { title: { text: "Thermal Stability", font: { size: 12 } }, showticklabels: true },
-        baxis: { title: { text: "Fusion Accelerator", font: { size: 12 } }, showticklabels: true },
-        caxis: { title: { text: "Hardening Index", font: { size: 12 } }, showticklabels: true, title_standoff: 10 }
-    }
+        aaxis: {
+            title: { text: "Thermal Stability", font: AXIS_LABEL_FONT },
+            showticklabels: true,
+            tickfont: TICK_FONT,
+            linecolor: GLOW_WHITE,
+            linewidth: 2,
+            gridcolor: GLOW_WHITE_SOFT
+        },
+        baxis: {
+            title: { text: "Fusion Accelerator", font: AXIS_LABEL_FONT },
+            showticklabels: true,
+            tickfont: TICK_FONT,
+            linecolor: GLOW_WHITE,
+            linewidth: 2,
+            gridcolor: GLOW_WHITE_SOFT
+        },
+        caxis: {
+            title: { text: "Hardening Index", font: AXIS_LABEL_FONT, standoff: 10 },
+            showticklabels: true,
+            title_standoff: 10,
+            tickfont: TICK_FONT,
+            linecolor: GLOW_WHITE,
+            linewidth: 2,
+            gridcolor: GLOW_WHITE_SOFT
+        }
+    },
+    font: { color: GLOW_WHITE }
 };
 
     Plotly.newPlot(ternaryPlotElement, data, layout, {responsive: true});
+
+    // Plotly doesn't support text-shadow via layout config, so give the
+    // triangle border / axis lines / labels an actual soft glow with a
+    // CSS filter on the SVG layer that draws them.
+    requestAnimationFrame(() => {
+        const svgLayers = ternaryPlotElement.querySelectorAll('.main-svg');
+        svgLayers.forEach(svg => {
+            svg.style.filter = 'drop-shadow(0 0 3px rgba(244, 248, 255, 0.55))';
+        });
+    });
 }
 
 /* -----------------------------------------------------------------------
