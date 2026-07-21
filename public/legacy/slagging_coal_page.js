@@ -135,7 +135,8 @@ const TERNARY_WIDTH = "88%";   // px (try 320 / 360 / 420)
 const TERNARY_HEIGHT = 200;  // px fallback/minimum height; the on-screen card now stretches to fill remaining space via flex
 const MARKER_SIZE = 8;       // ternary marker size (smaller if plot is tiny)
 
-const GAUGE_SIZE = 200;      // px for gauge width/height — car-dashboard dials need room for tick labels + the value/title/status text now embedded inside the dial face (reduced from 240 to shrink the overall dashboard footprint)
+const GAUGE_W = 210;         // px for gauge dial width (track-style gauge, ported from reference viewBox 520x560)
+const GAUGE_H = 226;         // px for gauge dial height (keeps the 520:560 aspect of the reference artwork)
 const OVERALL_GRAPH_WIDTH = 480; // px for the overall bar (was 550)
         async function calculateWeightedAverage() {
 
@@ -593,6 +594,21 @@ if (dlBtn) {
                 chartWrapper.className = "car-dashboard-panel";
                 rightContainerDiv.appendChild(chartWrapper);
 
+                // Inner cluster that hugs exactly the two gauges + connector
+                // (width: max-content in CSS) — the enclosing border lives on
+                // THIS element, not on chartWrapper, because chartWrapper is
+                // full-width (100%) and centers its content with flexbox; if
+                // the border were drawn on chartWrapper it would stretch the
+                // full width of the results panel and taper into two flat
+                // disconnected lines instead of hugging the gauges.
+                let dashboardCluster = document.createElement("div");
+                dashboardCluster.className = "car-dashboard-cluster";
+                dashboardCluster.style.position = "relative";
+                dashboardCluster.style.display = "inline-flex";
+                dashboardCluster.style.alignItems = "center";
+                dashboardCluster.style.maxWidth = "100%";
+                chartWrapper.appendChild(dashboardCluster);
+
                 // Color ranges for FSP (0 to 6)
                 const fspColorRanges = {
                     green: [0, 2],
@@ -607,116 +623,160 @@ if (dlBtn) {
                     red: [2, 3]
                 };
 
-                // ---- polar-coordinate helpers for the circular dial ----
-                function _polarPt(cx, cy, r, angleDeg) {
-                    const rad = (angleDeg - 90) * Math.PI / 180;
-                    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
-                }
-                function _arcPath(cx, cy, r, startAngle, endAngle) {
-                    const start = _polarPt(cx, cy, r, endAngle);
-                    const end = _polarPt(cx, cy, r, startAngle);
-                    const largeArc = (endAngle - startAngle) <= 180 ? "0" : "1";
-                    return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 0 ${end.x} ${end.y}`;
-                }
-
-                const DIAL_SWEEP = 270;   // total degrees the dial covers
-                const DIAL_START = -135; // angle of the minimum value (bottom-left)
-
-                function _valueToAngle(value, minValue, maxValue) {
-                    const clamped = Math.min(Math.max(value, minValue), maxValue);
-                    return DIAL_START + ((clamped - minValue) / (maxValue - minValue)) * DIAL_SWEEP;
-                }
+                // ============================================================
+                // TRACK-STYLE GAUGE — visual re-skin (v2), based on the
+                // reference dashboard supplied (i.html): a rounded horseshoe
+                // track that fills like a fuel gauge, a big glowing score
+                // number in the middle, the title underneath, and a status
+                // pill at the bottom. Same inputs (value, min/max,
+                // colorRanges, statusText) and the same output contract (an
+                // HTML string dropped into .car-gauge-dial via innerHTML,
+                // whose click still opens the table exactly as before).
+                //
+                // Colour stays exactly as it was functionally: ONE colour
+                // for the whole gauge, chosen from the score's zone
+                // (green/yellow/red via _statusColor) — not the multi-stop
+                // rainbow gradient used in the reference file. Only the
+                // shape/animation is borrowed from the reference.
+                //
+                // Animation: the track fill draws in from empty using an
+                // SVG stroke-dashoffset transition (0 -> value), and the
+                // big center number counts up from 0 -> value at the same
+                // time, driven by animateGaugeReveal() right after the
+                // markup is inserted into the DOM.
+                // ============================================================
 
                 // Maps a Low/Moderate/High status word to the same green/yellow/red
-                // used for the dial's color bands, so the status text under the
-                // value reads in the matching color (as in the reference dashboard).
+                // used for the dial's fill, so the arc, glow and status pill all
+                // read in the matching colour.
                 function _statusColor(statusText) {
                     if (statusText === "Low") return "#3ddc84";
                     if (statusText === "High") return "#ff5050";
                     return "#ffd23d"; // Moderate
                 }
+                function _statusGlow(statusText) {
+                    if (statusText === "Low") return "rgba(61, 220, 132, 0.55)";
+                    if (statusText === "High") return "rgba(255, 80, 80, 0.55)";
+                    return "rgba(255, 210, 61, 0.55)"; // Moderate
+                }
 
-                // Renders one car-style circular gauge as an inline SVG string.
-                // Each dial draws its own dark navy face + bezel ring (the "dial
-                // colour"), and both dials sit on the shared white
-                // .car-dashboard-panel pill background, so the two dials read as
-                // one instrument cluster set into a single white console (see the
-                // reference dashboard image). titleText/statusText are drawn
-                // inside the dial face below the value, matching the image.
-                function buildCarGaugeSVG(value, minValue, maxValue, colorRanges, size, titleText, statusText) {
-                    const cx = size / 2, cy = size / 2;
-                    const outerR = size / 2 - 6;
-                    const bandR  = outerR - 11;
-                    const tickR1 = bandR - 9;
-                    const tickR2 = bandR - 3;
-                    const labelR = bandR - 21;
-                    const needleR = bandR - 15;
+                // Left/right horseshoe track paths — geometry ported as-is
+                // from the reference dashboard (viewBox 0 0 520 560). The
+                // left gauge opens toward the right (mirror=true), the right
+                // gauge opens toward the left (mirror=false), so the two
+                // dials visually "face" the center score bar between them.
+                const _TRACK_D_LEFT  = "M420 470 H145 Q80 470 80 405 V155 Q80 90 145 90 H420";
+                const _TRACK_D_RIGHT = "M100 470 H375 Q440 470 440 405 V155 Q440 90 375 90 H100";
 
-                    const bands = [
-                        { range: colorRanges.green,  color: "#3ddc84" },
-                        { range: colorRanges.yellow, color: "#ffd23d" },
-                        { range: colorRanges.red,    color: "#ff5050" }
-                    ].map(b => {
-                        const a1 = _valueToAngle(b.range[0], minValue, maxValue);
-                        const a2 = _valueToAngle(b.range[1], minValue, maxValue);
-                        return `<path d="${_arcPath(cx, cy, bandR, a1, a2)}" fill="none" stroke="${b.color}" stroke-width="6" stroke-linecap="round" opacity="0.92"/>`;
-                    }).join("");
-
-                    let ticks = "";
+                function buildCarGaugeSVG(value, minValue, maxValue, colorRanges, size, titleText, statusText, mirror, uid) {
+                    uid = uid || ("g" + Math.random().toString(36).slice(2, 9));
                     const range = maxValue - minValue;
-                    const step = range <= 4 ? 0.5 : 1;
-                    for (let v = minValue; v <= maxValue + 1e-6; v += step) {
-                        const isMajor = Math.abs(v - Math.round(v)) < 1e-6;
-                        const angle = _valueToAngle(v, minValue, maxValue);
-                        const p1 = _polarPt(cx, cy, tickR1, angle);
-                        const p2 = _polarPt(cx, cy, tickR2, angle);
-                        ticks += `<line x1="${p1.x.toFixed(2)}" y1="${p1.y.toFixed(2)}" x2="${p2.x.toFixed(2)}" y2="${p2.y.toFixed(2)}" stroke="${isMajor ? '#bcd4ff' : 'rgba(188,212,255,0.45)'}" stroke-width="${isMajor ? 2 : 1}"/>`;
-                        if (isMajor) {
-                            const lp = _polarPt(cx, cy, labelR, angle);
-                            ticks += `<text x="${lp.x.toFixed(2)}" y="${(lp.y + 3).toFixed(2)}" text-anchor="middle" font-size="9" fill="#8fb0ff" font-family="Inter, Arial, sans-serif">${Math.round(v)}</text>`;
-                        }
-                    }
+                    const pct = Math.max(0, Math.min(100, ((value - minValue) / range) * 100));
+                    const zoneColor = _statusColor(statusText);
+                    const zoneGlow = _statusGlow(statusText);
+                    const den = (maxValue % 1 === 0) ? maxValue : maxValue.toFixed(1);
 
-                    const needleAngle = _valueToAngle(value, minValue, maxValue);
-                    const needleTip = _polarPt(cx, cy, needleR, needleAngle);
-                    const needleBaseL = _polarPt(cx, cy, 6, needleAngle - 90);
-                    const needleBaseR = _polarPt(cx, cy, 6, needleAngle + 90);
-                    const uid = "g" + Math.random().toString(36).slice(2, 9);
+                    const trackD = mirror ? _TRACK_D_LEFT : _TRACK_D_RIGHT;
 
-                    // Scale factor relative to the 240px reference size the text
-                    // layout below was tuned against, so GAUGE_SIZE can still be
-                    // tweaked without the text overflowing the dial face.
-                    const s = size / 240;
-                    const valueFontSize = 46 * s;
-                    const titleFontSize = 15 * s;
-                    const statusFontSize = 16 * s;
-                    const valueY = cy + outerR * 0.42;
-                    const titleY = valueY + valueFontSize * 0.72;
-                    const statusY = titleY + titleFontSize * 1.55;
+                    // Scale tick labels (5 evenly spaced points across the real
+                    // min..max range, not a fixed 0-100 — unlike the reference,
+                    // FSP/FFTS use small numeric ranges like 0-6 / 0-3).
+                    const tickVals = [0, 0.25, 0.5, 0.75, 1].map(f => minValue + range * f);
+                    const fmt = v => (v % 1 === 0) ? String(v) : v.toFixed(1);
+                    const leftTickPos = [
+                        { x: 438, y: 505 }, { x: 38, y: 430 }, { x: 31, y: 292 }, { x: 42, y: 145 }, { x: 438, y: 70 }
+                    ];
+                    const rightTickPos = [
+                        { x: 82, y: 505 }, { x: 482, y: 430 }, { x: 489, y: 292 }, { x: 478, y: 145 }, { x: 82, y: 70 }
+                    ];
+                    const tickPos = mirror ? leftTickPos : rightTickPos;
+                    const tickLabels = tickVals.map((v, i) =>
+                        `<text class="cg-scale-label" x="${tickPos[i].x}" y="${tickPos[i].y}" text-anchor="middle">${fmt(v)}</text>`
+                    ).join("");
+
+                    const titleLines = titleText.split("\n");
+                    const titleTspans = titleLines.map((l, i) => `<tspan x="260" dy="${i === 0 ? 0 : 34}">${l}</tspan>`).join("");
 
                     return `
-                    <svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+                    <svg viewBox="0 0 520 560" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg"
+                         style="overflow:visible;" data-uid="${uid}" data-pct="${pct}">
                       <defs>
-                        <radialGradient id="face-${uid}" cx="50%" cy="42%" r="70%">
-                          <stop offset="0%" stop-color="#152249"/>
-                          <stop offset="70%" stop-color="#0a1330"/>
-                          <stop offset="100%" stop-color="#05081a"/>
-                        </radialGradient>
-                        <filter id="glow-${uid}" x="-60%" y="-60%" width="220%" height="220%">
-                          <feGaussianBlur stdDeviation="1.5" result="blur"/>
-                          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                        <filter id="cgGlow-${uid}" x="-60%" y="-60%" width="220%" height="220%">
+                          <feGaussianBlur stdDeviation="5" result="b"/>
+                          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+                        </filter>
+                        <filter id="cgTrackGlow-${uid}" x="-20%" y="-20%" width="140%" height="140%">
+                          <feGaussianBlur stdDeviation="2"/>
                         </filter>
                       </defs>
-                      <circle cx="${cx}" cy="${cy}" r="${outerR}" fill="url(#face-${uid})"/>
-                      ${bands}
-                      ${ticks}
-                      <line x1="${needleBaseL.x.toFixed(2)}" y1="${needleBaseL.y.toFixed(2)}" x2="${needleTip.x.toFixed(2)}" y2="${needleTip.y.toFixed(2)}" stroke="#5fa8ff" stroke-width="3" stroke-linecap="round" filter="url(#glow-${uid})"/>
-                      <line x1="${needleBaseR.x.toFixed(2)}" y1="${needleBaseR.y.toFixed(2)}" x2="${needleTip.x.toFixed(2)}" y2="${needleTip.y.toFixed(2)}" stroke="#5fa8ff" stroke-width="3" stroke-linecap="round" filter="url(#glow-${uid})"/>
-                      <circle cx="${cx}" cy="${cy}" r="6.5" fill="#0a1330" stroke="#5fa8ff" stroke-width="2"/>
-                      <text x="${cx}" y="${valueY.toFixed(1)}" text-anchor="middle" font-size="${valueFontSize.toFixed(1)}" font-weight="800" fill="#eaf2ff" font-family="Inter, Arial, sans-serif">${value.toFixed(1)}</text>
-                      <text x="${cx}" y="${titleY.toFixed(1)}" text-anchor="middle" font-size="${titleFontSize.toFixed(1)}" font-weight="600" fill="#cfe0ff" font-family="Inter, Arial, sans-serif">${titleText}</text>
-                      <text x="${cx}" y="${statusY.toFixed(1)}" text-anchor="middle" font-size="${statusFontSize.toFixed(1)}" font-weight="700" fill="${_statusColor(statusText)}" font-family="Inter, Arial, sans-serif">(${statusText})</text>
+                      <style>
+                        .cg-track-${uid}{fill:none;stroke:#0a1c27;stroke-width:42;stroke-linecap:round;stroke-linejoin:round;filter:url(#cgTrackGlow-${uid});}
+                        .cg-track-edge-${uid}{fill:none;stroke:#124b64;stroke-width:48;stroke-linecap:round;stroke-linejoin:round;opacity:.7;}
+                        .cg-active-${uid}{fill:none;stroke:${zoneColor};stroke-width:38;stroke-linecap:round;stroke-linejoin:round;filter:url(#cgGlow-${uid});transition:stroke-dashoffset 1.15s cubic-bezier(.2,.78,.18,1);}
+                        .cg-scale-label{fill:#f4fbff;font-size:25px;font-weight:600;paint-order:stroke;stroke:#02070c;stroke-width:5px;font-family:"Segoe UI",Arial,sans-serif;}
+                        .cg-score-${uid}{fill:${zoneColor};font-size:86px;font-weight:750;text-anchor:middle;dominant-baseline:middle;font-family:"Segoe UI",Arial,sans-serif;filter:drop-shadow(0 0 9px ${zoneGlow});transition:filter .4s ease;}
+                        .cg-score-suffix{fill:#8097a6;font-size:28px;text-anchor:middle;font-family:"Segoe UI",Arial,sans-serif;}
+                        .cg-title{fill:#eef8fd;font-size:27px;font-weight:600;letter-spacing:1px;text-anchor:middle;font-family:"Segoe UI",Arial,sans-serif;text-transform:uppercase;}
+                        .cg-status-box-${uid}{fill:rgba(3,10,16,.92);stroke:${zoneColor};stroke-width:2;filter:drop-shadow(0 0 7px ${zoneGlow});}
+                        .cg-status-text-${uid}{fill:${zoneColor};font-size:26px;letter-spacing:2px;font-weight:650;text-anchor:middle;font-family:"Segoe UI",Arial,sans-serif;text-transform:uppercase;}
+                      </style>
+
+                      <path class="cg-track-edge-${uid}" d="${trackD}"/>
+                      <path class="cg-track-${uid}" d="${trackD}"/>
+                      <path class="cg-active-${uid} car-gauge-fill-path" data-uid="${uid}" d="${trackD}"/>
+
+                      ${tickLabels}
+
+                      <text class="cg-score-${uid} car-gauge-score-text" data-uid="${uid}" data-value="${value}" x="260" y="258">0</text>
+                      <text class="cg-score-suffix" x="260" y="324">/${den}</text>
+                      <text class="cg-title" x="260" y="365">${titleTspans}</text>
+
+                      <path class="cg-status-box-${uid}" d="M160 430 H360 L378 449 L360 477 H160 L142 449 Z"/>
+                      <text class="cg-status-text-${uid}" x="260" y="458">${statusText}</text>
                     </svg>`;
+                }
+
+                // Kicks off the "fill up from empty" + "count up from 0"
+                // animation for one gauge, right after its markup has been
+                // inserted into the DOM (so getTotalLength() has real layout
+                // to measure). Safe to call multiple times (e.g. re-Calculate)
+                // since it re-measures the fresh path each time.
+                function animateGaugeReveal(container) {
+                    const svg = container.querySelector("svg");
+                    if (!svg) return;
+                    const pct = parseFloat(svg.getAttribute("data-pct")) || 0;
+                    const path = svg.querySelector(".car-gauge-fill-path");
+                    const scoreText = svg.querySelector(".car-gauge-score-text");
+
+                    if (path) {
+                        const len = path.getTotalLength();
+                        path.style.transition = "none";
+                        path.style.strokeDasharray = len;
+                        path.style.strokeDashoffset = len; // start fully empty
+                        // force reflow so the "empty" state actually paints
+                        // before we restore the transition + set the target
+                        void path.getBoundingClientRect();
+                        requestAnimationFrame(() => {
+                            path.style.transition = "";
+                            requestAnimationFrame(() => {
+                                path.style.strokeDashoffset = len * (1 - pct / 100);
+                            });
+                        });
+                    }
+
+                    if (scoreText) {
+                        const target = parseFloat(scoreText.getAttribute("data-value")) || 0;
+                        const duration = 1100;
+                        const start = performance.now();
+                        function step(now) {
+                            const t = Math.min(1, (now - start) / duration);
+                            const eased = 1 - Math.pow(1 - t, 3);
+                            scoreText.textContent = (target * eased).toFixed(1);
+                            if (t < 1) requestAnimationFrame(step);
+                            else scoreText.textContent = target.toFixed(1);
+                        }
+                        requestAnimationFrame(step);
+                    }
                 }
 
                 // Builds one full gauge cluster (just the dial now — the title and
@@ -729,8 +789,8 @@ if (dlBtn) {
 
                     const dialContainer = document.createElement("div");
                     dialContainer.className = "car-gauge-dial";
-                    dialContainer.style.width = GAUGE_SIZE + "px";
-                    dialContainer.style.height = GAUGE_SIZE + "px";
+                    dialContainer.style.width = GAUGE_W + "px";
+                    dialContainer.style.height = GAUGE_H + "px";
                     wrapper.appendChild(dialContainer);
 
                     return { wrapper, dialContainer };
@@ -741,8 +801,9 @@ if (dlBtn) {
                 const fspGraphWrapper = fspCluster.wrapper;
                 const fspGraphContainer = fspCluster.dialContainer;
                 fspGraphContainer.id = "fspGaugeChart";
-                fspGraphContainer.innerHTML = buildCarGaugeSVG(FSP, 0, 6, fspColorRanges, GAUGE_SIZE, "Slagging Potential", FSPD);
-                chartWrapper.appendChild(fspGraphWrapper);
+                fspGraphContainer.innerHTML = buildCarGaugeSVG(FSP, 0, 6, fspColorRanges, GAUGE_W, "SLAGGING\nPOTENTIAL", FSPD, true, "fsp");
+                dashboardCluster.appendChild(fspGraphWrapper);
+                animateGaugeReveal(fspGraphContainer);
 
                 // ---- central overall-score stack: value floats above the
                 // connector's top border line, the bordered box in the middle
@@ -751,7 +812,7 @@ if (dlBtn) {
                 // border line ----
                 const carCenterStack = document.createElement("div");
                 carCenterStack.className = "car-center-stack";
-                chartWrapper.appendChild(carCenterStack);
+                dashboardCluster.appendChild(carCenterStack);
 
                 const carCenterBar = document.createElement("div");
                 carCenterBar.className = "car-center-bar-wrap";
@@ -763,8 +824,9 @@ if (dlBtn) {
                 const ffftsGraphWrapper = ffftsCluster.wrapper;
                 const ffftsGraphContainer = ffftsCluster.dialContainer;
                 ffftsGraphContainer.id = "ffftsGaugeChart";
-                ffftsGraphContainer.innerHTML = buildCarGaugeSVG(FFFTS, 0, 3, ffftsColorRanges, GAUGE_SIZE, "Fouling Potential", FFFD);
-                chartWrapper.appendChild(ffftsGraphWrapper);
+                ffftsGraphContainer.innerHTML = buildCarGaugeSVG(FFFTS, 0, 3, ffftsColorRanges, GAUGE_W, "FOULING\nPOTENTIAL", FFFD, false, "fffts");
+                dashboardCluster.appendChild(ffftsGraphWrapper);
+                animateGaugeReveal(ffftsGraphContainer);
 
                 // Create a separate table container BELOW the dashboard panel
                 let tableContainer = document.createElement("div");
@@ -841,10 +903,28 @@ if (dlBtn) {
                     const maxValue = 10;
                     const clampedTotal = Math.min(Math.max(overallTotal, 0), maxValue);
                     const fillPct = (clampedTotal / maxValue) * 100;
+                    const oz = {
+                        color: getOverallZoneColor(clampedTotal),
+                        glow: getOverallZoneGlow(clampedTotal)
+                    };
+
+                    // Split the fill into the original S+F portion and the
+                    // extra portion added by the O&M checkboxes, so the
+                    // checkbox-driven increase can be visually highlighted
+                    // (hazard-stripe pattern) on top of the bar, while the
+                    // original portion keeps its normal solid zone colour
+                    // exactly as before.
+                    const clampedBaseScore = Math.min(Math.max(totalScore, 0), maxValue);
+                    const basePct = (clampedBaseScore / maxValue) * 100;
+                    const checkboxPct = Math.max(fillPct - basePct, 0);
 
                     carCenterStack.innerHTML = "";
 
-                    // The bordered connector box, rebuilt fresh each call
+                    // The bordered connector box, rebuilt fresh each call —
+                    // shape/housing ported from i.html's "Overall Intensity"
+                    // vertical bar: a ticks column + a bordered scale
+                    // housing a track + a solid score-zone-coloured fill +
+                    // glass sheen.
                     const carCenterBar = document.createElement("div");
                     carCenterBar.className = "car-center-bar-wrap";
                     carCenterBar.id = "carCenterBar";
@@ -853,33 +933,75 @@ if (dlBtn) {
                         `${overallTotal.toFixed(1)} / ${maxValue} \u00B7 ${getOverallZoneLabel(clampedTotal)}`
                     );
 
-                    // Soft glow bleeding upward from the fill into the dark
-                    // unfilled area, same hue as the fill color. Taller than
-                    // the solid fill itself (capped at 100%) so it fades out
-                    // gradually above the fill's top edge; the solid fill
-                    // (painted after, below) covers its lower portion.
-                    const glowPct = Math.min(100, fillPct + 30);
-                    const scoreGlow = document.createElement("div");
-                    scoreGlow.className = "car-score-glow";
-                    scoreGlow.style.height = `${glowPct}%`;
-                    scoreGlow.style.background = `linear-gradient(180deg, transparent 0%, ${getOverallZoneGlow(clampedTotal)} 100%)`;
-                    carCenterBar.appendChild(scoreGlow);
+                    // Tick labels — same relative spacing as i.html's 0/25/50/75/100,
+                    // just scaled to this page's real 0-10 range.
+                    const ticksEl = document.createElement("div");
+                    ticksEl.className = "car-ticks";
+                    [0, 2.5, 5, 7.5, 10].forEach((v, i) => {
+                        const span = document.createElement("span");
+                        span.style.bottom = `${i * 25}%`;
+                        if (i === 4) span.style.transform = "translateY(50%)"; // matches i.html's top-most tick tweak
+                        span.textContent = (v % 1 === 0) ? v : v.toFixed(1);
+                        ticksEl.appendChild(span);
+                    });
+                    carCenterBar.appendChild(ticksEl);
 
-                    // Bottom-up solid fill occupying the full width/height of the box
-                    const scoreFill = document.createElement("div");
-                    scoreFill.className = "car-score-fill";
-                    scoreFill.style.height = `${fillPct}%`;
-                    scoreFill.style.background = getOverallZoneColor(clampedTotal);
-                    carCenterBar.appendChild(scoreFill);
+                    const verticalScale = document.createElement("div");
+                    verticalScale.className = "car-vertical-scale";
 
-                    // Value — absolutely positioned just above the box's top border
+                    const barTrack = document.createElement("div");
+                    barTrack.className = "car-bar-track";
+
+                    // Bottom-up fill — shape/housing ported from i.html's
+                    // .bar-fill, but coloured with ONE solid colour based on
+                    // the score's zone (green/yellow/red), same functionality
+                    // as before Calculate. Only the height animates in.
+                    const barFill = document.createElement("div");
+                    barFill.className = "car-bar-fill";
+                    barFill.id = "overallFill";
+                    barFill.style.height = "0%"; // starts empty, animated up below
+                    barFill.style.background = oz.color;
+                    barTrack.appendChild(barFill);
+
+                    // Checkbox (O&M) highlight segment — sits directly on top
+                    // of the base fill, showing only the extra score added by
+                    // the ticked checkboxes. Original portion's colour/height
+                    // logic above is untouched; this is purely additive.
+                    const barFillCheckbox = document.createElement("div");
+                    barFillCheckbox.className = "car-bar-fill-checkbox";
+                    barFillCheckbox.id = "overallFillCheckbox";
+                    barFillCheckbox.style.bottom = `${basePct}%`;
+                    barFillCheckbox.style.height = "0%"; // starts empty, animated up below
+                    if (checkboxPct > 0) {
+                        barFillCheckbox.setAttribute(
+                            "data-tooltip-checkbox",
+                            `+${checkboxScore.toFixed(1)} from O&M`
+                        );
+                    }
+                    barTrack.appendChild(barFillCheckbox);
+
+                    const barHighlight = document.createElement("div");
+                    barHighlight.className = "car-bar-highlight";
+                    barTrack.appendChild(barHighlight);
+
+                    verticalScale.appendChild(barTrack);
+                    carCenterBar.appendChild(verticalScale);
+
+                    // Value — absolutely positioned just above the box's top border.
+                    // Appended to the stack (not the bar) so the bar can safely
+                    // clip its own fill to its bordered shape without also
+                    // clipping this text, which intentionally sits outside it.
+                    // Starts at 0 and counts up to the real value in step with
+                    // the bar filling, matching the gauges' reveal animation.
+                    // Colour still tracks the score's zone, same as i.html.
                     const totalDisplay = document.createElement("div");
                     totalDisplay.className = "car-overall-value";
-                    totalDisplay.textContent = overallTotal.toFixed(1);
-                    carCenterBar.appendChild(totalDisplay);
+                    totalDisplay.textContent = "0.0";
+                    totalDisplay.style.color = oz.color;
 
                     // Caption + breakdown — absolutely positioned just below the
-                    // box's bottom border, grouped so they stack as one unit
+                    // box's bottom border, grouped so they stack as one unit.
+                    // Same reasoning: lives on the stack, not the bar.
                     const captionGroup = document.createElement("div");
                     captionGroup.className = "car-overall-caption-group";
 
@@ -893,9 +1015,35 @@ if (dlBtn) {
                     breakdownLabel.textContent = `S+F: ${totalScore.toFixed(1)} \u00B7 O&M: ${checkboxScore.toFixed(1)}`;
                     captionGroup.appendChild(breakdownLabel);
 
-                    carCenterBar.appendChild(captionGroup);
-
                     carCenterStack.appendChild(carCenterBar);
+                    carCenterStack.appendChild(totalDisplay);
+                    carCenterStack.appendChild(captionGroup);
+
+                    // Force a reflow so the "0%" starting state actually
+                    // paints before the transition to the real height kicks
+                    // in, then animate the fill up and count the number up
+                    // in step (same reveal treatment as the gauges). Glow
+                    // filter on the fill tracks the zone, exactly like i.html.
+                    void carCenterBar.getBoundingClientRect();
+                    requestAnimationFrame(() => {
+                        requestAnimationFrame(() => {
+                            barFill.style.height = `${basePct}%`;
+                            barFill.style.filter = `drop-shadow(0 0 14px ${oz.glow})`;
+                            barFillCheckbox.style.height = `${checkboxPct}%`;
+                        });
+                    });
+                    (function animateOverallNumber() {
+                        const duration = 1100;
+                        const start = performance.now();
+                        function step(now) {
+                            const t = Math.min(1, (now - start) / duration);
+                            const eased = 1 - Math.pow(1 - t, 3);
+                            totalDisplay.textContent = (overallTotal * eased).toFixed(1);
+                            if (t < 1) requestAnimationFrame(step);
+                            else totalDisplay.textContent = overallTotal.toFixed(1);
+                        }
+                        requestAnimationFrame(step);
+                    })();
                 }
 
                 // Zone color for the overall-score connector fill (0-10 scale),
@@ -2192,7 +2340,7 @@ function _svgHatchDataUri(hatchColor) {
 }
 
 function _flattenOverallScoreBarForExport() {
-  const cbBar = document.getElementById('overallCbBar');
+  const cbBar = document.getElementById('overallFillCheckbox');
   if (!cbBar) return null;
 
   const computed   = getComputedStyle(cbBar);
@@ -2212,7 +2360,7 @@ function _flattenOverallScoreBarForExport() {
 
 function _restoreOverallScoreBarAfterExport(original) {
   if (!original) return;
-  const cbBar = document.getElementById('overallCbBar');
+  const cbBar = document.getElementById('overallFillCheckbox');
   if (!cbBar) return;
   cbBar.style.backgroundImage = original.backgroundImage;
   cbBar.style.backgroundColor = original.backgroundColor;

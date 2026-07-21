@@ -1,0 +1,1828 @@
+﻿<!DOCTYPE html><html lang="en" class="h-full antialiased"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="/_next/static/chunks/src_app_globals_162hn9o.css" data-precedence="next_static/chunks/src_app_globals_162hn9o.css"/><link rel="preload" as="script" fetchPriority="low" href="/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1xx01vv._.js"/><script src="/_next/static/chunks/node_modules_next_dist_compiled_next-devtools_index_090k2jm.js" async=""></script><script src="/_next/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js" async=""></script><script src="/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_164kp-6._.js" async=""></script><script src="/_next/static/chunks/node_modules_next_dist_compiled_1amofcm._.js" async=""></script><script src="/_next/static/chunks/node_modules_next_dist_client_0r5nbpw._.js" async=""></script><script src="/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js" async=""></script><script src="/_next/static/chunks/node_modules_%40swc_helpers_cjs_1r9vbqw._.js" async=""></script><script src="/_next/static/chunks/_1anvha4._.js" async=""></script><script src="/_next/static/chunks/turbopack-_01_ro95._.js" async=""></script><script src="/_next/static/chunks/node_modules_next_dist_1e9_p6y._.js" async=""></script><script src="/_next/static/chunks/src_app_layout_007e4b2.js" async=""></script><script src="/_next/static/chunks/_163mnf5._.js" async=""></script><script src="/_next/static/chunks/src_app_slagging_coal_page_html_page_1r2tbvd.js" async=""></script><script src="/_next/static/chunks/node_modules_next_dist_client_components_builtin_global-error_1r2tbvd.js" async=""></script><title>Abhitech Energycon Limited</title><meta name="description" content="Coal blend AFT prediction &amp; slagging/fouling analysis"/><link rel="icon" href="/favicon.ico?favicon.1kwhu4cbf0z6y.ico" sizes="131x131" type="image/x-icon"/><script src="/_next/static/chunks/node_modules_next_dist_build_polyfills_polyfill-nomodule.js" noModule=""></script></head><body class="min-h-full flex flex-col"><div hidden=""><!--$--><!--/$--></div><link rel="stylesheet" href="/legacy/premium.css"/><style>body {
+            margin: 0;
+            padding: 0;
+            font-size: large;
+            font-family: Arial, sans-serif;
+        }
+
+
+        .content {
+            margin-top: 90px; /* Space below navbar */
+            padding: 10px;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            height: auto;
+        }
+
+        .left-container, .right-container {
+            /* box-sizing:border-box (added) is the key fix: width:100% here,
+               combined with the later "flex:1" rule further down this file,
+               used to make each panel render wider than its actual flex
+               slot, because padding/border were added on top of that 100%
+               under the default content-box sizing. That's what caused the
+               whole row to overflow horizontally (the unwanted left-right
+               scrollbar). */
+            box-sizing: border-box;
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            border-radius: 4px;
+            flex-direction: column;
+            position: relative;
+            padding: 1rem;
+        }
+        
+        .blend-row {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .blend {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            gap: 10px;
+            width: 100%;
+        }
+        
+        .blend select, .blend-entry select, .blend input, .blend-entry input {
+            flex: 2;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .blend select, .blend-entry select {
+            min-width: 0;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        button {
+            padding: 8px 12px;
+            cursor: pointer;
+            border: none;
+            background-color: #02008a;
+            color: white;
+            border-radius: 5px;
+        }
+        
+        button:hover {
+            background-color: #0056b3;
+        }
+        
+        #weightedAverageProperties {
+            display: none;
+            margin-top: 20px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-top: 10px;
+            margin-bottom: 15px;
+        }
+        
+        /* Table Header */
+        table th {
+            background: #0153ac;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            font-size: 16px;
+            border: 1px solid #ddd;
+        }
+        
+        /* Table Rows */
+        table td {
+            padding: 10px;
+            text-align: center;
+            font-size: 14px;
+            border: 1px solid #ddd;
+            color: #333;
+        }
+        
+        /* Alternate Row Background */
+        table tr:nth-child(even) {
+            background: #f2f2f2;
+        }
+        
+        /* Hover Effect */
+        table tr:hover {
+            background: #d4e6ff;
+        }
+        
+        
+        /* Light blue background for table headers */
+        th[colspan="3"] {
+            background-color: rgb(24, 0, 158);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        
+        .modal-content {
+            background-color: #fff;
+            margin: 10% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 30%;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+        }
+        
+        .close {
+            font-size: 30px;
+            cursor: pointer;
+            font-weight: bolder;
+        }
+        
+        .blendedcoalProperties {
+            overflow-x: auto;
+            margin-top: 10px;
+            white-space: nowrap;
+            padding: 10px;
+        }
+        
+        .blendedcoalProperties p {
+            display: inline-block;
+            margin-right: 20px;
+            padding: 5px;
+            border: 1px solid #ccc;
+        }
+        
+        .blendedcoalProperties::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+        
+        .blendedcoalProperties::-webkit-scrollbar-thumb {
+            background-color: #888;
+            border-radius: 5px;
+        }
+        
+        .blendedcoalProperties::-webkit-scrollbar-track {
+            background-color: #f1f1f1;
+        }
+        
+        .blend .remove-blend-btn, .blend-entry .remove-blend-btn {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 10px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        
+        .blend .remove-blend-btn:hover, .blend-entry .remove-blend-btn:hover {
+            background-color: #c0392b;
+        }
+        
+        .add-blend-btn {
+            padding: 7px 12px;
+            cursor: pointer;
+            border: none;
+            width: 20%;
+            margin-left: 40%;
+            background-color: #02008a;
+            margin-bottom: 10px;
+            margin-top: 10px;
+            color: white;
+            border-radius: 5px;
+        }
+        
+        .calculate-properties-btn{
+            padding: 7px 12px;
+            cursor: pointer;
+            border: none;
+            background-color: #02008a;
+            width: 30%;
+            margin-left: 35%;
+            margin-top: 12px;
+            color: white;
+            border-radius: 5px;
+        }
+
+        .blendProperties {
+            padding: 7px 12px;
+            cursor: pointer;
+            border: none;
+            background-color: #02008a;
+            width: 55%;
+            margin: 0 auto 4px;
+            display: block;
+            color: white;
+            border-radius: 5px;
+            flex: 0 0 auto;
+        }
+        
+        #totalRangeContainer {
+            text-align: center; 
+        }
+        
+        #totalRange {
+            font-weight: bold; 
+            margin-left: 5px;   
+        }
+
+        .right-container > table {
+            margin-bottom: 12px; 
+        }
+
+            /* Checkbox Card */
+        .checkbox-card {
+            width: 94%;
+            background-color: #f8f9fa;
+            padding: 12px 16px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            margin-top: 15px;
+            border: 1px solid #ccc;
+            box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .checkbox-card h3 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .toggle-icon {
+            font-size: 20px;
+            transition: transform 0.3s ease;
+        }
+
+        /* Collapsible Checkbox Section */
+        .checkbox-container {
+            width: 95%;
+            background-color: #ffffff;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 10px;
+            font-weight: bold;
+            box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);
+            display: none; /* Initially hidden */
+            transition: all 0.3s ease;
+              /* NEW */
+  max-height: 190px;   /* fallback; JS sizes this to exactly 4 parameter rows */
+  overflow-y: auto;  
+        }
+
+        .checkbox-table td {
+            padding: 8px;
+        }
+
+        /* Hidden class for smooth collapse */
+        .hidden {
+            display: none;
+        }
+        #plot-section {
+            width: 100%;
+            display: flex;
+            padding-left: 25px;
+            align-items: center; 
+            flex-direction: column;
+            
+        }
+        #ternary-plot {
+            width: 92%;
+            max-width: 92%;
+            height: 100%;
+            padding-top: 6px;
+            margin: 0 auto;
+            box-sizing: border-box;
+        }
+        .navbar .logout-btn {
+  padding: 10px 16px;
+  background-color: red !important;
+  color: #fff !important;
+  border: none;
+  cursor: pointer;
+  border-radius: 25px;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+.navbar .logout-btn:hover {
+  background-color: darkred !important;
+}
+        /* Icon button styles */
+.icon-btn {
+  position: absolute;
+  top: 90px;        /* a little lower below navbar */
+  right: 20px;      /* align on right side */
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #1f2937;   /* same as navbar buttons */
+  transition: color 0.2s ease;
+  z-index: 1000;    /* ensure it stays on top */
+}
+
+.icon-btn:hover {
+  color: #000;      /* only color change, no resize */
+}
+
+/* Tooltip styling */
+.icon-btn::after {
+  content: attr(title);
+  position: absolute;
+  top: 120%;             /* place directly below icon */
+  left: 50%;
+  transform: translateX(-50%);
+  background: #111;      /* black box */
+  color: #fff;
+  font-size: 0.75rem;
+  padding: 4px 6px;
+  border-radius: 4px;
+  opacity: 0;
+  pointer-events: none;
+  white-space: nowrap;
+  transition: opacity 0.2s ease;
+}
+
+/* Show tooltip on hover */
+.icon-btn:hover::after {
+  opacity: 1;
+}
+/* ---------------------------
+  Add-on: Left-align after checkbox + modern checkbox visuals
+  Append this to the end of your existing <style> block
+   --------------------------- */
+
+/* Ensure checkbox cell has relative positioning for the custom checkmark */
+.checkbox-table td:first-child { position: relative; }
+
+/* 1) Left-align the description column (text immediately after checkbox) */
+.checkbox-table td:nth-child(2) {
+  text-align: left;            /* key: left align description */
+  padding: 12px 14px;         /* slightly larger padding for breathing room */
+  vertical-align: middle;
+  color: #0b1a2b;             /* dark readable color */
+  font-weight: 500;           /* medium weight for better hierarchy */
+  line-height: 1.35;
+  white-space: normal;        /* allow wrapping */
+}
+
+/* 2) Modern checkbox visuals (works even if default appearance removed) */
+.checkbox-table input[type="checkbox"]{
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  display: inline-block;
+  vertical-align: middle;
+  cursor: pointer;
+  border-radius: 4px;
+  border: 2px solid rgba(2,0,138,0.18); /* subtle blue border */
+  background: #fff;
+  position: relative;
+  transition: all .12s ease;
+  box-sizing: border-box;
+}
+
+/* focus - accessible outline */
+.checkbox-table input[type="checkbox"]:focus{
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(2,0,138,0.10);
+  border-color: rgba(1,28,187,0.35);
+}
+
+/* checked state: blue gradient background + no border */
+.checkbox-table input[type="checkbox"]:checked{
+  background: linear-gradient(180deg, #001cbb, #02008a);
+  border-color: transparent;
+}
+
+/* custom white checkmark using pseudo-element */
+.checkbox-table input[type="checkbox"]::after{
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 2px;
+  width: 5px;
+  height: 9px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) scale(0);
+  transform-origin: center;
+  transition: transform .12s ease;
+  pointer-events: none;
+}
+
+/* reveal checkmark when checked */
+.checkbox-table input[type="checkbox"]:checked::after{
+  transform: rotate(45deg) scale(1);
+}
+
+/* small hover affordance */
+.checkbox-table input[type="checkbox"]:hover{
+  transform: translateY(-1px);
+}
+
+
+
+        
+
+
+    /* PREMIUM UI - paste after existing CSS to override */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+:root{
+  --bg-1: #f4f7fb;
+  --bg-2: #ffffff;
+  --nav-blue-1: #001cbb;
+  --nav-blue-2: #02008a;
+  --muted: #6b7280;
+  --card-shadow: 0 10px 30px rgba(11,23,47,0.06);
+  --card-border: rgba(2,0,138,0.06);
+  --radius-lg: 12px;
+  --radius-md: 8px;
+  --accent: #ff7a59; /* warm accent if needed */
+}
+
+/* Typography + page background */
+html,body{
+  height:100%;
+}
+body{
+  margin:0;
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  font-size:14px;
+  color: #0b1a2b;
+  background: linear-gradient(180deg, var(--bg-1) 0%, #fbfcff 60%);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+
+/* NAVBAR - visually elevated but same position */
+.navbar{
+  background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(250,251,255,0.85));
+  height:72px;
+  padding:12px 24px;
+  align-items:center;
+  box-shadow: 0 6px 18px rgba(11,23,47,0.06);
+  border-bottom: 1px solid rgba(11,23,47,0.04);
+  backdrop-filter: blur(4px);
+}
+
+/* logo & title */
+.navbar img{ height:48px; object-fit:contain; margin-right:12px; }
+.navbar h1{
+  font-size:18px; color:var(--nav-blue-2); font-weight:700;
+  margin:0;
+  letter-spacing:0.2px;
+}
+
+/* nav buttons (pill style) */
+.nav-buttons button{
+  padding:8px 14px;
+  border-radius:999px;
+  border: none;
+  margin-left:8px;
+  font-weight:600;
+  background: linear-gradient(180deg, var(--nav-blue-1), var(--nav-blue-2));
+  color:#fff;
+  box-shadow: 0 8px 20px rgba(2,0,138,0.07);
+  transition: transform .12s ease, box-shadow .12s ease, opacity .12s;
+}
+.nav-buttons button:hover{ transform: translateY(-3px); box-shadow: 0 12px 30px rgba(2,0,138,0.09); }
+.nav-buttons .logout-btn{ background: linear-gradient(180deg,#ff4b4b,#e32d2d); box-shadow: 0 6px 18px rgba(227,45,45,0.08); }
+
+/* content containers (cards) - same widths/positioning preserved */
+.content{ margin-top:92px; padding:14px; display:flex; align-items:flex-start; gap:14px; }
+.left-container, .right-container{
+  box-sizing: border-box;
+  background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(250,250,255,0.9));
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--card-shadow);
+  padding:12px 14px;
+  flex:1;
+  min-width:0; /* prevents overflow */
+  /* Fit within the visible viewport (below the fixed navbar) so the page
+     itself doesn't need to scroll. If content still doesn't fit on a very
+     short screen, the panel scrolls internally instead of pushing content
+     (like the ternary chart) below the fold. */
+  height: calc(100vh - var(--nav-h, 90px) - 32px);
+  max-height: calc(100vh - var(--nav-h, 90px) - 32px);
+  overflow-y: auto;
+  overflow-x: hidden; /* the panel should never need a left-right scrollbar */
+}
+
+/* Results panel: dark instrument-cluster theme so it matches the
+   gauge/overall-score dashboard it hosts, instead of the near-white
+   glass background shared with the (untouched) left form panel. */
+.right-container{
+  background:
+    radial-gradient(130% 90% at 20% -10%, rgba(47,107,255,0.16), transparent 55%),
+    linear-gradient(165deg, #0b1230 0%, #060a1c 55%, #04070f 100%);
+  border: 1px solid rgba(120,160,255,0.28);
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,0.4),
+    0 20px 46px rgba(2, 8, 30, 0.55),
+    inset 0 1px 0 rgba(255,255,255,0.04);
+  color: #eaf2ff;
+}
+
+/* blend rows and controls */
+.blend-row{ display:flex; flex-direction:column; gap:12px;   max-height: 140px;          /* fallback; JS sizes this to exactly 2 coal rows */
+  overflow-y: auto;       /* internal scroll */
+  overflow-x: hidden;
+  padding-right: 6px;  }
+.blend{ display:flex; gap:12px; align-items:center; width:100%; }
+.blend label{ min-width:42px; color:var(--muted); font-weight:600; }
+
+/* inputs & selects - premium fields */
+.blend select, .blend-entry select, .blend input, .blend-entry input{
+  padding:10px 12px;
+  border-radius:10px;
+  border:1px solid rgba(11,23,47,0.06);
+  box-shadow: inset 0 2px 6px rgba(11,23,47,0.02);
+  background: #fff;
+  font-size:14px;
+  transition: box-shadow .12s, transform .08s;
+  outline: none;
+}
+.blend select, .blend-entry select{
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.blend select:focus, .blend input:focus, .blend-entry input:focus{
+  box-shadow: 0 6px 18px rgba(2,0,138,0.08);
+  transform: translateY(-2px);
+  border-color: rgba(2,0,138,0.12);
+}
+
+/* primary buttons */
+button, .add-blend-btn, .calculate-properties-btn, .blendProperties{
+  cursor:pointer;
+  border-radius:12px;
+  font-weight:700;
+  letter-spacing:0.2px;
+}
+.add-blend-btn{ width:180px; margin:20px auto; display:block; }
+.calculate-properties-btn{ width:220px; margin:8px auto 0; display:block; }
+
+/* tables - modern / compact */
+table{
+  width:100%;
+  border-collapse:collapse;
+  background:transparent;
+  border-radius:8px;
+  overflow:hidden;
+  box-shadow:none;
+}
+table thead th{
+  background: linear-gradient(180deg, #071a52, #0b2a7a);
+  color:#fff; font-size:13px; font-weight:700; padding:10px 12px;
+  text-transform:uppercase; letter-spacing:0.6px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+table tbody td{
+  background: #fff; padding:10px 12px; color:#243447; font-size:13px;
+  border-bottom: 1px solid rgba(11,23,47,0.04);
+}
+table tr:nth-child(even) td{ background:#fbfcff; }
+table tr:hover td{ transform:translateY(-1px); background: #f0f6ff; }
+
+/* modal - centered + blur backdrop */
+/* REPLACE your existing .modal block with this */
+.modal {
+  display: none;               /* hidden by default */
+  position: fixed;
+  inset: 0;                    /* top:0; left:0; right:0; bottom:0 */
+  z-index: 1200;
+  align-items: center;
+  justify-content: center;
+  background: rgba(6,18,28,0.4);
+  backdrop-filter: blur(6px) saturate(1.02);
+}
+
+/* show the modal only when JS adds the .show class */
+.modal.show {
+  display: flex;
+}
+
+.modal-content{
+  width: min(720px, 92%);
+  background: linear-gradient(180deg,#fff,#fbfbff);
+  padding:18px; border-radius:14px;
+  box-shadow: 0 30px 80px rgba(11,23,47,0.12);
+  border: 1px solid rgba(11,23,47,0.04);
+}
+
+/* small helpers */
+.icon-btn{ top:88px; right:22px; font-size:18px; background:transparent; }
+.checkbox-card{ border-radius:12px; padding:14px 16px; background:#fff; border:1px solid rgba(11,23,47,0.04); box-shadow:var(--card-shadow); }
+.blendedcoalProperties p{ background:#f7f9ff; border-radius:8px; padding:6px 10px; }
+
+/* responsive */
+@media (max-width:900px){
+  .content{ flex-direction:column; gap:12px; padding:12px; }
+  .nav-buttons button{ padding:8px 10px; font-size:13px; }
+  .navbar img{ height:40px; }
+  /* Stacked layout: let each panel size to its content and the page
+     scroll normally, instead of forcing every panel to fill the full
+     viewport height (which only matters for the side-by-side desktop
+     layout where the ternary chart needs to fit beside the gauges). */
+  .left-container, .right-container{
+    height: auto;
+    max-height: none;
+    overflow-y: visible;
+  }
+  .ternary-plot-wrapper{ min-height: 260px; }
+}
+
+/* Replace existing .icon-btn block with this */
+
+.right-container { position: relative; } /* ensure right-container is positioning context (it already is, but safe) */
+
+.right-container .icon-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: #ffffff;
+  color: #0b1a2b;
+  border: 1px solid rgba(2,0,138,0.10);
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(11,23,47,0.08);
+  z-index: 60;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* small hover effect */
+.right-container .icon-btn:hover,
+.right-container .icon-btn:focus {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(11,23,47,0.12);
+  outline: none;
+}
+
+/* tooltip (keeps your current ::after approach but repositioned) */
+.right-container .icon-btn::after {
+  content: attr(title);
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 50%;
+  transform: translateX(50%);
+  background: #111;
+  color: #fff;
+  font-size: 0.75rem;
+  padding: 6px 8px;
+  border-radius: 6px;
+  opacity: 0;
+  pointer-events: none;
+  white-space: nowrap;
+  transition: opacity 0.18s ease;
+}
+.right-container .icon-btn:hover::after { opacity: 1; }
+
+/* keep hidden utility */
+.icon-btn.hidden { display: none !important; }
+
+/* responsive: on very small widths show only icon */
+@media (max-width:420px) {
+  .right-container .icon-btn { padding: 6px; font-size: 13px; }
+  .right-container .icon-btn::after { display: none; } /* hide tooltip on tiny screens */
+}
+
+
+
+/* Common navbar override (will replace previous styles visually) */
+:root{
+  --nav-h: 90px;
+  --nav-bg-start: rgba(255,255,255,0.96);
+  --nav-bg-end: rgba(245,247,255,0.88);
+  --nav-blue-1: #02126e;
+  --nav-blue-2: #0027a7;
+  --nav-text: #071a52;
+  --nav-btn-radius: 999px;
+}
+
+/* Strongly scoped to override older rules */
+.common-navbar-wrapper { position: fixed; top: 0; left: 0; right: 0; height: var(--nav-h); z-index: 1300; }
+.common-navbar {
+  box-sizing: border-box;
+  height: 100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 12px;
+  padding: 8px 20px;
+  background: linear-gradient(180deg, var(--nav-bg-start), var(--nav-bg-end));
+  box-shadow: 0 8px 30px rgba(9,20,46,0.06);
+  border-bottom: 1px solid rgba(2,18,110,0.04);
+  backdrop-filter: blur(4px) saturate(1.02);
+  font-family: Inter, Arial, Helvetica, sans-serif;
+}
+
+/* Left: logo + title */
+.common-navbar .brand { display:flex; align-items:center; gap:12px; }
+.common-navbar .brand img { height:46px; width:auto; object-fit:contain; display:block; }
+.common-navbar .brand .title { font-weight:700; color:var(--nav-text); font-size:18px; margin:0; }
+
+/* Center/right: nav buttons */
+.common-navbar .nav-buttons { display:flex; gap:10px; align-items:center; margin-left:12px; }
+.common-navbar .nav-buttons button{
+  padding:8px 14px;
+  border-radius:var(--nav-btn-radius);
+  border: none;
+  font-weight:600;
+  cursor:pointer;
+  background: linear-gradient(180deg,var(--nav-blue-1),var(--nav-blue-2));
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(2,18,110,0.07);
+  transition: transform .12s ease, box-shadow .12s ease, opacity .12s;
+}
+.common-navbar .nav-buttons button:hover{ transform: translateY(-2px); }
+.common-navbar .nav-buttons button.logout-btn{
+  background: linear-gradient(180deg,#ff4b4b,#e32d2d) !important;
+  box-shadow: 0 8px 20px rgba(227,45,45,0.07);
+}
+
+/* Active page visual (different contrast + subtle outline) */
+.common-navbar .nav-buttons button.active {
+  background: linear-gradient(180deg,#ffffff, #f1f6ff) !important;
+  color: var(--nav-blue-2) !important;
+  box-shadow: 0 6px 18px rgba(2,18,110,0.06) !important;
+  border: 1px solid rgba(2,18,110,0.12);
+  transform: translateY(-1px) !important;
+}
+
+/* Mobile: make buttons smaller/wrapping */
+@media (max-width: 720px) {
+  .common-navbar { padding:10px 14px; }
+  .common-navbar .brand .title { font-size:15px; }
+  .common-navbar .nav-buttons { gap:6px; }
+  .common-navbar .nav-buttons button { padding:7px 10px; font-size:13px; }
+}
+
+/* push page content below navbar (only added if page doesn't already do it) */
+html body { --navbar-height: var(--nav-h); }
+
+
+#pdfReportPage {
+  width: 900px;
+  padding: 22px;
+  box-sizing: border-box;
+  background: #ffffff;
+  color: #111;
+  font-family: Arial, sans-serif;
+  border: 3px solid #02008a;
+  border-radius: 6px;
+}
+#pdfReportPage .header { display:flex; align-items:center; gap:12px; margin-bottom:14px; border-bottom: 2px solid #02008a; padding-bottom: 10px; }
+#pdfReportPage .header img { width:72px; height:auto; }
+#pdfReportPage h1 { font-size:16px; margin:0; color:#02008a; }
+#pdfReportPage .meta { font-size:10px; color:#666; margin-top:4px; }
+#pdfReportPage section { margin-bottom:10px; }
+#pdfReportPage .section-title { background:#f0f4fb; padding:6px 10px; border-radius:4px; font-weight:700; margin-bottom:6px; color:#02008a; font-size:12px; border-left: 3px solid #02008a; }
+
+/* Two-column top layout: coal+params left, AFB table right */
+#pdfReportPage .two-col-top { display:flex; gap:14px; align-items:flex-start; margin-bottom:10px; }
+#pdfReportPage .top-left-col { flex: 0 0 38%; min-width:0; }
+#pdfReportPage .top-right-col { flex: 1 1 60%; min-width:0; }
+
+#pdfReportPage table { width:100%; border-collapse:collapse; margin-top:4px; }
+#pdfReportPage table th, #pdfReportPage table td { border:1px solid #ddd; padding:4px 6px; font-size:11px; text-align:left; }
+#pdfReportPage table th { background:#0153ac; color:#fff; }
+#pdfReportPage table tr td { background:#fff; }
+#pdfReportPage .footer { text-align:center; font-size:10px; color:#666; margin-top:10px; border-top: 1px solid #ddd; padding-top: 6px; }
+
+/* Dashboard + ternary side by side */
+#pdfReportPage .bottom-row { display:flex; gap:14px; align-items:flex-start; }
+#pdfReportPage .dashboard-col { flex: 1 1 55%; min-width:0; }
+#pdfReportPage .ternary-col { flex: 1 1 43%; min-width:0; }
+
+#pdfReportPage ul { margin:0; padding-left:14px; }
+#pdfReportPage li { font-size:11px; margin-bottom:2px; line-height:1.3; }
+
+
+/* ============================================================
+   DARK PREMIUM THEME — matches the login page's navy/blue look.
+   Appended last on purpose: CSS is cascaded top-to-bottom, so these
+   rules win over the lighter "PREMIUM UI" block above without
+   needing to delete or rewrite it. Nothing here changes structure,
+   IDs, classes, or JS-facing selectors — colors/surfaces only.
+   #pdfReportPage is deliberately left untouched: it's the exported
+   PDF layout and should stay printable white-on-white.
+   ============================================================ */
+
+:root{
+  --cxd-navy-950: #050b1f;
+  --cxd-navy-900: #071230;
+  --cxd-navy-800: #0a1a44;
+  --cxd-blue-500: #2e6bff;
+  --cxd-blue-400: #4f8dff;
+  --cxd-blue-300: #7fb0ff;
+  --cxd-white: #f4f8ff;
+  --cxd-muted: #9db2dd;
+  --cxd-border: rgba(120, 155, 230, 0.24);
+  --cxd-field-bg: rgba(255, 255, 255, 0.045);
+  --cxd-card-shadow: 0 18px 46px rgba(0, 0, 0, 0.45);
+}
+
+/* ---------- page background ---------- */
+html, body.page-slagging {
+  background:
+    radial-gradient(120% 70% at 12% 0%, #102454 0%, transparent 55%),
+    linear-gradient(160deg, #071634 0%, #050c22 55%, #030817 100%) !important;
+  color: var(--cxd-white);
+}
+body.page-slagging * { scrollbar-color: rgba(127, 176, 255, 0.4) transparent; }
+body.page-slagging ::-webkit-scrollbar-thumb { background-color: rgba(127, 176, 255, 0.4); }
+
+/* ---------- headings / labels / static text ---------- */
+body.page-slagging h2,
+body.page-slagging h3,
+body.page-slagging label {
+  color: var(--cxd-white);
+}
+body.page-slagging .checkbox-card h3 { color: var(--cxd-white); }
+body.page-slagging #totalRangeContainer,
+body.page-slagging #totalRange {
+  color: var(--cxd-blue-300);
+}
+
+/* ---------- panels / cards ---------- */
+body.page-slagging .left-container,
+body.page-slagging .right-container {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02)) !important;
+  border: 1px solid var(--cxd-border) !important;
+  box-shadow: var(--cxd-card-shadow) !important;
+  color: var(--cxd-white);
+  animation: cxdFadeUp 0.6s ease both;
+}
+@keyframes cxdFadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+body.page-slagging .checkbox-card,
+body.page-slagging .checkbox-container {
+  background: rgba(255, 255, 255, 0.035) !important;
+  border: 1px solid var(--cxd-border) !important;
+  color: var(--cxd-white);
+}
+body.page-slagging .checkbox-table td:nth-child(2) {
+  color: var(--cxd-white) !important;
+}
+
+/* ---------- inputs & selects ---------- */
+body.page-slagging .blend select,
+body.page-slagging .blend-entry select,
+body.page-slagging .blend input,
+body.page-slagging .blend-entry input,
+body.page-slagging #unitCapacity,
+body.page-slagging #firingType {
+  background: var(--cxd-field-bg) !important;
+  border: 1px solid var(--cxd-border) !important;
+  color: var(--cxd-white) !important;
+  box-shadow: none !important;
+  /* Force the native dropdown popup to render on a light surface so the
+     option text color below stays legible in every browser, instead of
+     the OS/browser guessing a dark popup from the field's own dark theme
+     (which is what made only the currently-selected option readable). */
+  color-scheme: light;
+}
+body.page-slagging .blend select option,
+body.page-slagging .blend-entry select option,
+body.page-slagging #unitCapacity option,
+body.page-slagging #firingType option {
+  background-color: #ffffff !important;
+  color: #0b1a2b !important;
+}
+body.page-slagging .blend select:focus,
+body.page-slagging .blend input:focus,
+body.page-slagging .blend-entry input:focus,
+body.page-slagging #unitCapacity:focus,
+body.page-slagging #firingType:focus {
+  border-color: var(--cxd-blue-400) !important;
+  box-shadow: 0 0 0 3px rgba(47, 107, 255, 0.22) !important;
+  transform: none;
+}
+
+/* checkbox visuals, re-tuned for a dark field */
+body.page-slagging .checkbox-table input[type="checkbox"] {
+  background: rgba(255, 255, 255, 0.06);
+  border: 2px solid rgba(127, 176, 255, 0.4);
+}
+body.page-slagging .checkbox-table input[type="checkbox"]:checked {
+  background: linear-gradient(180deg, var(--cxd-blue-400), var(--cxd-blue-500));
+}
+
+/* ---------- buttons ---------- */
+body.page-slagging button,
+body.page-slagging .add-blend-btn,
+body.page-slagging .calculate-properties-btn,
+body.page-slagging .blendProperties {
+  background: linear-gradient(90deg, #1d4fd6, #3f7dff 50%, #1d4fd6) !important;
+  background-size: 220% 100%;
+  color: #fff !important;
+  box-shadow: 0 12px 26px rgba(29, 79, 214, 0.35);
+  transition: background-position 0.5s ease, transform 0.15s ease, box-shadow 0.2s ease;
+}
+body.page-slagging button:hover,
+body.page-slagging .add-blend-btn:hover,
+body.page-slagging .calculate-properties-btn:hover,
+body.page-slagging .blendProperties:hover {
+  background-position: 100% 0;
+  box-shadow: 0 16px 32px rgba(29, 79, 214, 0.5);
+}
+/* remove-blend / logout style buttons keep their red — just re-tune the glow */
+body.page-slagging .blend .remove-blend-btn,
+body.page-slagging .blend-entry .remove-blend-btn {
+  background: linear-gradient(180deg, #ff5b5b, #e33232) !important;
+  box-shadow: 0 10px 22px rgba(227, 50, 50, 0.3);
+}
+
+body.page-slagging .right-container .icon-btn {
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: var(--cxd-blue-300) !important;
+  border: 1px solid var(--cxd-border) !important;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+}
+body.page-slagging .right-container .icon-btn::after {
+  background: #0a1636;
+  color: var(--cxd-white);
+  border: 1px solid var(--cxd-border);
+}
+
+/* ---------- tables ---------- */
+body.page-slagging table thead th {
+  background: linear-gradient(180deg, #0e2360, #16327e) !important;
+  color: var(--cxd-white) !important;
+  border-bottom: 1px solid var(--cxd-border);
+}
+body.page-slagging table tbody td {
+  background: rgba(255, 255, 255, 0.03) !important;
+  color: var(--cxd-white) !important;
+  border-bottom: 1px solid rgba(120, 155, 230, 0.12);
+}
+body.page-slagging table tr:nth-child(even) td { background: rgba(255, 255, 255, 0.055) !important; }
+body.page-slagging table tr:hover td { background: rgba(47, 107, 255, 0.16) !important; }
+body.page-slagging th[colspan="3"] { background-color: #16327e !important; }
+
+/* The original light-theme rule "table tr:nth-child(even) { background:
+   #f2f2f2; }" (near the top of this file) still paints a solid light-gray
+   background directly on every other <tr>. That solid color sits UNDER
+   the semi-transparent td backgrounds above and shows straight through,
+   so on this dark theme every second Operational Parameters row (and
+   every other striped table row) turned near-white while its text stayed
+   white — invisible. Neutralize that legacy stripe here so every row
+   keeps the same dark, translucent surface used for the first row. */
+body.page-slagging table tr:nth-child(even) { background: transparent !important; }
+
+body.page-slagging .blendedcoalProperties p {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid var(--cxd-border);
+  color: var(--cxd-white);
+}
+
+/* ---------- modals ---------- */
+body.page-slagging .modal {
+  background: rgba(3, 7, 20, 0.72) !important;
+}
+body.page-slagging .modal-content {
+  background: linear-gradient(180deg, #0a1638, #071230) !important;
+  border: 1px solid var(--cxd-border) !important;
+  color: var(--cxd-white);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6) !important;
+}
+body.page-slagging .modal-header {
+  border-bottom: 1px solid var(--cxd-border);
+}
+body.page-slagging .close {
+  color: var(--cxd-blue-300);
+}
+
+/* ---------- charts: keep the plotted area itself readable, but
+   frame it in the same dark glass as everything else ----------
+   NOTE: #fspGaugeChart / #ffftsGaugeChart (the car-dashboard gauge
+   dials) are intentionally excluded here. They previously picked up
+   this near-white background + 1px border, which peeked through the
+   small margin around the SVG's dark circular face and read as an
+   unwanted second "inner ring" next to the .car-gauge-wrap's own
+   6px white outer ring. The gauges should stay fully transparent so
+   only the outer ring shows (see .car-gauge-dial / premium.css). */
+body.page-slagging #ternary-plot,
+body.page-slagging canvas[id^="chart-"] {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(240, 245, 255, 0.98)) !important;
+  border: 1px solid var(--cxd-border);
+}
+body.page-slagging #fspGaugeChart,
+body.page-slagging #ffftsGaugeChart {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* ---------- ternary card: click-to-expand ----------
+   Normal state: sits inline exactly where it always has. On click it's
+   re-homed under <body> and switched to position:fixed so it can enlarge
+   over the whole page (with a blurred backdrop behind it) regardless of
+   where it started; clicking the × button (or the backdrop) restores
+   everything exactly as it was. */
+.ternary-plot-wrapper {
+  position: relative;
+  transition: box-shadow 0.2s ease;
+  flex: 1 1 auto;
+  min-height: 0;
+  border-radius: 12px;
+}
+.ternary-plot-wrapper:not(.ternary-expanded):hover {
+  box-shadow: 0 0 0 1px rgba(127, 176, 255, 0.4), 0 10px 24px rgba(0, 0, 0, 0.18);
+}
+.ternary-plot-wrapper.ternary-expanded {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(760px, 92vw) !important;
+  height: min(600px, 86vh) !important;
+  z-index: 2001;
+  background: linear-gradient(180deg, #0a1638, #071230);
+  border: 1px solid rgba(120, 155, 230, 0.35);
+  border-radius: 16px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.65);
+  padding: 18px 18px 46px;
+  display: flex;
+  flex-direction: column;
+}
+.ternary-plot-wrapper.ternary-expanded #ternary-plot {
+  flex: 1;
+  /* The default #ternary-plot rule caps it at width:92%/max-height:260px
+     for the small inline card — override that here so it can actually
+     grow to fill the enlarged card instead of staying pinned to its
+     original small size. */
+  width: 100% !important;
+  max-width: 100% !important;
+  max-height: none !important;
+  padding-top: 0;
+}
+.ternary-hover-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(3, 7, 20, 0.6);
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.ternary-hover-backdrop.active { opacity: 1; pointer-events: auto; }
+.ternary-close-btn {
+  display: none;
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  width: 30px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid rgba(127, 176, 255, 0.4);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--cxd-white, #f4f8ff);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 10;
+  transition: background 0.12s ease, transform 0.12s ease;
+}
+.ternary-close-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  transform: scale(1.06);
+}
+.ternary-plot-wrapper.ternary-expanded .ternary-close-btn {
+  display: flex;
+}
+.ternary-hover-legend {
+  display: none;
+  gap: 20px;
+  justify-content: center;
+  align-items: center;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cxd-white, #f4f8ff);
+}
+.ternary-hover-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ternary-legend-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid rgba(0, 0, 0, 0.55);
+  flex: none;
+}
+.ternary-legend-swatch-coal {
+  background: #ffb703;
+  transform: rotate(45deg);
+}
+.ternary-legend-swatch-blend {
+  background: #2e6bff;
+  border-radius: 50%;
+}
+
+/* ============================================================
+   Advanced view: corner toggle button + radar / ash-fusion /
+   deposition-tendency-map dashboard + key indicators.
+
+   The toggle button is a SIBLING of .ternary-plot-wrapper (not a
+   child), positioned absolutely in the card's corner, so clicking it
+   never triggers the ternary click-to-expand behaviour.
+   ============================================================ */
+.ternary-card-outer {
+  position: relative;
+  padding-top: 16px;
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.advanced-view-corner-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 6;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  line-height: 1.2;
+  border: 1px solid rgba(127, 176, 255, 0.4) !important;
+  border-radius: 999px !important;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: var(--cxd-blue-300, #7fb0ff) !important;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.3) !important;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+}
+.advanced-view-corner-btn:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.38) !important;
+}
+.advanced-view-corner-btn.active {
+  background: linear-gradient(180deg, #1d4fd6, #0027a7) !important;
+  color: #fff !important;
+  border-color: transparent !important;
+}
+.advanced-view-corner-btn-icon { font-size: 10px; line-height: 1; }
+
+.advanced-dashboard.hidden { display: none; }
+.advanced-dashboard {
+  width: 100%;
+}
+
+.advanced-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.advanced-card {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+  border: 1px solid var(--cxd-border, rgba(120, 155, 230, 0.24));
+  border-radius: 10px;
+  padding: 6px 6px 4px;
+  min-width: 0;
+}
+.advanced-card-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--cxd-white, #f4f8ff);
+  text-align: center;
+  margin-bottom: 2px;
+}
+.advanced-card-chart {
+  width: 100%;
+  height: 130px;
+}
+
+.advanced-key-indicators {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 6px;
+}
+.advanced-indicator-card {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+  border: 1px solid var(--cxd-border, rgba(120, 155, 230, 0.24));
+  border-radius: 8px;
+  padding: 5px 8px;
+  min-width: 0;
+}
+.advanced-indicator-icon {
+  font-size: 14px;
+  line-height: 1;
+  flex: none;
+}
+.advanced-indicator-body { min-width: 0; }
+.advanced-indicator-value {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--cxd-white, #f4f8ff);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.advanced-indicator-label {
+  font-size: 9px;
+  color: var(--cxd-muted, #9db2dd);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 480px) {
+  .advanced-view-corner-btn-label { display: none; }
+  .advanced-view-corner-btn { padding: 4px 6px !important; }
+}
+/* ============================================================
+   CAR-DASHBOARD STYLE GAUGES (Slagging / Fouling / Overall)
+   Shape: two circular dials connected by a straight-edged center
+   bar — a "dumbbell" / dog-bone silhouette — instead of the old
+   single stadium/pill outline. This matches the reference
+   circle + connector markup supplied for the fix.
+
+   HOW THE SHAPE WORKS
+   - .car-gauge-wrap (x2) are true circles (border-radius:50%) with
+     their own navy fill + white ring border, positioned as normal
+     flex items (first and last child of .car-dashboard-panel).
+   - .car-center-bar-wrap is the flat "connector" in between: a
+     rectangle with a white top border + white bottom border only
+     (left/right edges are left bare, no border-radius) so it reads
+     as a straight bar rather than another pill.
+   - The two circles are pulled inward on top of the connector using
+     negative margins (see :first-child / :last-child rules below),
+     so the connector's straight left/right edges tuck in behind the
+     circles instead of poking out — exactly like the reference
+     circle-connector-circle layout. Both dimensions (circle size,
+     connector height, overlap depth) are tuned together so the
+     connector's corners always land inside the circle; if either
+     GAUGE_SIZE (in the JS) or BAR_HEIGHT is changed a lot, re-check
+     that OVERLAP stays >= roughly (R - sqrt(R^2 - (H/2)^2)) where R
+     is the circle radius and H is the connector height, or the
+     rectangle's corners will start peeking out past the circle edge.
+   ============================================================ */
+
+:root {
+  --car-circle-size: 230px;   /* circle diameter (dial is 200px, so ~15px bezel each side) */
+  --car-connector-h: 210px;   /* connector height (fits value + 120px bar + captions) */
+  --car-connector-w: 300px;   /* connector total width (includes the hidden/overlapped part) */
+  --car-overlap: 84px;        /* how far each circle is pulled in on top of the connector */
+}
+
+.car-dashboard-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 6px;
+  padding: 16px 10px;
+  overflow: visible;
+}
+
+/* ---- the inner cluster: hugs exactly the two gauges + connector.
+   display: inline-flex (set inline in JS too, as a belt-and-braces
+   measure) is the key fix — without it the enclosing border would
+   stretch the full width of the results panel and taper into two
+   flat, disconnected lines instead of wrapping tightly around the
+   gauges. The border itself is built as an inline SVG directly in the
+   JS (see buildGaugeCluster / dashboardCluster in the JS file) rather
+   than as CSS here, so it never depends on this stylesheet having
+   loaded/updated correctly. */
+.car-dashboard-cluster {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  max-width: 100%;
+  position: relative;
+  overflow: visible;
+}
+
+.car-gauge-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 2; /* sits above the connector so it hides the connector's straight edge */
+  width: var(--car-circle-size);
+  height: var(--car-circle-size);
+  flex: 0 0 auto;
+  /* the HUD gauge draws its own complete metal-octagon bezel + glass dish
+     inside the SVG, so this wrapper stays a plain, invisible hit/positioning
+     box (same footprint as before — nothing here affects layout) */
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+.car-gauge-wrap:hover {
+  transform: translateY(-2px) scale(1.02);
+}
+/* pull each circle in over the connector — first child overlaps on its
+   right, last child overlaps on its left, so only their outer/outward
+   margins stay untouched */
+.car-gauge-wrap:first-child { margin-right: calc(-1 * var(--car-overlap)); }
+.car-gauge-wrap:last-child  { margin-left:  calc(-1 * var(--car-overlap)); }
+
+.car-gauge-dial {
+  position: relative;
+  cursor: pointer;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: visible;
+}
+.car-gauge-dial svg { display: block; overflow: visible; filter: drop-shadow(0 10px 18px rgba(0,0,0,.55)); }
+
+/* ---- outer stack: just wraps the connector box now. Sized purely by
+   the box itself so the box's vertical position/alignment against the
+   circles is never affected by the value/caption text (they're
+   absolutely positioned outside the box, see below). ---- */
+.car-center-stack {
+  position: relative;
+  z-index: 1; /* sits under the circles */
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---- the connector between the two gauges: a plain, borderless
+   rectangle occupying only the open space left between the two dials.
+   The enclosing border is drawn once, on .car-dashboard-panel::before
+   above, so this box just holds the bottom-up score fill — overflow:
+   hidden keeps that fill confined to exactly this rectangle;
+   the value/caption text lives on .car-center-stack instead (see JS),
+   so it still floats just outside the border, unclipped. ---- */
+.car-center-bar-wrap {
+  position: relative;
+  box-sizing: border-box;
+  width: var(--car-connector-w);
+  height: var(--car-connector-h);
+  background: linear-gradient(180deg, #06111f 0%, #091620 100%);
+  overflow: hidden;        /* keeps the score-fill confined to this rectangle only */
+  cursor: pointer;
+  border-top: 2px solid rgba(63,198,255,0.85);
+  border-bottom: 2px solid rgba(63,198,255,0.85);
+  border-left: none;
+  border-right: none;
+  box-shadow: inset 0 0 18px rgba(63,198,255,0.08), 0 0 26px rgba(63,198,255,0.08);
+}
+
+/* Value — sits just above the connector, on the stack rather than the
+   bar itself so the bar's overflow:hidden never clips it */
+.car-overall-value {
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  transform: translate(-50%, -8px);
+  font-size: 22px;
+  font-weight: 800;
+  color: #eaf2ff;
+  line-height: 1;
+  white-space: nowrap;
+  text-shadow: 0 0 12px rgba(79, 216, 255, 0.5);
+}
+
+/* Soft glow bleeding upward from the fill into the dark unfilled area,
+   same hue as the fill color — sits behind the solid fill (painted
+   first) so only the portion above the fill's top edge is visible. */
+.car-score-glow {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 0%; /* set inline per score */
+  pointer-events: none;
+  transition: height .5s ease, background .4s ease;
+}
+
+/* Bottom-up score fill occupying the whole rectangle (full width/height
+   of the box) — same functionality as the original narrow bar: height
+   is the score's percentage of the 0-10 scale (score of 2 = 20% filled)
+   and the color steps green -> yellow -> red as the score climbs. Just
+   stretched across the whole connector now instead of a thin strip. */
+.car-score-fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 0%; /* set inline per score */
+  transition: height .5s ease, background .4s ease;
+}
+
+.car-center-bar-wrap::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(10, 16, 38, 0.94);
+  color: #eaf2ff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(120,160,255,0.35);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease;
+  z-index: 3;
+}
+.car-center-bar-wrap:hover::after {
+  opacity: 1;
+}
+
+/* Caption + breakdown — sit just below the box's bottom border line */
+.car-overall-caption-group {
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  transform: translate(-50%, 8px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.car-overall-caption {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.7px;
+  color: #eaf2ff;
+}
+
+.car-overall-breakdown {
+  font-size: 9.5px;
+  color: #9fb3dd;
+  text-align: center;
+  white-space: nowrap;
+}
+
+@media (max-width: 620px) {
+  /* Below this width there isn't room for the overlapping circle/connector
+     silhouette, so fall back to a simple stacked column: circle, connector,
+     circle, no overlap. */
+  .car-dashboard-panel { padding: 14px 10px; }
+  .car-dashboard-cluster { flex-direction: column; gap: 12px; width: auto; }
+  .car-outer-border-svg { display: none; } /* horizontal enclosing border doesn't apply when stacked */
+  .car-gauge-wrap {
+    width: 190px;
+    height: 190px;
+    margin: 0 !important;
+  }
+  .car-center-bar-wrap {
+    width: 210px;
+    height: 150px;
+    border: 2px solid var(--car-outer-border-color);
+    border-radius: 10px;
+    box-shadow: 0 0 12px var(--car-outer-glow);
+  }
+}</style><div><div class="content">
+        
+    <div class="left-container">
+        <form id="coalForm">
+            <div id="coalBlends">
+
+<div class="unit-capacity" style="margin-bottom:15px; display:flex; align-items:center; gap:10px; width:100%;">
+  <!-- left group: unit capacity (unchanged) -->
+  <div style="display:flex; align-items:center; gap:10px;">
+    <label for="unitCapacity" style="font-weight:800;">Unit Capacity:</label>
+
+    <select id="unitCapacity" name="unitCapacity"
+            style="padding:8px 12px; border-radius:8px; border:1px solid #ccc;">
+      <option value="">Select Unit Capacity</option>
+      <option value="150">150 MW</option>
+      <option value="210">210 MW</option>
+      <option value="250">250 MW</option>
+      <option value="300">300 MW</option>
+      <option value="500">500 MW</option>
+      <option value="600">600 MW</option>
+      <option value="660_SC">660 MW (Super Critical)</option>
+      <option value="700_SC">700 MW (Super Critical)</option>
+      <option value="800_860_SC">800–860 MW (Super Critical)</option>
+      <option value="1000_SC">1000 MW (Super Critical)</option>
+    </select>
+  </div>
+
+  <!-- right group: firing type (kept on same line using margin-left:auto) -->
+  <div style="margin-left:auto; display:flex; align-items:center; gap:10px;">
+    <label for="firingType" style="font-weight:800;">Type of Firing:</label>
+
+    <select id="firingType" name="firingType"
+            style="padding:8px 12px; border-radius:8px; border:1px solid #ccc;">
+      <option value="">Select Firing Type</option>
+      <option value="front_fired">Front</option>
+      <option value="tangential_fired">Tangential</option>
+      <option value="front_and_rear_fired">Front and Rear</option>
+    </select>
+  </div>
+</div>
+
+
+                <h2>Coal Type</h2>
+                <div class="blend-row"></div>
+                </div>
+                <button type="button" class="add-blend-btn" onclick="addBlend()">Add Coal</button>
+                <div id="totalRangeContainer">
+                    <label>Total Current Range:<span id="totalRange"></span>%</label>        
+                </div>
+                 
+  
+                <div class="checkbox-card" id="checkboxCard">
+                    <h3>Operational Parameters</h3>
+                    
+                </div>
+            
+                <!-- Collapsible Checkbox Section -->
+                <div class="checkbox-container hidden" id="checkboxContainer">
+                    <table class="checkbox-table">
+                        <tbody>
+                            <tr>
+                                <td><input type="checkbox" name="question1" value="Coal Mill Fineness"></td>
+                                <td>Coal Mill Fineness (+) 50 mesh more than 0.2%</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" name="question2" value="Coal Mill DPT Normal"></td>
+                                <td>Coal Mill DPT Result abnormal</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" name="question3" value="Preventive Maintenance"></td>
+                                <td>Coal Mill preventive maintenance delayed by more than 20 days</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" name="question4" value="O2 at APH O/L"></td>
+                                <td>O₂ at APH O/L less than Design O₂ at APH O/L</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" name="question5" value="SADC Operative"></td>
+                                <td>SADC operation faulty</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" name="question6" value="FG Temp Difference"></td>
+                                <td>Difference in FG temp. between Left and Right zones at RH and SH zones more than 50°C</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" name="question7" value="APH O/L FG Temp"></td>
+                                <td>Corrected APH O/L FG temp greater than 25 deg. + Design temp at APH O/L</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" name="question8" value="Overhaul Conducted"></td>
+                                <td>Last Overhaul conducted before 1.5 years from current date</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" name="question9" value="Soot Blowing Cycle"></td>
+                                <td>Water wall Soot Blowing Cycle not operated fully</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" name="question10" value="LSRB"></td>
+                                <td>LRSB not operated as per schedule</td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" name="question11" value="FTM temperature"></td>
+                                <td>FTM indicating temperatures > 1300 °C</td>
+                            </tr>
+
+                        </tbody>
+                    </table>
+                </div>
+            <button type="button" class="calculate-properties-btn" onclick="calculateWeightedAverage(); callConsumeTrial();">Calculate</button> 
+        </div>    
+    </form>
+        
+
+    <div class="right-container" id="resultsContainer">
+         <button id="downloadPDF" class="icon-btn hidden" title="Download page as PDF">⬇️</button>
+        <button id="blendPropertiesBtn" class="blendProperties" onclick="openBlendModal()" style="display:none;">Simulated AFB Coal Elemental Analysis</button>      
+    </div>
+</div>
+
+    <!-- Modal for displaying blended coal properties -->
+    <div id="blendPropertiesModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeBlendModal()">&times;</span>
+            <div id="blendValues"></div>  
+        </div>
+    </div>
+   
+
+    <div id="coalPropertiesModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Elemental Analysis</h3>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            <div id="coalPropertiesContent"></div>
+        </div>
+    </div>  
+
+    
+
+   
+
+
+<!-- ====== START: COMMON NAVBAR (paste into each HTML file, right after <body>) ====== -->
+<style>
+/* Common navbar override — dark premium theme, matches the login page */
+:root{
+  --nav-h: 90px;
+  --nav-bg-start: rgba(10, 20, 48, 0.94);
+  --nav-bg-end: rgba(5, 11, 31, 0.9);
+  --nav-blue-1: #1d4fd6;
+  --nav-blue-2: #2e6bff;
+  --nav-text: #f4f8ff;
+  --nav-btn-radius: 999px;
+}
+
+/* Strongly scoped to override older rules */
+.common-navbar-wrapper { position: fixed; top: 0; left: 0; right: 0; height: var(--nav-h); z-index: 1300; }
+.common-navbar {
+  box-sizing: border-box;
+  height: 100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 12px;
+  padding: 8px 20px;
+  background: linear-gradient(180deg, var(--nav-bg-start), var(--nav-bg-end));
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+  border-bottom: 1px solid rgba(120, 155, 230, 0.22);
+  backdrop-filter: blur(10px) saturate(1.1);
+  font-family: Inter, Arial, Helvetica, sans-serif;
+}
+
+/* Left: logo + title */
+.common-navbar .brand { display:flex; align-items:center; gap:12px; }
+.common-navbar .brand img { height:46px; width:auto; object-fit:contain; display:block; }
+.common-navbar .brand .title { font-weight:700; color:var(--nav-text); font-size:18px; margin:0; }
+
+/* Center/right: nav buttons */
+.common-navbar .nav-buttons { display:flex; gap:10px; align-items:center; margin-left:12px; }
+.common-navbar .nav-buttons button{
+  padding:8px 14px;
+  border-radius:var(--nav-btn-radius);
+  border: none;
+  font-weight:600;
+  cursor:pointer;
+  background: linear-gradient(180deg,var(--nav-blue-1),var(--nav-blue-2));
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(29, 79, 214, 0.35);
+  transition: transform .12s ease, box-shadow .12s ease, opacity .12s;
+}
+.common-navbar .nav-buttons button:hover{ transform: translateY(-2px); box-shadow: 0 12px 28px rgba(29, 79, 214, 0.5); }
+.common-navbar .nav-buttons button.logout-btn{
+  background: linear-gradient(180deg,#ff4b4b,#e32d2d) !important;
+  box-shadow: 0 8px 20px rgba(227,45,45,0.25);
+}
+
+/* Active page visual — glassy highlighted pill instead of solid white */
+.common-navbar .nav-buttons button.active {
+  background: rgba(127, 176, 255, 0.16) !important;
+  color: #eaf2ff !important;
+  box-shadow: 0 0 0 1px rgba(127, 176, 255, 0.45) inset, 0 0 18px rgba(47, 107, 255, 0.35) !important;
+  border: 1px solid rgba(127, 176, 255, 0.5);
+  transform: translateY(-1px) !important;
+}
+
+/* Mobile: make buttons smaller/wrapping */
+@media (max-width: 720px) {
+  .common-navbar { padding:10px 14px; }
+  .common-navbar .brand .title { font-size:15px; }
+  .common-navbar .nav-buttons { gap:6px; }
+  .common-navbar .nav-buttons button { padding:7px 10px; font-size:13px; }
+}
+
+/* push page content below navbar (only added if page doesn't already do it) */
+html body { --navbar-height: var(--nav-h); }
+</style>
+
+<div class="common-navbar-wrapper" role="navigation" aria-label="Main navigation">
+  <nav class="common-navbar">
+    <div class="brand" aria-hidden="false">
+      <img src="./images/abhitech-logo.png" alt="Abhitech logo">
+      <h1 class="title">Combustion Analyzer</h1>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:12px;">
+      <div class="nav-buttons" role="menubar" aria-label="Primary">
+        <!-- important: use the exact filenames from your site -->
+        <button data-target="coal_table.html" title="Coal Properties">Coal Properties</button>
+        <button data-target="slagging_coal_page.html" title="Calculation">Calculation</button>
+        <button data-target="model.html" title="Model">Cost Optimization Model</button>
+        <!-- <button data-target="date.html" title="About">Date Wise Analysis</button> -->
+        <button data-target="model_compare.html" title="Contact">Compare Models</button>
+      </div>
+
+      <div style="width:8px;"></div>
+
+      <!-- keep logout last -->
+      <div class="nav-buttons" aria-hidden="false">
+        <button class="logout-btn" id="common-logout-btn" title="Logout">Logout</button>
+      </div>
+    </div>
+  </nav>
+</div>
+
+
+
+<!-- PDF Report Styling -->
+<style>
+#pdfReportPage {
+  width: 900px;
+  padding: 22px;
+  box-sizing: border-box;
+  background: #ffffff;
+  color: #111;
+  font-family: Arial, sans-serif;
+  border: 3px solid #02008a;
+  border-radius: 6px;
+}
+#pdfReportPage .header { display:flex; align-items:center; gap:12px; margin-bottom:14px; border-bottom: 2px solid #02008a; padding-bottom: 10px; }
+#pdfReportPage .header img { width:72px; height:auto; }
+#pdfReportPage h1 { font-size:16px; margin:0; color:#02008a; }
+#pdfReportPage .meta { font-size:10px; color:#666; margin-top:4px; }
+#pdfReportPage section { margin-bottom:10px; }
+#pdfReportPage .section-title { background:#f0f4fb; padding:6px 10px; border-radius:4px; font-weight:700; margin-bottom:6px; color:#02008a; font-size:12px; border-left: 3px solid #02008a; }
+
+/* Two-column top layout: coal+params left, AFB table right */
+#pdfReportPage .two-col-top { display:flex; gap:14px; align-items:flex-start; margin-bottom:10px; }
+#pdfReportPage .top-left-col { flex: 0 0 38%; min-width:0; }
+#pdfReportPage .top-right-col { flex: 1 1 60%; min-width:0; }
+
+#pdfReportPage table { width:100%; border-collapse:collapse; margin-top:4px; }
+#pdfReportPage table th, #pdfReportPage table td { border:1px solid #ddd; padding:4px 6px; font-size:11px; text-align:left; }
+#pdfReportPage table th { background:#0153ac; color:#fff; }
+#pdfReportPage table tr td { background:#fff; }
+#pdfReportPage .footer { text-align:center; font-size:10px; color:#666; margin-top:10px; border-top: 1px solid #ddd; padding-top: 6px; }
+
+/* Dashboard + ternary side by side */
+#pdfReportPage .bottom-row { display:flex; gap:14px; align-items:flex-start; }
+#pdfReportPage .dashboard-col { flex: 1 1 55%; min-width:0; }
+#pdfReportPage .ternary-col { flex: 1 1 43%; min-width:0; }
+
+#pdfReportPage ul { margin:0; padding-left:14px; }
+#pdfReportPage li { font-size:11px; margin-bottom:2px; line-height:1.3; }
+</style>
+
+<!-- PDF Generation Script --></div><!--$--><!--/$--><script id="_R_">self.__next_r="ZhcahY2ghQ-XpjYQltSSI"</script><script src="/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_1xx01vv._.js" async=""></script><script>(self.__next_f=self.__next_f||[]).push([0])</script><script>self.__next_f.push([1,"7:I[\"[project]/node_modules/next/dist/next-devtools/userspace/app/segment-explorer-node.js [app-client] (ecmascript)\",[\"/_next/static/chunks/node_modules_next_dist_1e9_p6y._.js\",\"/_next/static/chunks/src_app_layout_007e4b2.js\"],\"SegmentViewNode\"]\n9:\"$Sreact.fragment\"\n1c:I[\"[project]/node_modules/next/dist/client/components/layout-router.js [app-client] (ecmascript)\",[\"/_next/static/chunks/node_modules_next_dist_1e9_p6y._.js\",\"/_next/static/chunks/src_app_layout_007e4b2.js\"],\"default\"]\n1e:I[\"[project]/node_modules/next/dist/client/components/render-from-template-context.js [app-client] (ecmascript)\",[\"/_next/static/chunks/node_modules_next_dist_1e9_p6y._.js\",\"/_next/static/chunks/src_app_layout_007e4b2.js\"],\"default\"]\n3b:I[\"[project]/src/components/LegacyPage.jsx [app-client] (ecmascript)\",[\"/_next/static/chunks/node_modules_next_dist_1e9_p6y._.js\",\"/_next/static/chunks/src_app_layout_007e4b2.js\",\"/_next/static/chunks/_163mnf5._.js\",\"/_next/static/chunks/src_app_slagging_coal_page_html_page_1r2tbvd.js\"],\"default\"]\n45:I[\"[project]/node_modules/next/dist/lib/framework/boundary-components.js [app-client] (ecmascript)\",[\"/_next/static/chunks/node_modules_next_dist_1e9_p6y._.js\",\"/_next/static/chunks/src_app_layout_007e4b2.js\"],\"OutletBoundary\"]\n47:\"$Sreact.suspense\"\n55:I[\"[project]/node_modules/next/dist/lib/framework/boundary-components.js [app-client] (ecmascript)\",[\"/_next/static/chunks/node_modules_next_dist_1e9_p6y._.js\",\"/_next/static/chunks/src_app_layout_007e4b2.js\"],\"ViewportBoundary\"]\n5f:I[\"[project]/node_modules/next/dist/lib/framework/boundary-components.js [app-client] (ecmascript)\",[\"/_next/static/chunks/node_modules_next_dist_1e9_p6y._.js\",\"/_next/static/chunks/src_app_layout_007e4b2.js\"],\"MetadataBoundary\"]\n65:I[\"[project]/node_modules/next/dist/client/components/builtin/global-error.js [app-client] (ecmascript)\",[\"/_next/static/chunks/node_modules_next_dist_1e9_p6y._.js\",\"/_next/static/chunks/src_app_layout_007e4b2.js\",\"/_next/static/chunks/node_modules_next_dist_client_components_builtin_global-error_1r2tbvd.js\"],\"default\",1]\n73:I[\"[project]/node_modules/next/dist/lib/metadata/generate/icon-mark.js [app-client] (ecmascript)\",[\"/_next/static/chunks/node_modules_next_dist_1e9_p6y._.js\",\"/_next/static/chunks/src_app_layout_007e4b2.js\"],\"IconMark\"]\n:HL[\"/_next/static/chunks/src_app_globals_162hn9o.css\",\"style\"]\n1:D\"$4\"\n1:D\"$2\"\n1:D\"$5\"\n1:null\nd:D\"$17\"\nd:D\"$e\"\nd:D\"$19\"\n20:D\"$22\"\n20:D\"$21\"\n20:D\"$24\"\n20:D\"$23\"\n20:D\"$25\"\n20:[[\"$\",\"title\",null,{\"children\":\"404: This page could not be found.\"},\"$23\",\"$26\",1],[\"$\",\"div\",null,{\"style\":{\"fontFamily\":\"system-ui,\\\"Segoe UI\\\",Roboto,Helvetica,Arial,sans-serif,\\\"Apple Color Emoji\\\",\\\"Segoe UI Emoji\\\"\",\"height\":\"100vh\",\"textAlign\":\"center\",\"display\":\"flex\",\"flexDirection\":\"column\",\"alignItems\":\"center\",\"justifyContent\":\"center\"},\"children\":[\"$\",\"div\",null,{\"children\":[[\"$\",\"style\",null,{\"dangerouslySetInnerHTML\":{\"__html\":\"body{color:#000;background:#fff;margin:0}.next-error-h1{border-right:1px solid rgba(0,0,0,.3)}@media (prefers-color-scheme:dark){body{color:#fff;background:#000}.next-error-h1{border-right:1px solid rgba(255,255,255,.3)}}\"}},\"$23\",\"$29\",1],[\"$\",\"h1\",null,{\"className\":\"next-error-h1\",\"style\":{\"display\":\"inline-block\",\"margin\":\"0 20px 0 0\",\"padding\":\"0 23px 0 0\",\"fontSize\":24,\"fontWeight\":500,\"verticalAlign\":\"top\",\"lineHeight\":\"49px\"},\"children\":404},\"$23\",\"$2a\",1],[\"$\",\"div\",null,{\"style\":{\"display\":\"inline-block\"},\"children\":[\"$\",\"h2\",null,{\"style\":{\"fontSize\":14,\"fontWeight\":400,\"lineHeight\":\"49px\",\"margin\":0},\"children\":\"This page could not be found.\"},\"$23\",\"$2c\",1]},\"$23\",\"$2b\",1]]},\"$23\",\"$28\",1]},\"$23\",\"$27\",1]]\nd:[\"$\",\"html\",null,{\"lang\":\"en\",\"className\":\"h-full antialiased\",\"children\":[\"$\",\"body\",null,{\"className\":\"min-h-full flex flex-col\",\"children\":[\"$\",\"$L1c\",null,{\"parallelRouterKey\":\"children\",\"error\":\"$undefined\",\"errorStyles\":\"$undefined\",\"errorScripts\":\"$undefined\",\"template\":[\"$\",\"$L1e\",null,{},null,\"$1d\",1],\"templateStyles\":\"$undefined\",\"templateScripts\":\"$undefined\",\"notFound\":[\"$\",\"$L7\",\"c-not-found\",{\"type\":\"not-found\",\"pagePath\":\"__nex"])</script><script>self.__next_f.push([1,"t_builtin__not-found.js\",\"children\":[\"$20\",[]]},null,\"$1f\",0],\"forbidden\":\"$undefined\",\"unauthorized\":\"$undefined\",\"segmentViewBoundaries\":[[\"$\",\"$L7\",null,{\"type\":\"boundary:not-found\",\"pagePath\":\"__next_builtin__not-found.js@boundary\"},null,\"$2d\",1],\"$undefined\",\"$undefined\",[\"$\",\"$L7\",null,{\"type\":\"boundary:global-error\",\"pagePath\":\"__next_builtin__global-error.js\"},null,\"$2e\",1]]},null,\"$1b\",1]},\"$e\",\"$1a\",1]},\"$e\",\"$18\",1]\n34:D\"$38\"\n34:D\"$35\"\n34:D\"$3a\"\n3c:T31ba,"])</script><script>self.__next_f.push([1,"\u003cdiv class=\"content\"\u003e\n        \n    \u003cdiv class=\"left-container\"\u003e\n        \u003cform id=\"coalForm\"\u003e\n            \u003cdiv id=\"coalBlends\"\u003e\n\n\u003cdiv class=\"unit-capacity\" style=\"margin-bottom:15px; display:flex; align-items:center; gap:10px; width:100%;\"\u003e\n  \u003c!-- left group: unit capacity (unchanged) --\u003e\n  \u003cdiv style=\"display:flex; align-items:center; gap:10px;\"\u003e\n    \u003clabel for=\"unitCapacity\" style=\"font-weight:800;\"\u003eUnit Capacity:\u003c/label\u003e\n\n    \u003cselect id=\"unitCapacity\" name=\"unitCapacity\"\n            style=\"padding:8px 12px; border-radius:8px; border:1px solid #ccc;\"\u003e\n      \u003coption value=\"\"\u003eSelect Unit Capacity\u003c/option\u003e\n      \u003coption value=\"150\"\u003e150 MW\u003c/option\u003e\n      \u003coption value=\"210\"\u003e210 MW\u003c/option\u003e\n      \u003coption value=\"250\"\u003e250 MW\u003c/option\u003e\n      \u003coption value=\"300\"\u003e300 MW\u003c/option\u003e\n      \u003coption value=\"500\"\u003e500 MW\u003c/option\u003e\n      \u003coption value=\"600\"\u003e600 MW\u003c/option\u003e\n      \u003coption value=\"660_SC\"\u003e660 MW (Super Critical)\u003c/option\u003e\n      \u003coption value=\"700_SC\"\u003e700 MW (Super Critical)\u003c/option\u003e\n      \u003coption value=\"800_860_SC\"\u003e800–860 MW (Super Critical)\u003c/option\u003e\n      \u003coption value=\"1000_SC\"\u003e1000 MW (Super Critical)\u003c/option\u003e\n    \u003c/select\u003e\n  \u003c/div\u003e\n\n  \u003c!-- right group: firing type (kept on same line using margin-left:auto) --\u003e\n  \u003cdiv style=\"margin-left:auto; display:flex; align-items:center; gap:10px;\"\u003e\n    \u003clabel for=\"firingType\" style=\"font-weight:800;\"\u003eType of Firing:\u003c/label\u003e\n\n    \u003cselect id=\"firingType\" name=\"firingType\"\n            style=\"padding:8px 12px; border-radius:8px; border:1px solid #ccc;\"\u003e\n      \u003coption value=\"\"\u003eSelect Firing Type\u003c/option\u003e\n      \u003coption value=\"front_fired\"\u003eFront\u003c/option\u003e\n      \u003coption value=\"tangential_fired\"\u003eTangential\u003c/option\u003e\n      \u003coption value=\"front_and_rear_fired\"\u003eFront and Rear\u003c/option\u003e\n    \u003c/select\u003e\n  \u003c/div\u003e\n\u003c/div\u003e\n\n\n                \u003ch2\u003eCoal Type\u003c/h2\u003e\n                \u003cdiv class=\"blend-row\"\u003e\u003c/div\u003e\n                \u003c/div\u003e\n                \u003cbutton type=\"button\" class=\"add-blend-btn\" onclick=\"addBlend()\"\u003eAdd Coal\u003c/button\u003e\n                \u003cdiv id=\"totalRangeContainer\"\u003e\n                    \u003clabel\u003eTotal Current Range:\u003cspan id=\"totalRange\"\u003e\u003c/span\u003e%\u003c/label\u003e        \n                \u003c/div\u003e\n                 \n  \n                \u003cdiv class=\"checkbox-card\" id=\"checkboxCard\"\u003e\n                    \u003ch3\u003eOperational Parameters\u003c/h3\u003e\n                    \n                \u003c/div\u003e\n            \n                \u003c!-- Collapsible Checkbox Section --\u003e\n                \u003cdiv class=\"checkbox-container hidden\" id=\"checkboxContainer\"\u003e\n                    \u003ctable class=\"checkbox-table\"\u003e\n                        \u003ctbody\u003e\n                            \u003ctr\u003e\n                                \u003ctd\u003e\u003cinput type=\"checkbox\" name=\"question1\" value=\"Coal Mill Fineness\"\u003e\u003c/td\u003e\n                                \u003ctd\u003eCoal Mill Fineness (+) 50 mesh more than 0.2%\u003c/td\u003e\n                            \u003c/tr\u003e\n                            \u003ctr\u003e\n                                \u003ctd\u003e\u003cinput type=\"checkbox\" name=\"question2\" value=\"Coal Mill DPT Normal\"\u003e\u003c/td\u003e\n                                \u003ctd\u003eCoal Mill DPT Result abnormal\u003c/td\u003e\n                            \u003c/tr\u003e\n                            \u003ctr\u003e\n                                \u003ctd\u003e\u003cinput type=\"checkbox\" name=\"question3\" value=\"Preventive Maintenance\"\u003e\u003c/td\u003e\n                                \u003ctd\u003eCoal Mill preventive maintenance delayed by more than 20 days\u003c/td\u003e\n                            \u003c/tr\u003e\n                            \u003ctr\u003e\n                                \u003ctd\u003e\u003cinput type=\"checkbox\" name=\"question4\" value=\"O2 at APH O/L\"\u003e\u003c/td\u003e\n                                \u003ctd\u003eO₂ at APH O/L less than Design O₂ at APH O/L\u003c/td\u003e\n                            \u003c/tr\u003e\n                            \u003ctr\u003e\n                                \u003ctd\u003e\u003cinput type=\"checkbox\" name=\"question5\" value=\"SADC Operative\"\u003e\u003c/td\u003e\n                                \u003ctd\u003eSADC operation faulty\u003c/td\u003e\n                            \u003c/tr\u003e\n                            \u003ctr\u003e\n                                \u003ctd\u003e\u003cinput type=\"checkbox\" name=\"question6\" value=\"FG Temp Difference\"\u003e\u003c/td\u003e\n                                \u003ctd\u003eDifference in FG temp. between Left and Right zones at RH and SH zones more than 50°C\u003c/td\u003e\n                            \u003c/tr\u003e\n                            \u003ctr\u003e\n                                \u003ctd\u003e\u003cinput type=\"checkbox\" name=\"question7\" value=\"APH O/L FG Temp\"\u003e\u003c/td\u003e\n                                \u003ctd\u003eCorrected APH O/L FG temp greater than 25 deg. + Design temp at APH O/L\u003c/td\u003e\n                            \u003c/tr\u003e\n                            \u003ctr\u003e\n                                \u003ctd\u003e\u003cinput type=\"checkbox\" name=\"question8\" value=\"Overhaul Conducted\"\u003e\u003c/td\u003e\n                                \u003ctd\u003eLast Overhaul conducted before 1.5 years from current date\u003c/td\u003e\n                            \u003c/tr\u003e\n                            \u003ctr\u003e\n                                \u003ctd\u003e\u003cinput type=\"checkbox\" name=\"question9\" value=\"Soot Blowing Cycle\"\u003e\u003c/td\u003e\n                                \u003ctd\u003eWater wall Soot Blowing Cycle not operated fully\u003c/td\u003e\n                            \u003c/tr\u003e\n                            \u003ctr\u003e\n                                \u003ctd\u003e\u003cinput type=\"checkbox\" name=\"question10\" value=\"LSRB\"\u003e\u003c/td\u003e\n                                \u003ctd\u003eLRSB not operated as per schedule\u003c/td\u003e\n                            \u003c/tr\u003e\n                            \u003ctr\u003e\n                                \u003ctd\u003e\u003cinput type=\"checkbox\" name=\"question11\" value=\"FTM temperature\"\u003e\u003c/td\u003e\n                                \u003ctd\u003eFTM indicating temperatures \u003e 1300 °C\u003c/td\u003e\n                            \u003c/tr\u003e\n\n                        \u003c/tbody\u003e\n                    \u003c/table\u003e\n                \u003c/div\u003e\n            \u003cbutton type=\"button\" class=\"calculate-properties-btn\" onclick=\"calculateWeightedAverage(); callConsumeTrial();\"\u003eCalculate\u003c/button\u003e \n        \u003c/div\u003e    \n    \u003c/form\u003e\n        \n\n    \u003cdiv class=\"right-container\" id=\"resultsContainer\"\u003e\n         \u003cbutton id=\"downloadPDF\" class=\"icon-btn hidden\" title=\"Download page as PDF\"\u003e⬇️\u003c/button\u003e\n        \u003cbutton id=\"blendPropertiesBtn\" class=\"blendProperties\" onclick=\"openBlendModal()\" style=\"display:none;\"\u003eSimulated AFB Coal Elemental Analysis\u003c/button\u003e      \n    \u003c/div\u003e\n\u003c/div\u003e\n\n    \u003c!-- Modal for displaying blended coal properties --\u003e\n    \u003cdiv id=\"blendPropertiesModal\" class=\"modal\"\u003e\n        \u003cdiv class=\"modal-content\"\u003e\n            \u003cspan class=\"close\" onclick=\"closeBlendModal()\"\u003e\u0026times;\u003c/span\u003e\n            \u003cdiv id=\"blendValues\"\u003e\u003c/div\u003e  \n        \u003c/div\u003e\n    \u003c/div\u003e\n   \n\n    \u003cdiv id=\"coalPropertiesModal\" class=\"modal\"\u003e\n        \u003cdiv class=\"modal-content\"\u003e\n            \u003cdiv class=\"modal-header\"\u003e\n                \u003ch3\u003eElemental Analysis\u003c/h3\u003e\n                \u003cspan class=\"close\" onclick=\"closeModal()\"\u003e\u0026times;\u003c/span\u003e\n            \u003c/div\u003e\n            \u003cdiv id=\"coalPropertiesContent\"\u003e\u003c/div\u003e\n        \u003c/div\u003e\n    \u003c/div\u003e  \n\n    \n\n   \n\n\n\u003c!-- ====== START: COMMON NAVBAR (paste into each HTML file, right after \u003cbody\u003e) ====== --\u003e\n\u003cstyle\u003e\n/* Common navbar override — dark premium theme, matches the login page */\n:root{\n  --nav-h: 90px;\n  --nav-bg-start: rgba(10, 20, 48, 0.94);\n  --nav-bg-end: rgba(5, 11, 31, 0.9);\n  --nav-blue-1: #1d4fd6;\n  --nav-blue-2: #2e6bff;\n  --nav-text: #f4f8ff;\n  --nav-btn-radius: 999px;\n}\n\n/* Strongly scoped to override older rules */\n.common-navbar-wrapper { position: fixed; top: 0; left: 0; right: 0; height: var(--nav-h); z-index: 1300; }\n.common-navbar {\n  box-sizing: border-box;\n  height: 100%;\n  display:flex;\n  align-items:center;\n  justify-content:space-between;\n  gap: 12px;\n  padding: 8px 20px;\n  background: linear-gradient(180deg, var(--nav-bg-start), var(--nav-bg-end));\n  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);\n  border-bottom: 1px solid rgba(120, 155, 230, 0.22);\n  backdrop-filter: blur(10px) saturate(1.1);\n  font-family: Inter, Arial, Helvetica, sans-serif;\n}\n\n/* Left: logo + title */\n.common-navbar .brand { display:flex; align-items:center; gap:12px; }\n.common-navbar .brand img { height:46px; width:auto; object-fit:contain; display:block; }\n.common-navbar .brand .title { font-weight:700; color:var(--nav-text); font-size:18px; margin:0; }\n\n/* Center/right: nav buttons */\n.common-navbar .nav-buttons { display:flex; gap:10px; align-items:center; margin-left:12px; }\n.common-navbar .nav-buttons button{\n  padding:8px 14px;\n  border-radius:var(--nav-btn-radius);\n  border: none;\n  font-weight:600;\n  cursor:pointer;\n  background: linear-gradient(180deg,var(--nav-blue-1),var(--nav-blue-2));\n  color: #fff;\n  box-shadow: 0 8px 20px rgba(29, 79, 214, 0.35);\n  transition: transform .12s ease, box-shadow .12s ease, opacity .12s;\n}\n.common-navbar .nav-buttons button:hover{ transform: translateY(-2px); box-shadow: 0 12px 28px rgba(29, 79, 214, 0.5); }\n.common-navbar .nav-buttons button.logout-btn{\n  background: linear-gradient(180deg,#ff4b4b,#e32d2d) !important;\n  box-shadow: 0 8px 20px rgba(227,45,45,0.25);\n}\n\n/* Active page visual — glassy highlighted pill instead of solid white */\n.common-navbar .nav-buttons button.active {\n  background: rgba(127, 176, 255, 0.16) !important;\n  color: #eaf2ff !important;\n  box-shadow: 0 0 0 1px rgba(127, 176, 255, 0.45) inset, 0 0 18px rgba(47, 107, 255, 0.35) !important;\n  border: 1px solid rgba(127, 176, 255, 0.5);\n  transform: translateY(-1px) !important;\n}\n\n/* Mobile: make buttons smaller/wrapping */\n@media (max-width: 720px) {\n  .common-navbar { padding:10px 14px; }\n  .common-navbar .brand .title { font-size:15px; }\n  .common-navbar .nav-buttons { gap:6px; }\n  .common-navbar .nav-buttons button { padding:7px 10px; font-size:13px; }\n}\n\n/* push page content below navbar (only added if page doesn't already do it) */\nhtml body { --navbar-height: var(--nav-h); }\n\u003c/style\u003e\n\n\u003cdiv class=\"common-navbar-wrapper\" role=\"navigation\" aria-label=\"Main navigation\"\u003e\n  \u003cnav class=\"common-navbar\"\u003e\n    \u003cdiv class=\"brand\" aria-hidden=\"false\"\u003e\n      \u003cimg src=\"./images/abhitech-logo.png\" alt=\"Abhitech logo\"\u003e\n      \u003ch1 class=\"title\"\u003eCombustion Analyzer\u003c/h1\u003e\n    \u003c/div\u003e\n\n    \u003cdiv style=\"display:flex; align-items:center; gap:12px;\"\u003e\n      \u003cdiv class=\"nav-buttons\" role=\"menubar\" aria-label=\"Primary\"\u003e\n        \u003c!-- important: use the exact filenames from your site --\u003e\n        \u003cbutton data-target=\"coal_table.html\" title=\"Coal Properties\"\u003eCoal Properties\u003c/button\u003e\n        \u003cbutton data-target=\"slagging_coal_page.html\" title=\"Calculation\"\u003eCalculation\u003c/button\u003e\n        \u003cbutton data-target=\"model.html\" title=\"Model\"\u003eCost Optimization Model\u003c/button\u003e\n        \u003c!-- \u003cbutton data-target=\"date.html\" title=\"About\"\u003eDate Wise Analysis\u003c/button\u003e --\u003e\n        \u003cbutton data-target=\"model_compare.html\" title=\"Contact\"\u003eCompare Models\u003c/button\u003e\n      \u003c/div\u003e\n\n      \u003cdiv style=\"width:8px;\"\u003e\u003c/div\u003e\n\n      \u003c!-- keep logout last --\u003e\n      \u003cdiv class=\"nav-buttons\" aria-hidden=\"false\"\u003e\n        \u003cbutton class=\"logout-btn\" id=\"common-logout-btn\" title=\"Logout\"\u003eLogout\u003c/button\u003e\n      \u003c/div\u003e\n    \u003c/div\u003e\n  \u003c/nav\u003e\n\u003c/div\u003e\n\n\n\n\u003c!-- PDF Report Styling --\u003e\n\u003cstyle\u003e\n#pdfReportPage {\n  width: 900px;\n  padding: 22px;\n  box-sizing: border-box;\n  background: #ffffff;\n  color: #111;\n  font-family: Arial, sans-serif;\n  border: 3px solid #02008a;\n  border-radius: 6px;\n}\n#pdfReportPage .header { display:flex; align-items:center; gap:12px; margin-bottom:14px; border-bottom: 2px solid #02008a; padding-bottom: 10px; }\n#pdfReportPage .header img { width:72px; height:auto; }\n#pdfReportPage h1 { font-size:16px; margin:0; color:#02008a; }\n#pdfReportPage .meta { font-size:10px; color:#666; margin-top:4px; }\n#pdfReportPage section { margin-bottom:10px; }\n#pdfReportPage .section-title { background:#f0f4fb; padding:6px 10px; border-radius:4px; font-weight:700; margin-bottom:6px; color:#02008a; font-size:12px; border-left: 3px solid #02008a; }\n\n/* Two-column top layout: coal+params left, AFB table right */\n#pdfReportPage .two-col-top { display:flex; gap:14px; align-items:flex-start; margin-bottom:10px; }\n#pdfReportPage .top-left-col { flex: 0 0 38%; min-width:0; }\n#pdfReportPage .top-right-col { flex: 1 1 60%; min-width:0; }\n\n#pdfReportPage table { width:100%; border-collapse:collapse; margin-top:4px; }\n#pdfReportPage table th, #pdfReportPage table td { border:1px solid #ddd; padding:4px 6px; font-size:11px; text-align:left; }\n#pdfReportPage table th { background:#0153ac; color:#fff; }\n#pdfReportPage table tr td { background:#fff; }\n#pdfReportPage .footer { text-align:center; font-size:10px; color:#666; margin-top:10px; border-top: 1px solid #ddd; padding-top: 6px; }\n\n/* Dashboard + ternary side by side */\n#pdfReportPage .bottom-row { display:flex; gap:14px; align-items:flex-start; }\n#pdfReportPage .dashboard-col { flex: 1 1 55%; min-width:0; }\n#pdfReportPage .ternary-col { flex: 1 1 43%; min-width:0; }\n\n#pdfReportPage ul { margin:0; padding-left:14px; }\n#pdfReportPage li { font-size:11px; margin-bottom:2px; line-height:1.3; }\n\u003c/style\u003e\n\n\u003c!-- PDF Generation Script --\u003e"])</script><script>self.__next_f.push([1,"3d:Tbff8,"])</script><script>self.__next_f.push([1,"body {\n            margin: 0;\n            padding: 0;\n            font-size: large;\n            font-family: Arial, sans-serif;\n        }\n\n\n        .content {\n            margin-top: 90px; /* Space below navbar */\n            padding: 10px;\n            display: flex;\n            flex-direction: row;\n            justify-content: space-between;\n            height: auto;\n        }\n\n        .left-container, .right-container {\n            /* box-sizing:border-box (added) is the key fix: width:100% here,\n               combined with the later \"flex:1\" rule further down this file,\n               used to make each panel render wider than its actual flex\n               slot, because padding/border were added on top of that 100%\n               under the default content-box sizing. That's what caused the\n               whole row to overflow horizontally (the unwanted left-right\n               scrollbar). */\n            box-sizing: border-box;\n            width: 100%;\n            padding: 10px;\n            border: 1px solid #ccc;\n            box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);\n            display: flex;\n            border-radius: 4px;\n            flex-direction: column;\n            position: relative;\n            padding: 1rem;\n        }\n        \n        .blend-row {\n            display: flex;\n            flex-direction: column;\n            gap: 10px;\n        }\n        \n        .blend {\n            display: flex;\n            align-items: center;\n            margin-bottom: 10px;\n            gap: 10px;\n            width: 100%;\n        }\n        \n        .blend select, .blend-entry select, .blend input, .blend-entry input {\n            flex: 2;\n            padding: 8px;\n            border: 1px solid #ccc;\n            border-radius: 4px;\n        }\n\n        .blend select, .blend-entry select {\n            min-width: 0;\n            max-width: 100%;\n            overflow: hidden;\n            text-overflow: ellipsis;\n            white-space: nowrap;\n        }\n        \n        button {\n            padding: 8px 12px;\n            cursor: pointer;\n            border: none;\n            background-color: #02008a;\n            color: white;\n            border-radius: 5px;\n        }\n        \n        button:hover {\n            background-color: #0056b3;\n        }\n        \n        #weightedAverageProperties {\n            display: none;\n            margin-top: 20px;\n        }\n        \n        table {\n            width: 100%;\n            border-collapse: collapse;\n            background: white;\n            border-radius: 8px;\n            overflow: hidden;\n            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);\n            margin-top: 10px;\n            margin-bottom: 15px;\n        }\n        \n        /* Table Header */\n        table th {\n            background: #0153ac;\n            color: white;\n            padding: 10px;\n            text-align: center;\n            font-size: 16px;\n            border: 1px solid #ddd;\n        }\n        \n        /* Table Rows */\n        table td {\n            padding: 10px;\n            text-align: center;\n            font-size: 14px;\n            border: 1px solid #ddd;\n            color: #333;\n        }\n        \n        /* Alternate Row Background */\n        table tr:nth-child(even) {\n            background: #f2f2f2;\n        }\n        \n        /* Hover Effect */\n        table tr:hover {\n            background: #d4e6ff;\n        }\n        \n        \n        /* Light blue background for table headers */\n        th[colspan=\"3\"] {\n            background-color: rgb(24, 0, 158);\n        }\n        \n        .modal {\n            display: none;\n            position: fixed;\n            z-index: 1000;\n            left: 0;\n            top: 0;\n            width: 100%;\n            height: 100%;\n            overflow: auto;\n            background-color: rgba(0, 0, 0, 0.5);\n        }\n        \n        .modal-content {\n            background-color: #fff;\n            margin: 10% auto;\n            padding: 20px;\n            border: 1px solid #888;\n            width: 30%;\n            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);\n            border-radius: 8px;\n        }\n        \n        .modal-header {\n            display: flex;\n            justify-content: space-between;\n            align-items: center;\n            border-bottom: 1px solid #ddd;\n            padding-bottom: 10px;\n        }\n        \n        .close {\n            font-size: 30px;\n            cursor: pointer;\n            font-weight: bolder;\n        }\n        \n        .blendedcoalProperties {\n            overflow-x: auto;\n            margin-top: 10px;\n            white-space: nowrap;\n            padding: 10px;\n        }\n        \n        .blendedcoalProperties p {\n            display: inline-block;\n            margin-right: 20px;\n            padding: 5px;\n            border: 1px solid #ccc;\n        }\n        \n        .blendedcoalProperties::-webkit-scrollbar {\n            width: 10px;\n            height: 10px;\n        }\n        \n        .blendedcoalProperties::-webkit-scrollbar-thumb {\n            background-color: #888;\n            border-radius: 5px;\n        }\n        \n        .blendedcoalProperties::-webkit-scrollbar-track {\n            background-color: #f1f1f1;\n        }\n        \n        .blend .remove-blend-btn, .blend-entry .remove-blend-btn {\n            background-color: #e74c3c;\n            color: white;\n            border: none;\n            padding: 8px 10px;\n            cursor: pointer;\n            border-radius: 4px;\n            transition: background-color 0.3s;\n        }\n        \n        .blend .remove-blend-btn:hover, .blend-entry .remove-blend-btn:hover {\n            background-color: #c0392b;\n        }\n        \n        .add-blend-btn {\n            padding: 7px 12px;\n            cursor: pointer;\n            border: none;\n            width: 20%;\n            margin-left: 40%;\n            background-color: #02008a;\n            margin-bottom: 10px;\n            margin-top: 10px;\n            color: white;\n            border-radius: 5px;\n        }\n        \n        .calculate-properties-btn{\n            padding: 7px 12px;\n            cursor: pointer;\n            border: none;\n            background-color: #02008a;\n            width: 30%;\n            margin-left: 35%;\n            margin-top: 12px;\n            color: white;\n            border-radius: 5px;\n        }\n\n        .blendProperties {\n            padding: 7px 12px;\n            cursor: pointer;\n            border: none;\n            background-color: #02008a;\n            width: 55%;\n            margin: 0 auto 4px;\n            display: block;\n            color: white;\n            border-radius: 5px;\n            flex: 0 0 auto;\n        }\n        \n        #totalRangeContainer {\n            text-align: center; \n        }\n        \n        #totalRange {\n            font-weight: bold; \n            margin-left: 5px;   \n        }\n\n        .right-container \u003e table {\n            margin-bottom: 12px; \n        }\n\n            /* Checkbox Card */\n        .checkbox-card {\n            width: 94%;\n            background-color: #f8f9fa;\n            padding: 12px 16px;\n            border-radius: 8px;\n            display: flex;\n            justify-content: space-between;\n            align-items: center;\n            cursor: pointer;\n            margin-top: 15px;\n            border: 1px solid #ccc;\n            box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);\n        }\n\n        .checkbox-card h3 {\n            margin: 0;\n            font-size: 18px;\n        }\n\n        .toggle-icon {\n            font-size: 20px;\n            transition: transform 0.3s ease;\n        }\n\n        /* Collapsible Checkbox Section */\n        .checkbox-container {\n            width: 95%;\n            background-color: #ffffff;\n            padding: 10px;\n            margin-top: 10px;\n            border-radius: 10px;\n            font-weight: bold;\n            box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);\n            display: none; /* Initially hidden */\n            transition: all 0.3s ease;\n              /* NEW */\n  max-height: 190px;   /* fallback; JS sizes this to exactly 4 parameter rows */\n  overflow-y: auto;  \n        }\n\n        .checkbox-table td {\n            padding: 8px;\n        }\n\n        /* Hidden class for smooth collapse */\n        .hidden {\n            display: none;\n        }\n        #plot-section {\n            width: 100%;\n            display: flex;\n            padding-left: 25px;\n            align-items: center; \n            flex-direction: column;\n            \n        }\n        #ternary-plot {\n            width: 92%;\n            max-width: 92%;\n            height: 100%;\n            padding-top: 6px;\n            margin: 0 auto;\n            box-sizing: border-box;\n        }\n        .navbar .logout-btn {\n  padding: 10px 16px;\n  background-color: red !important;\n  color: #fff !important;\n  border: none;\n  cursor: pointer;\n  border-radius: 25px;\n  font-weight: bold;\n  transition: all 0.3s ease;\n}\n\n.navbar .logout-btn:hover {\n  background-color: darkred !important;\n}\n        /* Icon button styles */\n.icon-btn {\n  position: absolute;\n  top: 90px;        /* a little lower below navbar */\n  right: 20px;      /* align on right side */\n  background: transparent;\n  border: none;\n  font-size: 1.5rem;\n  cursor: pointer;\n  color: #1f2937;   /* same as navbar buttons */\n  transition: color 0.2s ease;\n  z-index: 1000;    /* ensure it stays on top */\n}\n\n.icon-btn:hover {\n  color: #000;      /* only color change, no resize */\n}\n\n/* Tooltip styling */\n.icon-btn::after {\n  content: attr(title);\n  position: absolute;\n  top: 120%;             /* place directly below icon */\n  left: 50%;\n  transform: translateX(-50%);\n  background: #111;      /* black box */\n  color: #fff;\n  font-size: 0.75rem;\n  padding: 4px 6px;\n  border-radius: 4px;\n  opacity: 0;\n  pointer-events: none;\n  white-space: nowrap;\n  transition: opacity 0.2s ease;\n}\n\n/* Show tooltip on hover */\n.icon-btn:hover::after {\n  opacity: 1;\n}\n/* ---------------------------\n  Add-on: Left-align after checkbox + modern checkbox visuals\n  Append this to the end of your existing \u003cstyle\u003e block\n   --------------------------- */\n\n/* Ensure checkbox cell has relative positioning for the custom checkmark */\n.checkbox-table td:first-child { position: relative; }\n\n/* 1) Left-align the description column (text immediately after checkbox) */\n.checkbox-table td:nth-child(2) {\n  text-align: left;            /* key: left align description */\n  padding: 12px 14px;         /* slightly larger padding for breathing room */\n  vertical-align: middle;\n  color: #0b1a2b;             /* dark readable color */\n  font-weight: 500;           /* medium weight for better hierarchy */\n  line-height: 1.35;\n  white-space: normal;        /* allow wrapping */\n}\n\n/* 2) Modern checkbox visuals (works even if default appearance removed) */\n.checkbox-table input[type=\"checkbox\"]{\n  -webkit-appearance: none;\n  appearance: none;\n  width: 18px;\n  height: 18px;\n  margin: 0;\n  display: inline-block;\n  vertical-align: middle;\n  cursor: pointer;\n  border-radius: 4px;\n  border: 2px solid rgba(2,0,138,0.18); /* subtle blue border */\n  background: #fff;\n  position: relative;\n  transition: all .12s ease;\n  box-sizing: border-box;\n}\n\n/* focus - accessible outline */\n.checkbox-table input[type=\"checkbox\"]:focus{\n  outline: none;\n  box-shadow: 0 0 0 4px rgba(2,0,138,0.10);\n  border-color: rgba(1,28,187,0.35);\n}\n\n/* checked state: blue gradient background + no border */\n.checkbox-table input[type=\"checkbox\"]:checked{\n  background: linear-gradient(180deg, #001cbb, #02008a);\n  border-color: transparent;\n}\n\n/* custom white checkmark using pseudo-element */\n.checkbox-table input[type=\"checkbox\"]::after{\n  content: \"\";\n  position: absolute;\n  left: 5px;\n  top: 2px;\n  width: 5px;\n  height: 9px;\n  border: solid #fff;\n  border-width: 0 2px 2px 0;\n  transform: rotate(45deg) scale(0);\n  transform-origin: center;\n  transition: transform .12s ease;\n  pointer-events: none;\n}\n\n/* reveal checkmark when checked */\n.checkbox-table input[type=\"checkbox\"]:checked::after{\n  transform: rotate(45deg) scale(1);\n}\n\n/* small hover affordance */\n.checkbox-table input[type=\"checkbox\"]:hover{\n  transform: translateY(-1px);\n}\n\n\n\n        \n\n\n    /* PREMIUM UI - paste after existing CSS to override */\n@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700\u0026display=swap');\n\n:root{\n  --bg-1: #f4f7fb;\n  --bg-2: #ffffff;\n  --nav-blue-1: #001cbb;\n  --nav-blue-2: #02008a;\n  --muted: #6b7280;\n  --card-shadow: 0 10px 30px rgba(11,23,47,0.06);\n  --card-border: rgba(2,0,138,0.06);\n  --radius-lg: 12px;\n  --radius-md: 8px;\n  --accent: #ff7a59; /* warm accent if needed */\n}\n\n/* Typography + page background */\nhtml,body{\n  height:100%;\n}\nbody{\n  margin:0;\n  font-family: \"Inter\", system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial;\n  font-size:14px;\n  color: #0b1a2b;\n  background: linear-gradient(180deg, var(--bg-1) 0%, #fbfcff 60%);\n  -webkit-font-smoothing:antialiased;\n  -moz-osx-font-smoothing:grayscale;\n}\n\n/* NAVBAR - visually elevated but same position */\n.navbar{\n  background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(250,251,255,0.85));\n  height:72px;\n  padding:12px 24px;\n  align-items:center;\n  box-shadow: 0 6px 18px rgba(11,23,47,0.06);\n  border-bottom: 1px solid rgba(11,23,47,0.04);\n  backdrop-filter: blur(4px);\n}\n\n/* logo \u0026 title */\n.navbar img{ height:48px; object-fit:contain; margin-right:12px; }\n.navbar h1{\n  font-size:18px; color:var(--nav-blue-2); font-weight:700;\n  margin:0;\n  letter-spacing:0.2px;\n}\n\n/* nav buttons (pill style) */\n.nav-buttons button{\n  padding:8px 14px;\n  border-radius:999px;\n  border: none;\n  margin-left:8px;\n  font-weight:600;\n  background: linear-gradient(180deg, var(--nav-blue-1), var(--nav-blue-2));\n  color:#fff;\n  box-shadow: 0 8px 20px rgba(2,0,138,0.07);\n  transition: transform .12s ease, box-shadow .12s ease, opacity .12s;\n}\n.nav-buttons button:hover{ transform: translateY(-3px); box-shadow: 0 12px 30px rgba(2,0,138,0.09); }\n.nav-buttons .logout-btn{ background: linear-gradient(180deg,#ff4b4b,#e32d2d); box-shadow: 0 6px 18px rgba(227,45,45,0.08); }\n\n/* content containers (cards) - same widths/positioning preserved */\n.content{ margin-top:92px; padding:14px; display:flex; align-items:flex-start; gap:14px; }\n.left-container, .right-container{\n  box-sizing: border-box;\n  background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(250,250,255,0.9));\n  border-radius: var(--radius-lg);\n  border: 1px solid var(--card-border);\n  box-shadow: var(--card-shadow);\n  padding:12px 14px;\n  flex:1;\n  min-width:0; /* prevents overflow */\n  /* Fit within the visible viewport (below the fixed navbar) so the page\n     itself doesn't need to scroll. If content still doesn't fit on a very\n     short screen, the panel scrolls internally instead of pushing content\n     (like the ternary chart) below the fold. */\n  height: calc(100vh - var(--nav-h, 90px) - 32px);\n  max-height: calc(100vh - var(--nav-h, 90px) - 32px);\n  overflow-y: auto;\n  overflow-x: hidden; /* the panel should never need a left-right scrollbar */\n}\n\n/* Results panel: dark instrument-cluster theme so it matches the\n   gauge/overall-score dashboard it hosts, instead of the near-white\n   glass background shared with the (untouched) left form panel. */\n.right-container{\n  background:\n    radial-gradient(130% 90% at 20% -10%, rgba(47,107,255,0.16), transparent 55%),\n    linear-gradient(165deg, #0b1230 0%, #060a1c 55%, #04070f 100%);\n  border: 1px solid rgba(120,160,255,0.28);\n  box-shadow:\n    0 0 0 1px rgba(0,0,0,0.4),\n    0 20px 46px rgba(2, 8, 30, 0.55),\n    inset 0 1px 0 rgba(255,255,255,0.04);\n  color: #eaf2ff;\n}\n\n/* blend rows and controls */\n.blend-row{ display:flex; flex-direction:column; gap:12px;   max-height: 140px;          /* fallback; JS sizes this to exactly 2 coal rows */\n  overflow-y: auto;       /* internal scroll */\n  overflow-x: hidden;\n  padding-right: 6px;  }\n.blend{ display:flex; gap:12px; align-items:center; width:100%; }\n.blend label{ min-width:42px; color:var(--muted); font-weight:600; }\n\n/* inputs \u0026 selects - premium fields */\n.blend select, .blend-entry select, .blend input, .blend-entry input{\n  padding:10px 12px;\n  border-radius:10px;\n  border:1px solid rgba(11,23,47,0.06);\n  box-shadow: inset 0 2px 6px rgba(11,23,47,0.02);\n  background: #fff;\n  font-size:14px;\n  transition: box-shadow .12s, transform .08s;\n  outline: none;\n}\n.blend select, .blend-entry select{\n  min-width: 0;\n  max-width: 100%;\n  overflow: hidden;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n.blend select:focus, .blend input:focus, .blend-entry input:focus{\n  box-shadow: 0 6px 18px rgba(2,0,138,0.08);\n  transform: translateY(-2px);\n  border-color: rgba(2,0,138,0.12);\n}\n\n/* primary buttons */\nbutton, .add-blend-btn, .calculate-properties-btn, .blendProperties{\n  cursor:pointer;\n  border-radius:12px;\n  font-weight:700;\n  letter-spacing:0.2px;\n}\n.add-blend-btn{ width:180px; margin:20px auto; display:block; }\n.calculate-properties-btn{ width:220px; margin:8px auto 0; display:block; }\n\n/* tables - modern / compact */\ntable{\n  width:100%;\n  border-collapse:collapse;\n  background:transparent;\n  border-radius:8px;\n  overflow:hidden;\n  box-shadow:none;\n}\ntable thead th{\n  background: linear-gradient(180deg, #071a52, #0b2a7a);\n  color:#fff; font-size:13px; font-weight:700; padding:10px 12px;\n  text-transform:uppercase; letter-spacing:0.6px;\n  border-bottom: 1px solid rgba(255,255,255,0.06);\n}\ntable tbody td{\n  background: #fff; padding:10px 12px; color:#243447; font-size:13px;\n  border-bottom: 1px solid rgba(11,23,47,0.04);\n}\ntable tr:nth-child(even) td{ background:#fbfcff; }\ntable tr:hover td{ transform:translateY(-1px); background: #f0f6ff; }\n\n/* modal - centered + blur backdrop */\n/* REPLACE your existing .modal block with this */\n.modal {\n  display: none;               /* hidden by default */\n  position: fixed;\n  inset: 0;                    /* top:0; left:0; right:0; bottom:0 */\n  z-index: 1200;\n  align-items: center;\n  justify-content: center;\n  background: rgba(6,18,28,0.4);\n  backdrop-filter: blur(6px) saturate(1.02);\n}\n\n/* show the modal only when JS adds the .show class */\n.modal.show {\n  display: flex;\n}\n\n.modal-content{\n  width: min(720px, 92%);\n  background: linear-gradient(180deg,#fff,#fbfbff);\n  padding:18px; border-radius:14px;\n  box-shadow: 0 30px 80px rgba(11,23,47,0.12);\n  border: 1px solid rgba(11,23,47,0.04);\n}\n\n/* small helpers */\n.icon-btn{ top:88px; right:22px; font-size:18px; background:transparent; }\n.checkbox-card{ border-radius:12px; padding:14px 16px; background:#fff; border:1px solid rgba(11,23,47,0.04); box-shadow:var(--card-shadow); }\n.blendedcoalProperties p{ background:#f7f9ff; border-radius:8px; padding:6px 10px; }\n\n/* responsive */\n@media (max-width:900px){\n  .content{ flex-direction:column; gap:12px; padding:12px; }\n  .nav-buttons button{ padding:8px 10px; font-size:13px; }\n  .navbar img{ height:40px; }\n  /* Stacked layout: let each panel size to its content and the page\n     scroll normally, instead of forcing every panel to fill the full\n     viewport height (which only matters for the side-by-side desktop\n     layout where the ternary chart needs to fit beside the gauges). */\n  .left-container, .right-container{\n    height: auto;\n    max-height: none;\n    overflow-y: visible;\n  }\n  .ternary-plot-wrapper{ min-height: 260px; }\n}\n\n/* Replace existing .icon-btn block with this */\n\n.right-container { position: relative; } /* ensure right-container is positioning context (it already is, but safe) */\n\n.right-container .icon-btn {\n  position: absolute;\n  top: 12px;\n  right: 12px;\n  background: #ffffff;\n  color: #0b1a2b;\n  border: 1px solid rgba(2,0,138,0.10);\n  padding: 8px 10px;\n  border-radius: 8px;\n  font-size: 14px;\n  cursor: pointer;\n  box-shadow: 0 10px 24px rgba(11,23,47,0.08);\n  z-index: 60;\n  display: inline-flex;\n  align-items: center;\n  gap: 6px;\n}\n\n/* small hover effect */\n.right-container .icon-btn:hover,\n.right-container .icon-btn:focus {\n  transform: translateY(-2px);\n  box-shadow: 0 14px 30px rgba(11,23,47,0.12);\n  outline: none;\n}\n\n/* tooltip (keeps your current ::after approach but repositioned) */\n.right-container .icon-btn::after {\n  content: attr(title);\n  position: absolute;\n  top: calc(100% + 8px);\n  right: 50%;\n  transform: translateX(50%);\n  background: #111;\n  color: #fff;\n  font-size: 0.75rem;\n  padding: 6px 8px;\n  border-radius: 6px;\n  opacity: 0;\n  pointer-events: none;\n  white-space: nowrap;\n  transition: opacity 0.18s ease;\n}\n.right-container .icon-btn:hover::after { opacity: 1; }\n\n/* keep hidden utility */\n.icon-btn.hidden { display: none !important; }\n\n/* responsive: on very small widths show only icon */\n@media (max-width:420px) {\n  .right-container .icon-btn { padding: 6px; font-size: 13px; }\n  .right-container .icon-btn::after { display: none; } /* hide tooltip on tiny screens */\n}\n\n\n\n/* Common navbar override (will replace previous styles visually) */\n:root{\n  --nav-h: 90px;\n  --nav-bg-start: rgba(255,255,255,0.96);\n  --nav-bg-end: rgba(245,247,255,0.88);\n  --nav-blue-1: #02126e;\n  --nav-blue-2: #0027a7;\n  --nav-text: #071a52;\n  --nav-btn-radius: 999px;\n}\n\n/* Strongly scoped to override older rules */\n.common-navbar-wrapper { position: fixed; top: 0; left: 0; right: 0; height: var(--nav-h); z-index: 1300; }\n.common-navbar {\n  box-sizing: border-box;\n  height: 100%;\n  display:flex;\n  align-items:center;\n  justify-content:space-between;\n  gap: 12px;\n  padding: 8px 20px;\n  background: linear-gradient(180deg, var(--nav-bg-start), var(--nav-bg-end));\n  box-shadow: 0 8px 30px rgba(9,20,46,0.06);\n  border-bottom: 1px solid rgba(2,18,110,0.04);\n  backdrop-filter: blur(4px) saturate(1.02);\n  font-family: Inter, Arial, Helvetica, sans-serif;\n}\n\n/* Left: logo + title */\n.common-navbar .brand { display:flex; align-items:center; gap:12px; }\n.common-navbar .brand img { height:46px; width:auto; object-fit:contain; display:block; }\n.common-navbar .brand .title { font-weight:700; color:var(--nav-text); font-size:18px; margin:0; }\n\n/* Center/right: nav buttons */\n.common-navbar .nav-buttons { display:flex; gap:10px; align-items:center; margin-left:12px; }\n.common-navbar .nav-buttons button{\n  padding:8px 14px;\n  border-radius:var(--nav-btn-radius);\n  border: none;\n  font-weight:600;\n  cursor:pointer;\n  background: linear-gradient(180deg,var(--nav-blue-1),var(--nav-blue-2));\n  color: #fff;\n  box-shadow: 0 8px 20px rgba(2,18,110,0.07);\n  transition: transform .12s ease, box-shadow .12s ease, opacity .12s;\n}\n.common-navbar .nav-buttons button:hover{ transform: translateY(-2px); }\n.common-navbar .nav-buttons button.logout-btn{\n  background: linear-gradient(180deg,#ff4b4b,#e32d2d) !important;\n  box-shadow: 0 8px 20px rgba(227,45,45,0.07);\n}\n\n/* Active page visual (different contrast + subtle outline) */\n.common-navbar .nav-buttons button.active {\n  background: linear-gradient(180deg,#ffffff, #f1f6ff) !important;\n  color: var(--nav-blue-2) !important;\n  box-shadow: 0 6px 18px rgba(2,18,110,0.06) !important;\n  border: 1px solid rgba(2,18,110,0.12);\n  transform: translateY(-1px) !important;\n}\n\n/* Mobile: make buttons smaller/wrapping */\n@media (max-width: 720px) {\n  .common-navbar { padding:10px 14px; }\n  .common-navbar .brand .title { font-size:15px; }\n  .common-navbar .nav-buttons { gap:6px; }\n  .common-navbar .nav-buttons button { padding:7px 10px; font-size:13px; }\n}\n\n/* push page content below navbar (only added if page doesn't already do it) */\nhtml body { --navbar-height: var(--nav-h); }\n\n\n#pdfReportPage {\n  width: 900px;\n  padding: 22px;\n  box-sizing: border-box;\n  background: #ffffff;\n  color: #111;\n  font-family: Arial, sans-serif;\n  border: 3px solid #02008a;\n  border-radius: 6px;\n}\n#pdfReportPage .header { display:flex; align-items:center; gap:12px; margin-bottom:14px; border-bottom: 2px solid #02008a; padding-bottom: 10px; }\n#pdfReportPage .header img { width:72px; height:auto; }\n#pdfReportPage h1 { font-size:16px; margin:0; color:#02008a; }\n#pdfReportPage .meta { font-size:10px; color:#666; margin-top:4px; }\n#pdfReportPage section { margin-bottom:10px; }\n#pdfReportPage .section-title { background:#f0f4fb; padding:6px 10px; border-radius:4px; font-weight:700; margin-bottom:6px; color:#02008a; font-size:12px; border-left: 3px solid #02008a; }\n\n/* Two-column top layout: coal+params left, AFB table right */\n#pdfReportPage .two-col-top { display:flex; gap:14px; align-items:flex-start; margin-bottom:10px; }\n#pdfReportPage .top-left-col { flex: 0 0 38%; min-width:0; }\n#pdfReportPage .top-right-col { flex: 1 1 60%; min-width:0; }\n\n#pdfReportPage table { width:100%; border-collapse:collapse; margin-top:4px; }\n#pdfReportPage table th, #pdfReportPage table td { border:1px solid #ddd; padding:4px 6px; font-size:11px; text-align:left; }\n#pdfReportPage table th { background:#0153ac; color:#fff; }\n#pdfReportPage table tr td { background:#fff; }\n#pdfReportPage .footer { text-align:center; font-size:10px; color:#666; margin-top:10px; border-top: 1px solid #ddd; padding-top: 6px; }\n\n/* Dashboard + ternary side by side */\n#pdfReportPage .bottom-row { display:flex; gap:14px; align-items:flex-start; }\n#pdfReportPage .dashboard-col { flex: 1 1 55%; min-width:0; }\n#pdfReportPage .ternary-col { flex: 1 1 43%; min-width:0; }\n\n#pdfReportPage ul { margin:0; padding-left:14px; }\n#pdfReportPage li { font-size:11px; margin-bottom:2px; line-height:1.3; }\n\n\n/* ============================================================\n   DARK PREMIUM THEME — matches the login page's navy/blue look.\n   Appended last on purpose: CSS is cascaded top-to-bottom, so these\n   rules win over the lighter \"PREMIUM UI\" block above without\n   needing to delete or rewrite it. Nothing here changes structure,\n   IDs, classes, or JS-facing selectors — colors/surfaces only.\n   #pdfReportPage is deliberately left untouched: it's the exported\n   PDF layout and should stay printable white-on-white.\n   ============================================================ */\n\n:root{\n  --cxd-navy-950: #050b1f;\n  --cxd-navy-900: #071230;\n  --cxd-navy-800: #0a1a44;\n  --cxd-blue-500: #2e6bff;\n  --cxd-blue-400: #4f8dff;\n  --cxd-blue-300: #7fb0ff;\n  --cxd-white: #f4f8ff;\n  --cxd-muted: #9db2dd;\n  --cxd-border: rgba(120, 155, 230, 0.24);\n  --cxd-field-bg: rgba(255, 255, 255, 0.045);\n  --cxd-card-shadow: 0 18px 46px rgba(0, 0, 0, 0.45);\n}\n\n/* ---------- page background ---------- */\nhtml, body.page-slagging {\n  background:\n    radial-gradient(120% 70% at 12% 0%, #102454 0%, transparent 55%),\n    linear-gradient(160deg, #071634 0%, #050c22 55%, #030817 100%) !important;\n  color: var(--cxd-white);\n}\nbody.page-slagging * { scrollbar-color: rgba(127, 176, 255, 0.4) transparent; }\nbody.page-slagging ::-webkit-scrollbar-thumb { background-color: rgba(127, 176, 255, 0.4); }\n\n/* ---------- headings / labels / static text ---------- */\nbody.page-slagging h2,\nbody.page-slagging h3,\nbody.page-slagging label {\n  color: var(--cxd-white);\n}\nbody.page-slagging .checkbox-card h3 { color: var(--cxd-white); }\nbody.page-slagging #totalRangeContainer,\nbody.page-slagging #totalRange {\n  color: var(--cxd-blue-300);\n}\n\n/* ---------- panels / cards ---------- */\nbody.page-slagging .left-container,\nbody.page-slagging .right-container {\n  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02)) !important;\n  border: 1px solid var(--cxd-border) !important;\n  box-shadow: var(--cxd-card-shadow) !important;\n  color: var(--cxd-white);\n  animation: cxdFadeUp 0.6s ease both;\n}\n@keyframes cxdFadeUp {\n  from { opacity: 0; transform: translateY(14px); }\n  to   { opacity: 1; transform: translateY(0); }\n}\n\nbody.page-slagging .checkbox-card,\nbody.page-slagging .checkbox-container {\n  background: rgba(255, 255, 255, 0.035) !important;\n  border: 1px solid var(--cxd-border) !important;\n  color: var(--cxd-white);\n}\nbody.page-slagging .checkbox-table td:nth-child(2) {\n  color: var(--cxd-white) !important;\n}\n\n/* ---------- inputs \u0026 selects ---------- */\nbody.page-slagging .blend select,\nbody.page-slagging .blend-entry select,\nbody.page-slagging .blend input,\nbody.page-slagging .blend-entry input,\nbody.page-slagging #unitCapacity,\nbody.page-slagging #firingType {\n  background: var(--cxd-field-bg) !important;\n  border: 1px solid var(--cxd-border) !important;\n  color: var(--cxd-white) !important;\n  box-shadow: none !important;\n  /* Force the native dropdown popup to render on a light surface so the\n     option text color below stays legible in every browser, instead of\n     the OS/browser guessing a dark popup from the field's own dark theme\n     (which is what made only the currently-selected option readable). */\n  color-scheme: light;\n}\nbody.page-slagging .blend select option,\nbody.page-slagging .blend-entry select option,\nbody.page-slagging #unitCapacity option,\nbody.page-slagging #firingType option {\n  background-color: #ffffff !important;\n  color: #0b1a2b !important;\n}\nbody.page-slagging .blend select:focus,\nbody.page-slagging .blend input:focus,\nbody.page-slagging .blend-entry input:focus,\nbody.page-slagging #unitCapacity:focus,\nbody.page-slagging #firingType:focus {\n  border-color: var(--cxd-blue-400) !important;\n  box-shadow: 0 0 0 3px rgba(47, 107, 255, 0.22) !important;\n  transform: none;\n}\n\n/* checkbox visuals, re-tuned for a dark field */\nbody.page-slagging .checkbox-table input[type=\"checkbox\"] {\n  background: rgba(255, 255, 255, 0.06);\n  border: 2px solid rgba(127, 176, 255, 0.4);\n}\nbody.page-slagging .checkbox-table input[type=\"checkbox\"]:checked {\n  background: linear-gradient(180deg, var(--cxd-blue-400), var(--cxd-blue-500));\n}\n\n/* ---------- buttons ---------- */\nbody.page-slagging button,\nbody.page-slagging .add-blend-btn,\nbody.page-slagging .calculate-properties-btn,\nbody.page-slagging .blendProperties {\n  background: linear-gradient(90deg, #1d4fd6, #3f7dff 50%, #1d4fd6) !important;\n  background-size: 220% 100%;\n  color: #fff !important;\n  box-shadow: 0 12px 26px rgba(29, 79, 214, 0.35);\n  transition: background-position 0.5s ease, transform 0.15s ease, box-shadow 0.2s ease;\n}\nbody.page-slagging button:hover,\nbody.page-slagging .add-blend-btn:hover,\nbody.page-slagging .calculate-properties-btn:hover,\nbody.page-slagging .blendProperties:hover {\n  background-position: 100% 0;\n  box-shadow: 0 16px 32px rgba(29, 79, 214, 0.5);\n}\n/* remove-blend / logout style buttons keep their red — just re-tune the glow */\nbody.page-slagging .blend .remove-blend-btn,\nbody.page-slagging .blend-entry .remove-blend-btn {\n  background: linear-gradient(180deg, #ff5b5b, #e33232) !important;\n  box-shadow: 0 10px 22px rgba(227, 50, 50, 0.3);\n}\n\nbody.page-slagging .right-container .icon-btn {\n  background: rgba(255, 255, 255, 0.06) !important;\n  color: var(--cxd-blue-300) !important;\n  border: 1px solid var(--cxd-border) !important;\n  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);\n}\nbody.page-slagging .right-container .icon-btn::after {\n  background: #0a1636;\n  color: var(--cxd-white);\n  border: 1px solid var(--cxd-border);\n}\n\n/* ---------- tables ---------- */\nbody.page-slagging table thead th {\n  background: linear-gradient(180deg, #0e2360, #16327e) !important;\n  color: var(--cxd-white) !important;\n  border-bottom: 1px solid var(--cxd-border);\n}\nbody.page-slagging table tbody td {\n  background: rgba(255, 255, 255, 0.03) !important;\n  color: var(--cxd-white) !important;\n  border-bottom: 1px solid rgba(120, 155, 230, 0.12);\n}\nbody.page-slagging table tr:nth-child(even) td { background: rgba(255, 255, 255, 0.055) !important; }\nbody.page-slagging table tr:hover td { background: rgba(47, 107, 255, 0.16) !important; }\nbody.page-slagging th[colspan=\"3\"] { background-color: #16327e !important; }\n\n/* The original light-theme rule \"table tr:nth-child(even) { background:\n   #f2f2f2; }\" (near the top of this file) still paints a solid light-gray\n   background directly on every other \u003ctr\u003e. That solid color sits UNDER\n   the semi-transparent td backgrounds above and shows straight through,\n   so on this dark theme every second Operational Parameters row (and\n   every other striped table row) turned near-white while its text stayed\n   white — invisible. Neutralize that legacy stripe here so every row\n   keeps the same dark, translucent surface used for the first row. */\nbody.page-slagging table tr:nth-child(even) { background: transparent !important; }\n\nbody.page-slagging .blendedcoalProperties p {\n  background: rgba(255, 255, 255, 0.05) !important;\n  border: 1px solid var(--cxd-border);\n  color: var(--cxd-white);\n}\n\n/* ---------- modals ---------- */\nbody.page-slagging .modal {\n  background: rgba(3, 7, 20, 0.72) !important;\n}\nbody.page-slagging .modal-content {\n  background: linear-gradient(180deg, #0a1638, #071230) !important;\n  border: 1px solid var(--cxd-border) !important;\n  color: var(--cxd-white);\n  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6) !important;\n}\nbody.page-slagging .modal-header {\n  border-bottom: 1px solid var(--cxd-border);\n}\nbody.page-slagging .close {\n  color: var(--cxd-blue-300);\n}\n\n/* ---------- charts: keep the plotted area itself readable, but\n   frame it in the same dark glass as everything else ----------\n   NOTE: #fspGaugeChart / #ffftsGaugeChart (the car-dashboard gauge\n   dials) are intentionally excluded here. They previously picked up\n   this near-white background + 1px border, which peeked through the\n   small margin around the SVG's dark circular face and read as an\n   unwanted second \"inner ring\" next to the .car-gauge-wrap's own\n   6px white outer ring. The gauges should stay fully transparent so\n   only the outer ring shows (see .car-gauge-dial / premium.css). */\nbody.page-slagging #ternary-plot,\nbody.page-slagging canvas[id^=\"chart-\"] {\n  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(240, 245, 255, 0.98)) !important;\n  border: 1px solid var(--cxd-border);\n}\nbody.page-slagging #fspGaugeChart,\nbody.page-slagging #ffftsGaugeChart {\n  background: transparent !important;\n  border: none !important;\n}\n\n/* ---------- ternary card: click-to-expand ----------\n   Normal state: sits inline exactly where it always has. On click it's\n   re-homed under \u003cbody\u003e and switched to position:fixed so it can enlarge\n   over the whole page (with a blurred backdrop behind it) regardless of\n   where it started; clicking the × button (or the backdrop) restores\n   everything exactly as it was. */\n.ternary-plot-wrapper {\n  position: relative;\n  transition: box-shadow 0.2s ease;\n  flex: 1 1 auto;\n  min-height: 0;\n  border-radius: 12px;\n}\n.ternary-plot-wrapper:not(.ternary-expanded):hover {\n  box-shadow: 0 0 0 1px rgba(127, 176, 255, 0.4), 0 10px 24px rgba(0, 0, 0, 0.18);\n}\n.ternary-plot-wrapper.ternary-expanded {\n  position: fixed;\n  top: 50%;\n  left: 50%;\n  transform: translate(-50%, -50%);\n  width: min(760px, 92vw) !important;\n  height: min(600px, 86vh) !important;\n  z-index: 2001;\n  background: linear-gradient(180deg, #0a1638, #071230);\n  border: 1px solid rgba(120, 155, 230, 0.35);\n  border-radius: 16px;\n  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.65);\n  padding: 18px 18px 46px;\n  display: flex;\n  flex-direction: column;\n}\n.ternary-plot-wrapper.ternary-expanded #ternary-plot {\n  flex: 1;\n  /* The default #ternary-plot rule caps it at width:92%/max-height:260px\n     for the small inline card — override that here so it can actually\n     grow to fill the enlarged card instead of staying pinned to its\n     original small size. */\n  width: 100% !important;\n  max-width: 100% !important;\n  max-height: none !important;\n  padding-top: 0;\n}\n.ternary-hover-backdrop {\n  position: fixed;\n  inset: 0;\n  z-index: 2000;\n  background: rgba(3, 7, 20, 0.6);\n  backdrop-filter: blur(8px);\n  opacity: 0;\n  pointer-events: none;\n  transition: opacity 0.2s ease;\n}\n.ternary-hover-backdrop.active { opacity: 1; pointer-events: auto; }\n.ternary-close-btn {\n  display: none;\n  position: absolute;\n  top: 10px;\n  right: 14px;\n  width: 30px;\n  height: 30px;\n  align-items: center;\n  justify-content: center;\n  border-radius: 50%;\n  border: 1px solid rgba(127, 176, 255, 0.4);\n  background: rgba(255, 255, 255, 0.08);\n  color: var(--cxd-white, #f4f8ff);\n  font-size: 20px;\n  line-height: 1;\n  cursor: pointer;\n  z-index: 10;\n  transition: background 0.12s ease, transform 0.12s ease;\n}\n.ternary-close-btn:hover {\n  background: rgba(255, 255, 255, 0.18);\n  transform: scale(1.06);\n}\n.ternary-plot-wrapper.ternary-expanded .ternary-close-btn {\n  display: flex;\n}\n.ternary-hover-legend {\n  display: none;\n  gap: 20px;\n  justify-content: center;\n  align-items: center;\n  position: absolute;\n  left: 0;\n  right: 0;\n  bottom: 14px;\n  font-size: 12px;\n  font-weight: 600;\n  color: var(--cxd-white, #f4f8ff);\n}\n.ternary-hover-legend span {\n  display: inline-flex;\n  align-items: center;\n  gap: 6px;\n}\n.ternary-legend-swatch {\n  display: inline-block;\n  width: 12px;\n  height: 12px;\n  border: 1.5px solid rgba(0, 0, 0, 0.55);\n  flex: none;\n}\n.ternary-legend-swatch-coal {\n  background: #ffb703;\n  transform: rotate(45deg);\n}\n.ternary-legend-swatch-blend {\n  background: #2e6bff;\n  border-radius: 50%;\n}\n\n/* ============================================================\n   Advanced view: corner toggle button + radar / ash-fusion /\n   deposition-tendency-map dashboard + key indicators.\n\n   The toggle button is a SIBLING of .ternary-plot-wrapper (not a\n   child), positioned absolutely in the card's corner, so clicking it\n   never triggers the ternary click-to-expand behaviour.\n   ============================================================ */\n.ternary-card-outer {\n  position: relative;\n  padding-top: 16px;\n  width: 100%;\n  flex: 1 1 auto;\n  min-height: 0;\n  display: flex;\n  flex-direction: column;\n}\n\n.advanced-view-corner-btn {\n  position: absolute;\n  top: 0;\n  right: 0;\n  z-index: 6;\n  display: inline-flex;\n  align-items: center;\n  gap: 4px;\n  padding: 3px 9px !important;\n  font-size: 10px !important;\n  font-weight: 600 !important;\n  line-height: 1.2;\n  border: 1px solid rgba(127, 176, 255, 0.4) !important;\n  border-radius: 999px !important;\n  cursor: pointer;\n  background: rgba(255, 255, 255, 0.06) !important;\n  color: var(--cxd-blue-300, #7fb0ff) !important;\n  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.3) !important;\n  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;\n}\n.advanced-view-corner-btn:hover {\n  transform: translateY(-1px);\n  background: rgba(255, 255, 255, 0.1) !important;\n  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.38) !important;\n}\n.advanced-view-corner-btn.active {\n  background: linear-gradient(180deg, #1d4fd6, #0027a7) !important;\n  color: #fff !important;\n  border-color: transparent !important;\n}\n.advanced-view-corner-btn-icon { font-size: 10px; line-height: 1; }\n\n.advanced-dashboard.hidden { display: none; }\n.advanced-dashboard {\n  width: 100%;\n}\n\n.advanced-dashboard-grid {\n  display: grid;\n  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));\n  gap: 8px;\n  margin-bottom: 8px;\n}\n\n.advanced-card {\n  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));\n  border: 1px solid var(--cxd-border, rgba(120, 155, 230, 0.24));\n  border-radius: 10px;\n  padding: 6px 6px 4px;\n  min-width: 0;\n}\n.advanced-card-title {\n  font-size: 11px;\n  font-weight: 700;\n  color: var(--cxd-white, #f4f8ff);\n  text-align: center;\n  margin-bottom: 2px;\n}\n.advanced-card-chart {\n  width: 100%;\n  height: 130px;\n}\n\n.advanced-key-indicators {\n  display: grid;\n  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));\n  gap: 6px;\n}\n.advanced-indicator-card {\n  display: flex;\n  align-items: center;\n  gap: 6px;\n  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));\n  border: 1px solid var(--cxd-border, rgba(120, 155, 230, 0.24));\n  border-radius: 8px;\n  padding: 5px 8px;\n  min-width: 0;\n}\n.advanced-indicator-icon {\n  font-size: 14px;\n  line-height: 1;\n  flex: none;\n}\n.advanced-indicator-body { min-width: 0; }\n.advanced-indicator-value {\n  font-size: 11.5px;\n  font-weight: 700;\n  color: var(--cxd-white, #f4f8ff);\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n.advanced-indicator-label {\n  font-size: 9px;\n  color: var(--cxd-muted, #9db2dd);\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n@media (max-width: 480px) {\n  .advanced-view-corner-btn-label { display: none; }\n  .advanced-view-corner-btn { padding: 4px 6px !important; }\n}\n/* ============================================================\n   CAR-DASHBOARD STYLE GAUGES (Slagging / Fouling / Overall)\n   Shape: two circular dials connected by a straight-edged center\n   bar — a \"dumbbell\" / dog-bone silhouette — instead of the old\n   single stadium/pill outline. This matches the reference\n   circle + connector markup supplied for the fix.\n\n   HOW THE SHAPE WORKS\n   - .car-gauge-wrap (x2) are true circles (border-radius:50%) with\n     their own navy fill + white ring border, positioned as normal\n     flex items (first and last child of .car-dashboard-panel).\n   - .car-center-bar-wrap is the flat \"connector\" in between: a\n     rectangle with a white top border + white bottom border only\n     (left/right edges are left bare, no border-radius) so it reads\n     as a straight bar rather than another pill.\n   - The two circles are pulled inward on top of the connector using\n     negative margins (see :first-child / :last-child rules below),\n     so the connector's straight left/right edges tuck in behind the\n     circles instead of poking out — exactly like the reference\n     circle-connector-circle layout. Both dimensions (circle size,\n     connector height, overlap depth) are tuned together so the\n     connector's corners always land inside the circle; if either\n     GAUGE_SIZE (in the JS) or BAR_HEIGHT is changed a lot, re-check\n     that OVERLAP stays \u003e= roughly (R - sqrt(R^2 - (H/2)^2)) where R\n     is the circle radius and H is the connector height, or the\n     rectangle's corners will start peeking out past the circle edge.\n   ============================================================ */\n\n:root {\n  --car-circle-size: 230px;   /* circle diameter (dial is 200px, so ~15px bezel each side) */\n  --car-connector-h: 210px;   /* connector height (fits value + 120px bar + captions) */\n  --car-connector-w: 300px;   /* connector total width (includes the hidden/overlapped part) */\n  --car-overlap: 84px;        /* how far each circle is pulled in on top of the connector */\n}\n\n.car-dashboard-panel {\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  width: 100%;\n  box-sizing: border-box;\n  margin-top: 6px;\n  padding: 16px 10px;\n  overflow: visible;\n}\n\n/* ---- the inner cluster: hugs exactly the two gauges + connector.\n   display: inline-flex (set inline in JS too, as a belt-and-braces\n   measure) is the key fix — without it the enclosing border would\n   stretch the full width of the results panel and taper into two\n   flat, disconnected lines instead of wrapping tightly around the\n   gauges. The border itself is built as an inline SVG directly in the\n   JS (see buildGaugeCluster / dashboardCluster in the JS file) rather\n   than as CSS here, so it never depends on this stylesheet having\n   loaded/updated correctly. */\n.car-dashboard-cluster {\n  display: inline-flex;\n  align-items: center;\n  gap: 0;\n  max-width: 100%;\n  position: relative;\n  overflow: visible;\n}\n\n.car-gauge-wrap {\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  justify-content: center;\n  position: relative;\n  z-index: 2; /* sits above the connector so it hides the connector's straight edge */\n  width: var(--car-circle-size);\n  height: var(--car-circle-size);\n  flex: 0 0 auto;\n  /* the HUD gauge draws its own complete metal-octagon bezel + glass dish\n     inside the SVG, so this wrapper stays a plain, invisible hit/positioning\n     box (same footprint as before — nothing here affects layout) */\n  background: transparent;\n  border: none;\n  border-radius: 0;\n  box-shadow: none;\n  transition: transform 0.15s ease, filter 0.15s ease;\n}\n.car-gauge-wrap:hover {\n  transform: translateY(-2px) scale(1.02);\n}\n/* pull each circle in over the connector — first child overlaps on its\n   right, last child overlaps on its left, so only their outer/outward\n   margins stay untouched */\n.car-gauge-wrap:first-child { margin-right: calc(-1 * var(--car-overlap)); }\n.car-gauge-wrap:last-child  { margin-left:  calc(-1 * var(--car-overlap)); }\n\n.car-gauge-dial {\n  position: relative;\n  cursor: pointer;\n  background: transparent !important;\n  box-shadow: none !important;\n  overflow: visible;\n}\n.car-gauge-dial svg { display: block; overflow: visible; filter: drop-shadow(0 10px 18px rgba(0,0,0,.55)); }\n\n/* ---- outer stack: just wraps the connector box now. Sized purely by\n   the box itself so the box's vertical position/alignment against the\n   circles is never affected by the value/caption text (they're\n   absolutely positioned outside the box, see below). ---- */\n.car-center-stack {\n  position: relative;\n  z-index: 1; /* sits under the circles */\n  flex: 0 0 auto;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n}\n\n/* ---- the connector between the two gauges: a plain, borderless\n   rectangle occupying only the open space left between the two dials.\n   The enclosing border is drawn once, on .car-dashboard-panel::before\n   above, so this box just holds the bottom-up score fill — overflow:\n   hidden keeps that fill confined to exactly this rectangle;\n   the value/caption text lives on .car-center-stack instead (see JS),\n   so it still floats just outside the border, unclipped. ---- */\n.car-center-bar-wrap {\n  position: relative;\n  box-sizing: border-box;\n  width: var(--car-connector-w);\n  height: var(--car-connector-h);\n  background: linear-gradient(180deg, #06111f 0%, #091620 100%);\n  overflow: hidden;        /* keeps the score-fill confined to this rectangle only */\n  cursor: pointer;\n  border-top: 2px solid rgba(63,198,255,0.85);\n  border-bottom: 2px solid rgba(63,198,255,0.85);\n  border-left: none;\n  border-right: none;\n  box-shadow: inset 0 0 18px rgba(63,198,255,0.08), 0 0 26px rgba(63,198,255,0.08);\n}\n\n/* Value — sits just above the connector, on the stack rather than the\n   bar itself so the bar's overflow:hidden never clips it */\n.car-overall-value {\n  position: absolute;\n  left: 50%;\n  bottom: 100%;\n  transform: translate(-50%, -8px);\n  font-size: 22px;\n  font-weight: 800;\n  color: #eaf2ff;\n  line-height: 1;\n  white-space: nowrap;\n  text-shadow: 0 0 12px rgba(79, 216, 255, 0.5);\n}\n\n/* Soft glow bleeding upward from the fill into the dark unfilled area,\n   same hue as the fill color — sits behind the solid fill (painted\n   first) so only the portion above the fill's top edge is visible. */\n.car-score-glow {\n  position: absolute;\n  left: 0;\n  right: 0;\n  bottom: 0;\n  height: 0%; /* set inline per score */\n  pointer-events: none;\n  transition: height .5s ease, background .4s ease;\n}\n\n/* Bottom-up score fill occupying the whole rectangle (full width/height\n   of the box) — same functionality as the original narrow bar: height\n   is the score's percentage of the 0-10 scale (score of 2 = 20% filled)\n   and the color steps green -\u003e yellow -\u003e red as the score climbs. Just\n   stretched across the whole connector now instead of a thin strip. */\n.car-score-fill {\n  position: absolute;\n  left: 0;\n  right: 0;\n  bottom: 0;\n  height: 0%; /* set inline per score */\n  transition: height .5s ease, background .4s ease;\n}\n\n.car-center-bar-wrap::after {\n  content: attr(data-tooltip);\n  position: absolute;\n  top: 50%;\n  left: 50%;\n  transform: translate(-50%, -50%);\n  background: rgba(10, 16, 38, 0.94);\n  color: #eaf2ff;\n  font-size: 12px;\n  font-weight: 700;\n  padding: 6px 12px;\n  border-radius: 8px;\n  border: 1px solid rgba(120,160,255,0.35);\n  white-space: nowrap;\n  opacity: 0;\n  pointer-events: none;\n  transition: opacity 0.18s ease;\n  z-index: 3;\n}\n.car-center-bar-wrap:hover::after {\n  opacity: 1;\n}\n\n/* Caption + breakdown — sit just below the box's bottom border line */\n.car-overall-caption-group {\n  position: absolute;\n  left: 50%;\n  top: 100%;\n  transform: translate(-50%, 8px);\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  gap: 2px;\n}\n\n.car-overall-caption {\n  font-size: 10px;\n  font-weight: 800;\n  letter-spacing: 0.7px;\n  color: #eaf2ff;\n}\n\n.car-overall-breakdown {\n  font-size: 9.5px;\n  color: #9fb3dd;\n  text-align: center;\n  white-space: nowrap;\n}\n\n@media (max-width: 620px) {\n  /* Below this width there isn't room for the overlapping circle/connector\n     silhouette, so fall back to a simple stacked column: circle, connector,\n     circle, no overlap. */\n  .car-dashboard-panel { padding: 14px 10px; }\n  .car-dashboard-cluster { flex-direction: column; gap: 12px; width: auto; }\n  .car-outer-border-svg { display: none; } /* horizontal enclosing border doesn't apply when stacked */\n  .car-gauge-wrap {\n    width: 190px;\n    height: 190px;\n    margin: 0 !important;\n  }\n  .car-center-bar-wrap {\n    width: 210px;\n    height: 150px;\n    border: 2px solid var(--car-outer-border-color);\n    border-radius: 10px;\n    box-shadow: 0 0 12px var(--car-outer-glow);\n  }\n}"])</script><script>self.__next_f.push([1,"34:[\"$\",\"$L3b\",null,{\"bodyHtml\":\"$3c\",\"styleCss\":\"$3d\",\"scriptSrc\":\"/legacy/slagging_coal_page.js\",\"bodyClassName\":\"page-slagging\",\"externalScripts\":[\"https://www.gstatic.com/charts/loader.js\",\"https://cdn.plot.ly/plotly-1.58.5.min.js\",\"https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js\",\"https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js\",\"https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js\"]},\"$35\",\"$39\",1]\n40:D\"$42\"\n40:D\"$41\"\n40:D\"$44\"\n40:[\"$\",\"$L45\",null,{\"children\":[\"$\",\"$47\",null,{\"name\":\"Next.MetadataOutlet\",\"children\":\"$@48\"},\"$41\",\"$46\",1]},\"$41\",\"$43\",1]\n4b:D\"$4e\"\n4b:D\"$4c\"\n4b:D\"$4f\"\n4b:null\n50:D\"$52\"\n50:D\"$51\"\n50:D\"$54\"\n56:D\"$58\"\n56:D\"$57\"\n50:[\"$\",\"$L55\",null,{\"children\":\"$L56\"},\"$51\",\"$53\",1]\n59:D\"$5b\"\n59:D\"$5a\"\n59:D\"$5d\"\n61:D\"$63\"\n61:D\"$62\"\n59:[\"$\",\"div\",null,{\"hidden\":true,\"children\":[\"$\",\"$L5f\",null,{\"children\":[\"$\",\"$47\",null,{\"name\":\"Next.Metadata\",\"children\":\"$L61\"},\"$5a\",\"$60\",1]},\"$5a\",\"$5e\",1]},\"$5a\",\"$5c\",1]\n64:[]\n"])</script><script>self.__next_f.push([1,"0:{\"P\":\"$1\",\"c\":[\"\",\"slagging_coal_page.html\"],\"q\":\"\",\"i\":true,\"f\":[[[\"\",{\"children\":[\"slagging_coal_page.html\",{\"children\":[\"__PAGE__\",{}]}]},\"$undefined\",\"$undefined\",16],[[\"$\",\"$L7\",\"layout\",{\"type\":\"layout\",\"pagePath\":\"layout.js\",\"children\":[\"$\",\"$9\",\"c\",{\"children\":[[[\"$\",\"link\",\"0\",{\"rel\":\"stylesheet\",\"href\":\"/_next/static/chunks/src_app_globals_162hn9o.css\",\"precedence\":\"next_static/chunks/src_app_globals_162hn9o.css\",\"crossOrigin\":\"$undefined\",\"nonce\":\"$undefined\"},null,\"$a\",0],[\"$\",\"script\",\"script-0\",{\"src\":\"/_next/static/chunks/node_modules_next_dist_1e9_p6y._.js\",\"async\":true,\"nonce\":\"$undefined\"},null,\"$b\",0],[\"$\",\"script\",\"script-1\",{\"src\":\"/_next/static/chunks/src_app_layout_007e4b2.js\",\"async\":true,\"nonce\":\"$undefined\"},null,\"$c\",0]],\"$d\"]},null,\"$8\",1]},null,\"$6\",0],{\"children\":[[\"$\",\"$9\",\"c\",{\"children\":[null,[\"$\",\"$L1c\",null,{\"parallelRouterKey\":\"children\",\"error\":\"$undefined\",\"errorStyles\":\"$undefined\",\"errorScripts\":\"$undefined\",\"template\":[\"$\",\"$L1e\",null,{},null,\"$31\",1],\"templateStyles\":\"$undefined\",\"templateScripts\":\"$undefined\",\"notFound\":\"$undefined\",\"forbidden\":\"$undefined\",\"unauthorized\":\"$undefined\",\"segmentViewBoundaries\":[\"$undefined\",\"$undefined\",\"$undefined\",\"$undefined\"]},null,\"$30\",1]]},null,\"$2f\",0],{\"children\":[[\"$\",\"$9\",\"c\",{\"children\":[[\"$\",\"$L7\",\"c-page\",{\"type\":\"page\",\"pagePath\":\"slagging_coal_page.html/page.js\",\"children\":\"$34\"},null,\"$33\",1],[[\"$\",\"script\",\"script-0\",{\"src\":\"/_next/static/chunks/_163mnf5._.js\",\"async\":true,\"nonce\":\"$undefined\"},null,\"$3e\",0],[\"$\",\"script\",\"script-1\",{\"src\":\"/_next/static/chunks/src_app_slagging_coal_page_html_page_1r2tbvd.js\",\"async\":true,\"nonce\":\"$undefined\"},null,\"$3f\",0]],\"$40\"]},null,\"$32\",0],{},null,false,null]},null,false,\"$@49\"]},null,false,null],[\"$\",\"$9\",\"h\",{\"children\":[\"$4b\",\"$50\",\"$59\",null]},null,\"$4a\",0],false]],\"m\":\"$W64\",\"G\":[\"$65\",[\"$\",\"$L7\",\"ge-svn\",{\"type\":\"global-error\",\"pagePath\":\"__next_builtin__global-error.js\",\"children\":[[\"$\",\"link\",\"0\",{\"rel\":\"stylesheet\",\"href\":\"/_next/static/chunks/src_app_globals_162hn9o.css\",\"precedence\":\"next_static/chunks/src_app_globals_162hn9o.css\",\"crossOrigin\":\"$undefined\",\"nonce\":\"$undefined\"},null,\"$67\",0]]},null,\"$66\",0]],\"S\":false,\"h\":null,\"s\":\"$undefined\",\"l\":\"$undefined\",\"p\":\"$undefined\",\"d\":\"$undefined\",\"b\":\"development\"}\n"])</script><script>self.__next_f.push([1,"68:[]\n49:D\"$69\"\n49:\"$W68\"\n56:D\"$6a\"\n56:[[\"$\",\"meta\",\"0\",{\"charSet\":\"utf-8\"},\"$41\",\"$6b\",0],[\"$\",\"meta\",\"1\",{\"name\":\"viewport\",\"content\":\"width=device-width, initial-scale=1\"},\"$41\",\"$6c\",0]]\n48:D\"$6d\"\n48:null\n61:D\"$6e\"\n61:[[\"$\",\"title\",\"0\",{\"children\":\"Abhitech Energycon Limited\"},\"$41\",\"$6f\",0],[\"$\",\"meta\",\"1\",{\"name\":\"description\",\"content\":\"Coal blend AFT prediction \u0026 slagging/fouling analysis\"},\"$41\",\"$70\",0],[\"$\",\"link\",\"2\",{\"rel\":\"icon\",\"href\":\"/favicon.ico?favicon.1kwhu4cbf0z6y.ico\",\"sizes\":\"131x131\",\"type\":\"image/x-icon\"},\"$41\",\"$71\",0],[\"$\",\"$L73\",\"3\",{},\"$41\",\"$72\",0]]\n"])</script></body></html>
