@@ -697,11 +697,18 @@ if (dlBtn) {
                     // or their mirrored (440,405)/(440,155) — plus the
                     // vertical edge midpoint, matching the new 4-corner
                     // half-octagon shape instead of the old rounded curve.
+                    // Snapped onto the shape's real corner vertices instead
+                    // of floating mid-edge: the lower-corner label stays put,
+                    // the middle value now sits at the upper elbow corner
+                    // (where it used to float in the flat middle of the
+                    // vertical run), and the upper value moves to the top
+                    // corner where the diagonal meets the top straight edge
+                    // (previously unlabeled/empty).
                     const leftTickPos = [
-                        { x: 438, y: 505 }, { x: 26, y: 335 }, { x: 24, y: 280 }, { x: 26, y: 225 }, { x: 438, y: 70 }
+                        { x: 438, y: 505 }, { x: 26, y: 335 }, { x: 26, y: 255 }, { x: 230, y: 55 }, { x: 438, y: 70 }
                     ];
                     const rightTickPos = [
-                        { x: 82, y: 505 }, { x: 494, y: 335 }, { x: 496, y: 280 }, { x: 494, y: 225 }, { x: 82, y: 70 }
+                        { x: 82, y: 505 }, { x: 494, y: 335 }, { x: 494, y: 255 }, { x: 290, y: 55 }, { x: 82, y: 70 }
                     ];
                     const tickPos = mirror ? leftTickPos : rightTickPos;
                     const tickLabels = tickVals.map((v, i) =>
@@ -1036,7 +1043,16 @@ if (dlBtn) {
                     const breakdownLabel = document.createElement("div");
                     breakdownLabel.className = "car-overall-breakdown";
                     breakdownLabel.textContent = `S+F: ${totalScore.toFixed(1)} \u00B7 O&M: ${checkboxScore.toFixed(1)}`;
+                    breakdownLabel.style.display = "none"; // hidden until the bar is clicked
                     captionGroup.appendChild(breakdownLabel);
+
+                    // Click the bar to reveal/hide the S+F / O&M breakdown line.
+                    // Purely a visibility toggle — doesn't touch the fill,
+                    // tooltip-on-hover, or any other existing behaviour.
+                    carCenterBar.addEventListener("click", () => {
+                        breakdownLabel.style.display =
+                            breakdownLabel.style.display === "none" ? "block" : "none";
+                    });
 
                     carCenterStack.appendChild(carCenterBar);
                     carCenterStack.appendChild(totalDisplay);
@@ -2593,7 +2609,7 @@ document.getElementById("unitCapacity").addEventListener("change", function() {
 });
 
 
-/* ---- next inline <script> block ---- */
+/* ---- next inline <script> blockk ---- */
 
 
 if(localStorage.getItem('isLoggedIn') !== 'true') {
