@@ -672,8 +672,8 @@ if (dlBtn) {
                 // corner turns 1 smooth curve into 2 sharp vertices, so the
                 // open "C" track now reads as a half-octagon with 4 corners
                 // total (2 per side) instead of a rounded horseshoe.
-                const _TRACK_D_LEFT  = "M420 470 H230 L80 320 V240 L230 90 H420";
-                const _TRACK_D_RIGHT = "M100 470 H290 L440 320 V240 L290 90 H100";
+                const _TRACK_D_LEFT  = "M440 470 H210 L60 320 V240 L210 90 H440";
+                const _TRACK_D_RIGHT = "M80 470 H310 L460 320 V240 L310 90 H80";
 
                 function buildCarGaugeSVG(value, minValue, maxValue, colorRanges, size, titleText, statusText, mirror, uid) {
                     uid = uid || ("g" + Math.random().toString(36).slice(2, 9));
@@ -684,6 +684,16 @@ if (dlBtn) {
                     const den = (maxValue % 1 === 0) ? maxValue : maxValue.toFixed(1);
 
                     const trackD = mirror ? _TRACK_D_LEFT : _TRACK_D_RIGHT;
+
+                    // The status badge used to sit at a fixed x=260 regardless
+                    // of mirroring, but the flat bottom run of the track isn't
+                    // centered there: for the mirrored (left) track it's the
+                    // segment from x=210 to x=440 (center 325), for the
+                    // non-mirrored (right) track it's x=80 to x=310 (center
+                    // 195). Centering the badge at a fixed 260 pushed it off
+                    // that flat run and let it hang over the diagonal corner
+                    // on one side. Center it on the real flat run instead.
+                    const statusCenterX = mirror ? 325 : 195;
 
                     // Scale tick labels (5 evenly spaced points across the real
                     // min..max range, not a fixed 0-100 — unlike the reference,
@@ -705,10 +715,10 @@ if (dlBtn) {
                     // corner where the diagonal meets the top straight edge
                     // (previously unlabeled/empty).
                     const leftTickPos = [
-                        { x: 438, y: 505 }, { x: 26, y: 335 }, { x: 26, y: 255 }, { x: 230, y: 55 }, { x: 438, y: 70 }
+                        { x: 458, y: 505 }, { x: 6, y: 335 }, { x: 6, y: 255 }, { x: 210, y: 55 }, { x: 458, y: 70 }
                     ];
                     const rightTickPos = [
-                        { x: 82, y: 505 }, { x: 494, y: 335 }, { x: 494, y: 255 }, { x: 290, y: 55 }, { x: 82, y: 70 }
+                        { x: 62, y: 505 }, { x: 514, y: 335 }, { x: 514, y: 255 }, { x: 310, y: 55 }, { x: 62, y: 70 }
                     ];
                     const tickPos = mirror ? leftTickPos : rightTickPos;
                     const tickLabels = tickVals.map((v, i) =>
@@ -747,7 +757,7 @@ if (dlBtn) {
                         .cg-score-suffix{fill:#8097a6;font-size:28px;text-anchor:middle;font-family:"Segoe UI",Arial,sans-serif;}
                         .cg-title{fill:#eef8fd;font-size:27px;font-weight:600;letter-spacing:1px;text-anchor:middle;font-family:"Segoe UI",Arial,sans-serif;text-transform:uppercase;}
                         .cg-status-box-${uid}{fill:rgba(3,10,16,.92);stroke:${zoneColor};stroke-width:2;filter:drop-shadow(0 0 7px ${zoneGlow});}
-                        .cg-status-text-${uid}{fill:${zoneColor};font-size:26px;letter-spacing:2px;font-weight:650;text-anchor:middle;font-family:"Segoe UI",Arial,sans-serif;text-transform:uppercase;}
+                        .cg-status-text-${uid}{fill:${zoneColor};font-size:22px;letter-spacing:1px;font-weight:650;text-anchor:middle;font-family:"Segoe UI",Arial,sans-serif;text-transform:uppercase;}
                       </style>
 
                       <path class="cg-border-${uid}" d="${trackD}"/>
@@ -757,12 +767,12 @@ if (dlBtn) {
 
                       ${tickLabels}
 
-                      <text class="cg-score-${uid} car-gauge-score-text" data-uid="${uid}" data-value="${value}" x="260" y="258">0</text>
-                      <text class="cg-score-suffix" x="260" y="324">/${den}</text>
-                      <text class="cg-title" x="260" y="365">${titleTspans}</text>
+                      <text class="cg-score-${uid} car-gauge-score-text" data-uid="${uid}" data-value="${value}" x="260" y="228">0</text>
+                      <text class="cg-score-suffix" x="260" y="294">/${den}</text>
+                      <text class="cg-title" x="260" y="335">${titleTspans}</text>
 
-                      <path class="cg-status-box-${uid}" d="M160 430 H360 L378 449 L360 477 H160 L142 449 Z"/>
-                      <text class="cg-status-text-${uid}" x="260" y="458">${statusText}</text>
+                      <path class="cg-status-box-${uid}" d="M${statusCenterX - 85} 395 H${statusCenterX + 85} L${statusCenterX + 100} 415 L${statusCenterX + 85} 435 H${statusCenterX - 85} L${statusCenterX - 100} 415 Z"/>
+                      <text class="cg-status-text-${uid}" x="${statusCenterX}" y="422">${statusText}</text>
                     </svg>`;
                 }
 
