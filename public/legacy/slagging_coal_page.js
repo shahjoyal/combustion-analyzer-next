@@ -366,7 +366,13 @@ if (dlBtn) {
                 otherOxides: otherOxidesAvg,
                 AFT: predictedAFT
             };
-            samples.push(newSample);
+            // Each Calculate click represents a brand-new coal/blend
+            // selection, not another point to add alongside previous runs —
+            // so replace the sample set entirely rather than accumulating
+            // into it. (Previously `samples` was only ever pushed to, so
+            // the ternary plot kept every past calculation's point until a
+            // full page refresh cleared it.)
+            samples = [newSample];
         
                 // Calculate test values using formulas
                 const T250 = Math.sqrt(
@@ -646,9 +652,10 @@ if (dlBtn) {
                 // markup is inserted into the DOM.
                 // ============================================================
 
-                // Maps a Low/Moderate/High status word to the same green/yellow/red
-                // used for the dial's fill, so the arc, glow and status pill all
-                // read in the matching colour.
+                // ------------------------------------------------------------
+                // Gauges (Slagging / Fouling): flat 3-colour zone, exactly as
+                // before — green for Low, yellow for Moderate, red for High.
+                // ------------------------------------------------------------
                 function _statusColor(statusText) {
                     if (statusText === "Low") return "#3ddc84";
                     if (statusText === "High") return "#ff5050";
@@ -658,6 +665,65 @@ if (dlBtn) {
                     if (statusText === "Low") return "rgba(61, 220, 132, 0.55)";
                     if (statusText === "High") return "rgba(255, 80, 80, 0.55)";
                     return "rgba(255, 210, 61, 0.55)"; // Moderate
+                }
+
+                // ------------------------------------------------------------
+                // Overall score bar only: a 10-stop colour scale (score is
+                // already native 0-10) with linear interpolation between
+                // neighbouring stops, so the colour shifts smoothly as the
+                // score moves instead of jumping between hard bands.
+                // ------------------------------------------------------------
+                const SCORE_COLOR_STOPS = [
+                    { at: 0,  hex: "#1565C0" }, // Very Low  (0 clamps to the same colour as 1)
+                    { at: 1,  hex: "#1565C0" }, // Very Low
+                    { at: 2,  hex: "#1E88E5" }, // Low
+                    { at: 3,  hex: "#26C6DA" }, // Slight
+                    { at: 4,  hex: "#43A047" }, // Moderate
+                    { at: 5,  hex: "#8BC34A" }, // Normal
+                    { at: 6,  hex: "#FDD835" }, // Elevated
+                    { at: 7,  hex: "#FFB300" }, // High
+                    { at: 8,  hex: "#F57C00" }, // Very High
+                    { at: 9,  hex: "#D32F2F" }, // Severe
+                    { at: 10, hex: "#8B0000" }  // Critical
+                ];
+
+                function _hexToRgb(hex) {
+                    const m = hex.replace('#', '');
+                    return {
+                        r: parseInt(m.substring(0, 2), 16),
+                        g: parseInt(m.substring(2, 4), 16),
+                        b: parseInt(m.substring(4, 6), 16)
+                    };
+                }
+
+                // Returns {r,g,b} for a score already expressed on the 0-10
+                // scale, linearly interpolated between the two nearest stops.
+                function _scoreToRgb(score10) {
+                    const clamped = Math.max(0, Math.min(10, score10));
+                    const lowerIdx = Math.floor(clamped);
+                    const upperIdx = Math.min(10, Math.ceil(clamped));
+                    const lower = _hexToRgb(SCORE_COLOR_STOPS[lowerIdx].hex);
+                    if (lowerIdx === upperIdx) return lower;
+                    const upper = _hexToRgb(SCORE_COLOR_STOPS[upperIdx].hex);
+                    const t = clamped - lowerIdx;
+                    return {
+                        r: Math.round(lower.r + (upper.r - lower.r) * t),
+                        g: Math.round(lower.g + (upper.g - lower.g) * t),
+                        b: Math.round(lower.b + (upper.b - lower.b) * t)
+                    };
+                }
+
+                // Solid colour for the overall score (0-10 scale).
+                function _overallScoreColor(score) {
+                    const c = _scoreToRgb(score);
+                    return `rgb(${c.r}, ${c.g}, ${c.b})`;
+                }
+
+                // Same colour, as a soft rgba glow (matches the previous
+                // 0.55 alpha used for the zone drop shadows).
+                function _overallScoreGlow(score) {
+                    const c = _scoreToRgb(score);
+                    return `rgba(${c.r}, ${c.g}, ${c.b}, 0.55)`;
                 }
 
                 // Left/right horseshoe track paths — geometry ported as-is
@@ -1095,20 +1161,17 @@ if (dlBtn) {
                     })();
                 }
 
-                // Zone color for the overall-score connector fill (0-10 scale),
-                // same green/yellow/red thresholds used elsewhere on this page.
+                // Zone color for the overall-score connector fill — pulled
+                // from the 10-stop score colour scale (overall is already
+                // on a native 0-10 scale).
                 function getOverallZoneColor(score) {
-                    if (score > 6.5) return "#ff5050";
-                    if (score > 3) return "#ffd23d";
-                    return "#3ddc84";
+                    return _overallScoreColor(score);
                 }
 
                 // Same zone color, but as an rgba string for the soft glow
                 // layer above the fill.
                 function getOverallZoneGlow(score) {
-                    if (score > 6.5) return "rgba(255, 80, 80, 0.55)";
-                    if (score > 3) return "rgba(255, 210, 61, 0.55)";
-                    return "rgba(61, 220, 132, 0.55)";
+                    return _overallScoreGlow(score);
                 }
 
                 function getOverallZoneLabel(score) {
@@ -1297,6 +1360,13 @@ function updatePlot() {
     ternary: {
         bgcolor: 'rgba(0,0,0,0)',
         sum: 100,
+        // The colorbar on the right takes up its own slice of width that
+        // Plotly doesn't account for when centering the triangle, so
+        // without this the triangle sits closer to the left edge of the
+        // card than the right. Nudging the domain's left edge inward
+        // shifts the whole triangle (and its axis labels) to the right to
+        // compensate.
+        domain: { x: [0.09, 1] },
         aaxis: {
             title: { text: "Thermal Stability", font: AXIS_LABEL_FONT },
             showticklabels: true,
