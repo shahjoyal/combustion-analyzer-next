@@ -665,8 +665,15 @@ if (dlBtn) {
                 // left gauge opens toward the right (mirror=true), the right
                 // gauge opens toward the left (mirror=false), so the two
                 // dials visually "face" the center score bar between them.
-                const _TRACK_D_LEFT  = "M420 470 H145 Q80 470 80 405 V155 Q80 90 145 90 H420";
-                const _TRACK_D_RIGHT = "M100 470 H375 Q440 470 440 405 V155 Q440 90 375 90 H100";
+                // Corners are chamfered (straight diagonal cuts) instead of
+                // rounded — same overall footprint/bounding box as before,
+                // just swapping each "Q" (quarter-circle) corner for an "L"
+                // (straight line) to the same end point. Each chamfered
+                // corner turns 1 smooth curve into 2 sharp vertices, so the
+                // open "C" track now reads as a half-octagon with 4 corners
+                // total (2 per side) instead of a rounded horseshoe.
+                const _TRACK_D_LEFT  = "M420 470 H145 L80 405 V155 L145 90 H420";
+                const _TRACK_D_RIGHT = "M100 470 H375 L440 405 V155 L375 90 H100";
 
                 function buildCarGaugeSVG(value, minValue, maxValue, colorRanges, size, titleText, statusText, mirror, uid) {
                     uid = uid || ("g" + Math.random().toString(36).slice(2, 9));
@@ -683,11 +690,18 @@ if (dlBtn) {
                     // FSP/FFTS use small numeric ranges like 0-6 / 0-3).
                     const tickVals = [0, 0.25, 0.5, 0.75, 1].map(f => minValue + range * f);
                     const fmt = v => (v % 1 === 0) ? String(v) : v.toFixed(1);
+                    // Positioned to sit right at (or just outside) the
+                    // track's corner vertices: the two end labels stay at
+                    // the open top/bottom ends, and the three middle labels
+                    // now hug the chamfer corners at (80,405)/(80,155) —
+                    // or their mirrored (440,405)/(440,155) — plus the
+                    // vertical edge midpoint, matching the new 4-corner
+                    // half-octagon shape instead of the old rounded curve.
                     const leftTickPos = [
-                        { x: 438, y: 505 }, { x: 38, y: 430 }, { x: 31, y: 292 }, { x: 42, y: 145 }, { x: 438, y: 70 }
+                        { x: 438, y: 505 }, { x: 26, y: 415 }, { x: 24, y: 292 }, { x: 26, y: 148 }, { x: 438, y: 70 }
                     ];
                     const rightTickPos = [
-                        { x: 82, y: 505 }, { x: 482, y: 430 }, { x: 489, y: 292 }, { x: 478, y: 145 }, { x: 82, y: 70 }
+                        { x: 82, y: 505 }, { x: 494, y: 415 }, { x: 496, y: 292 }, { x: 494, y: 148 }, { x: 82, y: 70 }
                     ];
                     const tickPos = mirror ? leftTickPos : rightTickPos;
                     const tickLabels = tickVals.map((v, i) =>
@@ -708,11 +722,19 @@ if (dlBtn) {
                         <filter id="cgTrackGlow-${uid}" x="-20%" y="-20%" width="140%" height="140%">
                           <feGaussianBlur stdDeviation="2"/>
                         </filter>
+                        <!-- Same cyan glow used by the overall-score box's
+                             border (.car-vertical-scale: border rgba(50,226,241,.82)
+                             + box-shadow 0 0 12px rgba(25,203,242,.18)) so the
+                             gauge housing reads as part of the same family. -->
+                        <filter id="cgBorderGlow-${uid}" x="-30%" y="-30%" width="160%" height="160%">
+                          <feGaussianBlur stdDeviation="3.5"/>
+                        </filter>
                       </defs>
                       <style>
-                        .cg-track-${uid}{fill:none;stroke:#0a1c27;stroke-width:42;stroke-linecap:round;stroke-linejoin:round;filter:url(#cgTrackGlow-${uid});}
-                        .cg-track-edge-${uid}{fill:none;stroke:#124b64;stroke-width:48;stroke-linecap:round;stroke-linejoin:round;opacity:.7;}
-                        .cg-active-${uid}{fill:none;stroke:${zoneColor};stroke-width:38;stroke-linecap:round;stroke-linejoin:round;filter:url(#cgGlow-${uid});transition:stroke-dashoffset 1.15s cubic-bezier(.2,.78,.18,1);}
+                        .cg-border-${uid}{fill:none;stroke:rgba(50,226,241,.82);stroke-width:53;stroke-linecap:round;stroke-linejoin:miter;filter:url(#cgBorderGlow-${uid});}
+                        .cg-track-${uid}{fill:none;stroke:#0a1c27;stroke-width:42;stroke-linecap:round;stroke-linejoin:miter;filter:url(#cgTrackGlow-${uid});}
+                        .cg-track-edge-${uid}{fill:none;stroke:#124b64;stroke-width:48;stroke-linecap:round;stroke-linejoin:miter;opacity:.7;}
+                        .cg-active-${uid}{fill:none;stroke:${zoneColor};stroke-width:38;stroke-linecap:round;stroke-linejoin:miter;filter:url(#cgGlow-${uid});transition:stroke-dashoffset 1.15s cubic-bezier(.2,.78,.18,1);}
                         .cg-scale-label{fill:#f4fbff;font-size:25px;font-weight:600;paint-order:stroke;stroke:#02070c;stroke-width:5px;font-family:"Segoe UI",Arial,sans-serif;}
                         .cg-score-${uid}{fill:${zoneColor};font-size:86px;font-weight:750;text-anchor:middle;dominant-baseline:middle;font-family:"Segoe UI",Arial,sans-serif;filter:drop-shadow(0 0 9px ${zoneGlow});transition:filter .4s ease;}
                         .cg-score-suffix{fill:#8097a6;font-size:28px;text-anchor:middle;font-family:"Segoe UI",Arial,sans-serif;}
@@ -721,6 +743,7 @@ if (dlBtn) {
                         .cg-status-text-${uid}{fill:${zoneColor};font-size:26px;letter-spacing:2px;font-weight:650;text-anchor:middle;font-family:"Segoe UI",Arial,sans-serif;text-transform:uppercase;}
                       </style>
 
+                      <path class="cg-border-${uid}" d="${trackD}"/>
                       <path class="cg-track-edge-${uid}" d="${trackD}"/>
                       <path class="cg-track-${uid}" d="${trackD}"/>
                       <path class="cg-active-${uid} car-gauge-fill-path" data-uid="${uid}" d="${trackD}"/>
