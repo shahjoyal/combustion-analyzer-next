@@ -1301,6 +1301,98 @@ body.page-slagging #ffftsGaugeChart {
 }
 .advanced-view-corner-btn-icon { font-size: 10px; line-height: 1; }
 
+/* ---------- advanced dashboard: click-to-expand ----------
+   Same re-home-under-<body> + fixed-position-overlay trick as the
+   ternary card (see "ternary card: click-to-expand" above), just sized
+   to comfortably fit all three chart cards side by side plus the key
+   indicator row underneath. */
+.advanced-dashboard:not(.hidden):not(.advanced-expanded) {
+  cursor: zoom-in;
+  transition: box-shadow 0.2s ease;
+  border-radius: 12px;
+}
+.advanced-dashboard:not(.hidden):not(.advanced-expanded):hover {
+  box-shadow: 0 0 0 1px rgba(127, 176, 255, 0.4), 0 10px 24px rgba(0, 0, 0, 0.18);
+}
+.advanced-dashboard.advanced-expanded {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(1100px, 94vw) !important;
+  height: min(680px, 88vh) !important;
+  z-index: 2001;
+  background: linear-gradient(180deg, #0a1638, #071230);
+  border: 1px solid rgba(120, 155, 230, 0.35);
+  border-radius: 16px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.65);
+  padding: 22px 22px 18px;
+  overflow-y: auto;
+  cursor: default;
+}
+.advanced-dashboard.advanced-expanded .advanced-dashboard-grid {
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.advanced-dashboard.advanced-expanded .advanced-card {
+  padding: 14px 14px 10px;
+}
+.advanced-dashboard.advanced-expanded .advanced-card-title {
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+.advanced-dashboard.advanced-expanded .advanced-card-chart {
+  height: 280px;
+}
+.advanced-dashboard.advanced-expanded .advanced-key-indicators {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+.advanced-dashboard.advanced-expanded .advanced-indicator-card {
+  padding: 10px 14px;
+}
+.advanced-dashboard.advanced-expanded .advanced-indicator-value {
+  font-size: 14px;
+}
+.advanced-dashboard.advanced-expanded .advanced-indicator-label {
+  font-size: 11px;
+}
+.advanced-dashboard.advanced-expanded .ternary-close-btn {
+  display: flex;
+}
+
+/* Shared "switch to the other expanded view" pill, top-left of whichever
+   card is currently enlarged (mirrors the × close button, which sits
+   top-right). */
+.expand-switch-btn {
+  display: none;
+  position: absolute;
+  top: 10px;
+  left: 14px;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(127, 176, 255, 0.4);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--cxd-white, #f4f8ff);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  z-index: 10;
+  transition: background 0.12s ease, transform 0.12s ease, box-shadow 0.12s ease;
+}
+.expand-switch-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.3);
+}
+.ternary-plot-wrapper.ternary-expanded .expand-switch-btn,
+.advanced-dashboard.advanced-expanded .expand-switch-btn {
+  display: inline-flex;
+}
+
 .advanced-dashboard.hidden { display: none; }
 .advanced-dashboard {
   width: 100%;

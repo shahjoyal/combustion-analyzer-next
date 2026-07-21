@@ -1216,6 +1216,8 @@ if (dlBtn) {
 // hovering it) before building the new one.
 const staleTernaryWrapper = document.getElementById('ternaryPlotWrapper');
 if (staleTernaryWrapper) staleTernaryWrapper.remove();
+const staleAdvancedDashboard = document.getElementById('advancedDashboard');
+if (staleAdvancedDashboard) staleAdvancedDashboard.remove();
 if (_ternaryHoverBackdrop) _ternaryHoverBackdrop.classList.remove('active');
 const staleTernaryOuter = document.getElementById('ternaryCardOuter');
 if (staleTernaryOuter) staleTernaryOuter.remove();
@@ -1305,6 +1307,50 @@ ternaryCardOuter.appendChild(advancedViewToggleBtn);
 rightContainerDiv.appendChild(ternaryCardOuter);
 updatePlot();
 _setupTernaryHoverExpand(ternaryWrapper, plotDiv);
+_setupAdvancedExpand(advancedDashboard);
+
+// The two setup calls above populate _expandRegistry with plain
+// expand()/collapse() pairs that know nothing about the ternary/advanced
+// toggle button. Wrap them here (where showingAdvancedDashboard,
+// advancedChartsDrawn, etc. are in scope) so that switching straight from
+// one expanded card to the other via its in-card "switch view" button
+// also flips the toggle button and inline visibility, exactly as if the
+// user had clicked it themselves — and so the advanced charts get drawn
+// first if the user jumps there without ever having toggled to it inline.
+const _rawTernaryExpand = _expandRegistry.ternary;
+const _rawAdvancedExpand = _expandRegistry.advanced;
+
+_expandRegistry.ternary = {
+    expand: () => {
+        showingAdvancedDashboard = false;
+        ternaryWrapper.style.display = '';
+        advancedDashboard.classList.add('hidden');
+        advancedViewToggleBtn.classList.remove('active');
+        const label = advancedViewToggleBtn.querySelector('.advanced-view-corner-btn-label');
+        if (label) label.textContent = 'Advanced View';
+        _rawTernaryExpand.expand();
+    },
+    collapse: _rawTernaryExpand.collapse
+};
+
+_expandRegistry.advanced = {
+    expand: () => {
+        showingAdvancedDashboard = true;
+        ternaryWrapper.style.display = 'none';
+        advancedDashboard.classList.remove('hidden');
+        advancedViewToggleBtn.classList.add('active');
+        const label = advancedViewToggleBtn.querySelector('.advanced-view-corner-btn-label');
+        if (label) label.textContent = 'Ternary View';
+        if (window.Plotly && !advancedChartsDrawn) {
+            drawRadarChart(advDashData);
+            drawAshFusionChart(advDashData);
+            drawTendencyMapChart(advDashData);
+            advancedChartsDrawn = true;
+        }
+        _rawAdvancedExpand.expand();
+    },
+    collapse: _rawAdvancedExpand.collapse
+};
         
                 
             } 
@@ -2069,16 +2115,20 @@ function _build3DExpandedPlot() {
 }
 
 let _ternaryHoverBackdrop = null;
-// Holds the collapse() function for whichever ternary card is currently
-// expanded, so the single shared backdrop click-listener (bound once,
-// below) always closes the right one even though a fresh wrapper/plotDiv
-// is created on every Calculate.
-let _currentTernaryCollapse = null;
+// Holds the collapse() function for whichever card (ternary OR advanced
+// dashboard) is currently expanded, so the single shared backdrop
+// click-listener (bound once, below) always closes the right one even
+// though fresh wrapper/plotDiv elements are created on every Calculate.
+let _currentExpandedCollapse = null;
+// Populated by _setupTernaryHoverExpand / _setupAdvancedExpand on every
+// Calculate so the switch button inside one expanded card can jump
+// straight to the other, instead of only being able to close.
+let _expandRegistry = { ternary: null, advanced: null };
 function _getTernaryHoverBackdrop() {
   if (_ternaryHoverBackdrop && document.body.contains(_ternaryHoverBackdrop)) return _ternaryHoverBackdrop;
   const bd = document.createElement('div');
   bd.className = 'ternary-hover-backdrop';
-  bd.addEventListener('click', () => { if (_currentTernaryCollapse) _currentTernaryCollapse(); });
+  bd.addEventListener('click', () => { if (_currentExpandedCollapse) _currentExpandedCollapse(); });
   document.body.appendChild(bd);
   _ternaryHoverBackdrop = bd;
   return bd;
@@ -2106,7 +2156,7 @@ function _setupTernaryHoverExpand(wrapper, plotDiv) {
   async function expand() {
     if (expanded) return;
     expanded = true;
-    _currentTernaryCollapse = collapse;
+    _currentExpandedCollapse = collapse;
 
     // Re-home under <body> so the enlarged card and backdrop sit above
     // (and blur) the whole page, not just whatever panel it started in.
@@ -2140,6 +2190,21 @@ function _setupTernaryHoverExpand(wrapper, plotDiv) {
         collapse();
       });
       wrapper.appendChild(closeBtn);
+    }
+
+    let switchBtn = wrapper.querySelector('.expand-switch-btn');
+    if (!switchBtn) {
+      switchBtn = document.createElement('button');
+      switchBtn.type = 'button';
+      switchBtn.className = 'expand-switch-btn';
+      switchBtn.innerHTML = '<span>\u2726</span> Advanced View';
+      switchBtn.title = 'Switch to the Advanced View';
+      switchBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await collapse();
+        if (_expandRegistry.advanced) _expandRegistry.advanced.expand();
+      });
+      wrapper.appendChild(switchBtn);
     }
 
     // Swap the flat 2D ternary triangle out for a real 3D scatter plot
@@ -2201,7 +2266,7 @@ function _setupTernaryHoverExpand(wrapper, plotDiv) {
 
   async function collapse() {
     expanded = false;
-    if (_currentTernaryCollapse === collapse) _currentTernaryCollapse = null;
+    if (_currentExpandedCollapse === collapse) _currentExpandedCollapse = null;
     wrapper.classList.remove('ternary-expanded');
     const legend = wrapper.querySelector('.ternary-hover-legend');
     if (legend) legend.style.display = 'none';
@@ -2231,6 +2296,100 @@ function _setupTernaryHoverExpand(wrapper, plotDiv) {
     if (expanded) return; // ignore clicks on the chart itself while already expanded; use the × or backdrop to close
     expand();
   });
+
+  _expandRegistry.ternary = { expand, collapse };
+}
+
+// Same click-to-enlarge behaviour as the ternary card, but for the
+// "Compositional Radar / Ash Fusion Characteristics / Deposition Tendency
+// Map" dashboard. Generic on purpose — it doesn't know about the
+// ternary/advanced toggle button at all; the calling code wraps the
+// registry entries this produces (see calculateWeightedAverage) to keep
+// that toggle's state in sync when switching via the in-card button.
+function _setupAdvancedExpand(wrapper) {
+  let expanded = false;
+  let originalParent = null;
+  let originalNextSibling = null;
+
+  function _resizeAdvancedCharts() {
+    if (!window.Plotly) return;
+    ['radarChart', 'ashFusionChart', 'tendencyMapChart'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { try { Plotly.Plots.resize(el); } catch (e) {} }
+    });
+  }
+
+  function expand() {
+    if (expanded) return;
+    expanded = true;
+    _currentExpandedCollapse = collapse;
+
+    originalParent = wrapper.parentNode;
+    originalNextSibling = wrapper.nextSibling;
+    document.body.appendChild(wrapper);
+
+    _getTernaryHoverBackdrop().classList.add('active');
+    wrapper.classList.add('advanced-expanded');
+
+    let closeBtn = wrapper.querySelector('.ternary-close-btn');
+    if (!closeBtn) {
+      closeBtn = document.createElement('button');
+      closeBtn.type = 'button';
+      closeBtn.className = 'ternary-close-btn';
+      closeBtn.innerHTML = '&times;';
+      closeBtn.title = 'Close';
+      closeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        collapse();
+      });
+      wrapper.appendChild(closeBtn);
+    }
+
+    let switchBtn = wrapper.querySelector('.expand-switch-btn');
+    if (!switchBtn) {
+      switchBtn = document.createElement('button');
+      switchBtn.type = 'button';
+      switchBtn.className = 'expand-switch-btn';
+      switchBtn.innerHTML = '<span>\u25B3</span> Ternary View';
+      switchBtn.title = 'Switch to the Ternary View';
+      switchBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await collapse();
+        if (_expandRegistry.ternary) _expandRegistry.ternary.expand();
+      });
+      wrapper.appendChild(switchBtn);
+    }
+
+    // Wait two frames so the card has actually taken on its enlarged
+    // layout size before Plotly measures the containers to resize into.
+    requestAnimationFrame(() => requestAnimationFrame(_resizeAdvancedCharts));
+  }
+
+  function collapse() {
+    expanded = false;
+    if (_currentExpandedCollapse === collapse) _currentExpandedCollapse = null;
+    wrapper.classList.remove('advanced-expanded');
+    _getTernaryHoverBackdrop().classList.remove('active');
+
+    if (originalParent) {
+      if (originalNextSibling && originalNextSibling.parentNode === originalParent) {
+        originalParent.insertBefore(wrapper, originalNextSibling);
+      } else {
+        originalParent.appendChild(wrapper);
+      }
+    }
+
+    requestAnimationFrame(() => requestAnimationFrame(_resizeAdvancedCharts));
+  }
+
+  wrapper.style.cursor = 'zoom-in';
+  wrapper.title = 'Click to enlarge';
+  wrapper.addEventListener('click', (e) => {
+    if (expanded) return;
+    expand();
+  });
+
+  _expandRegistry.advanced = { expand, collapse };
 }
 
 // Render the individual coal AFT results as a table in the same visual
