@@ -1147,7 +1147,10 @@ body.page-slagging #ffftsGaugeChart {
   position: relative;
   transition: box-shadow 0.2s ease;
   flex: 1 1 auto;
-  min-height: 0;
+  min-height: 200px;
+  width: 88%;
+  max-width: 100%;
+  margin: 0 auto;
   border-radius: 12px;
 }
 .ternary-plot-wrapper:not(.ternary-expanded):hover {
@@ -1394,6 +1397,11 @@ body.page-slagging #ffftsGaugeChart {
 }
 
 .advanced-dashboard.hidden { display: none; }
+/* Same specificity-tie issue as .advanced-dashboard above: both of these
+   panels set their own `display` (flex), so plain .hidden alone would
+   lose the cascade tie-break to whichever rule comes later in the file. */
+.car-dashboard-panel.hidden { display: none; }
+.ternary-card-outer.hidden { display: none; }
 .advanced-dashboard {
   width: 100%;
 }
@@ -1563,6 +1571,8 @@ body.page-slagging #ffftsGaugeChart {
   background: transparent !important;
   box-shadow: none !important;
   overflow: visible;
+  width: 210px;
+  height: 226px;
 }
 .car-gauge-dial svg { display: block; overflow: visible; filter: drop-shadow(0 10px 18px rgba(0,0,0,.55)); }
 

@@ -1,5 +1,5 @@
 <div class="content">
-        
+
     <div class="left-container">
         <form id="coalForm">
             <div class="coal-selection-panel">
@@ -43,6 +43,26 @@
 
                 <h2>Coal Type</h2>
                 <div class="blend-row"></div>
+
+                <!-- Template for one coal-blend row (cloned by addBlend() in
+                     JS). The row's *count* is inherently dynamic (user adds
+                     up to 10), so it can't be pre-written in the page like
+                     the rest of the markup below — but the markup for a
+                     single row now lives here instead of being built with
+                     document.createElement()/innerHTML in JS. JS only sets
+                     the per-row ids/handlers after cloning. -->
+                <template id="blendRowTemplate">
+                    <div class="blend">
+                        <label>Coal:</label>
+                        <select>
+                            <option value="">Select Coal Type</option>
+                        </select>
+                        <input type="number" placeholder="Current Range (%)">
+                        <button type="button" class="remove-blend-btn">X</button>
+                        <button type="button" class="properties-btn">Properties</button>
+                        <div class="properties"></div>
+                    </div>
+                </template>
                 </div>
                 <button type="button" class="add-blend-btn" onclick="addBlend()">Add Coal</button>
                 <div id="totalRangeContainer">
@@ -116,7 +136,108 @@
 
     <div class="right-container" id="resultsContainer">
          <button id="downloadPDF" class="icon-btn hidden" title="Download page as PDF">⬇️</button>
-        <button id="blendPropertiesBtn" class="blendProperties" onclick="openBlendModal()" style="display:none;">Simulated AFB Coal Elemental Analysis</button>      
+        <button id="blendPropertiesBtn" class="blendProperties" onclick="openBlendModal()" style="display:none;">Simulated AFB Coal Elemental Analysis</button>
+
+        <!-- ============================================================
+             Everything below (gauges/overall-score dashboard, ternary
+             card, advanced view) used to be built entirely from JS with
+             document.createElement()/innerHTML every time Calculate was
+             clicked, including destroying + recreating this whole panel
+             each time. That structural skeleton now lives here instead;
+             JS (calculateWeightedAverage, createOverallGraph,
+             buildCarGaugeSVG, updatePlot, drawRadarChart, etc.) only
+             fills in computed values/markup inside these fixed
+             containers, and reveals this block (removes "hidden") once
+             a calculation has actually run — matching the original
+             page's before-you-click-Calculate appearance, where none of
+             this existed in the DOM yet.
+             ============================================================ -->
+
+        <div class="car-dashboard-panel hidden" id="carDashboardPanel">
+            <div class="car-dashboard-cluster" id="dashboardCluster">
+                <div class="car-gauge-wrap" id="fspGaugeWrap">
+                    <div class="car-gauge-dial" id="fspGaugeChart"></div>
+                </div>
+                <div class="car-center-stack" id="carCenterStack"></div>
+                <div class="car-gauge-wrap" id="ffftsGaugeWrap">
+                    <div class="car-gauge-dial" id="ffftsGaugeChart"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tableContainer" style="width:100%; margin-top:8px;"></div>
+
+        <div id="ternaryCardOuter" class="ternary-card-outer hidden">
+            <div id="ternaryPlotWrapper" class="ternary-plot-wrapper">
+                <div id="ternary-plot" style="width:100%; height:100%;"></div>
+            </div>
+
+            <div id="advancedDashboard" class="advanced-dashboard hidden">
+                <div class="advanced-dashboard-grid">
+                    <div class="advanced-card">
+                        <div class="advanced-card-title">Compositional Radar</div>
+                        <div id="radarChart" class="advanced-card-chart"></div>
+                    </div>
+                    <div class="advanced-card">
+                        <div class="advanced-card-title">Ash Fusion Characteristics</div>
+                        <div id="ashFusionChart" class="advanced-card-chart"></div>
+                    </div>
+                    <div class="advanced-card">
+                        <div class="advanced-card-title">Ash Deposition Tendency Map</div>
+                        <div id="tendencyMapChart" class="advanced-card-chart"></div>
+                    </div>
+                </div>
+
+                <div class="advanced-key-indicators" id="advancedKeyIndicators">
+                    <div class="advanced-indicator-card">
+                        <div class="advanced-indicator-icon">🔥</div>
+                        <div class="advanced-indicator-body">
+                            <div class="advanced-indicator-value" id="kiFluidTemp">N/A</div>
+                            <div class="advanced-indicator-label">Fluid Temp (FT)</div>
+                        </div>
+                    </div>
+                    <div class="advanced-indicator-card">
+                        <div class="advanced-indicator-icon">Ⓢ</div>
+                        <div class="advanced-indicator-body">
+                            <div class="advanced-indicator-value" id="kiTotalSulfur">N/A</div>
+                            <div class="advanced-indicator-label">Total Sulfur</div>
+                        </div>
+                    </div>
+                    <div class="advanced-indicator-card">
+                        <div class="advanced-indicator-icon">⚠️</div>
+                        <div class="advanced-indicator-body">
+                            <div class="advanced-indicator-value" id="kiSlagging">N/A</div>
+                            <div class="advanced-indicator-label">Slagging (FSP)</div>
+                        </div>
+                    </div>
+                    <div class="advanced-indicator-card">
+                        <div class="advanced-indicator-icon">☁️</div>
+                        <div class="advanced-indicator-body">
+                            <div class="advanced-indicator-value" id="kiFouling">N/A</div>
+                            <div class="advanced-indicator-label">Fouling (FFFTS)</div>
+                        </div>
+                    </div>
+                    <div class="advanced-indicator-card">
+                        <div class="advanced-indicator-icon">🌡️</div>
+                        <div class="advanced-indicator-body">
+                            <div class="advanced-indicator-value" id="kiIDT">N/A</div>
+                            <div class="advanced-indicator-label">Initial Deformation (IDT)</div>
+                        </div>
+                    </div>
+                    <div class="advanced-indicator-card">
+                        <div class="advanced-indicator-icon">⚙️</div>
+                        <div class="advanced-indicator-body">
+                            <div class="advanced-indicator-value" id="kiOmScore">N/A</div>
+                            <div class="advanced-indicator-label">O&amp;M Score</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button type="button" id="advancedViewToggleBtn" class="advanced-view-corner-btn" title="Switch between the ternary plot and the advanced view">
+                <span class="advanced-view-corner-btn-icon">✦</span><span class="advanced-view-corner-btn-label">Advanced View</span>
+            </button>
+        </div>
     </div>
 </div>
 

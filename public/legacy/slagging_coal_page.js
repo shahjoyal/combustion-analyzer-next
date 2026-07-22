@@ -8,28 +8,30 @@ function addBlend() {
     }
 
     const index = currentCoals;
-    const blendDiv = document.createElement("div");
-    blendDiv.className = "blend";
-    blendDiv.innerHTML = `
-        <label for="coal${index}">Coal:</label>
-        <select name="coal${index}" id="coal${index}">
-            <option value="">Select Coal Type</option>
-        </select>
-        <input type="number" id="currentrange${index}" placeholder="Current Range (%)">
-        <button type="button" class="remove-blend-btn" onclick="removeBlend(this)">X</button>
-        <button type="button" class="properties-btn" onclick="fetchCoalProperties(${index})">Properties</button>
-        <div id="properties${index}"></div>
-    `;
+    const template = document.getElementById('blendRowTemplate');
+    const blendDiv = template.content.firstElementChild.cloneNode(true);
 
-    const currentRangeInput = blendDiv.querySelector(`#currentrange${index}`);
-    currentRangeInput.addEventListener("input", updateTotalRange);
+    const label = blendDiv.querySelector('label');
+    const select = blendDiv.querySelector('select');
+    const rangeInput = blendDiv.querySelector('input[type="number"]');
+    const removeBtn = blendDiv.querySelector('.remove-blend-btn');
+    const propertiesBtn = blendDiv.querySelector('.properties-btn');
+    const propertiesDiv = blendDiv.querySelector('.properties');
+
+    label.setAttribute('for', `coal${index}`);
+    select.id = `coal${index}`;
+    select.name = `coal${index}`;
+    rangeInput.id = `currentrange${index}`;
+    propertiesDiv.id = `properties${index}`;
+
+    removeBtn.addEventListener('click', () => removeBlend(removeBtn));
+    propertiesBtn.addEventListener('click', () => fetchCoalProperties(index));
+    rangeInput.addEventListener("input", updateTotalRange);
 
     const blendRow = document.querySelector(".blend-row");
+    blendRow.appendChild(blendDiv);
 
-    // Append the new blendDiv to the blendRow
-    blendRow.appendChild(blendDiv); // This will add it to the end
-
-    populateDropdown(blendDiv.querySelector(`#coal${index}`));
+    populateDropdown(select);
     updateTotalRange();
     sizeBlendRowVisible();
 }
@@ -127,16 +129,25 @@ window.addEventListener('resize', () => {
         }
         var samples = [];
         let predictedAFT = 0;
+        // Shared between _initResultsPanelInteractivity() (wires the
+        // toggle button + click-to-expand once) and calculateWeightedAverage()
+        // (refreshes these each run) — see both for context.
+        let showingAdvancedDashboard = false;
+        let advancedChartsDrawn = false;
+        let advDashData = null;
  
         
 
         // ----- size configuration (change numbers to taste) -----
-const TERNARY_WIDTH = "88%";   // px (try 320 / 360 / 420)
-const TERNARY_HEIGHT = 200;  // px fallback/minimum height; the on-screen card now stretches to fill remaining space via flex
+// TERNARY_WIDTH/TERNARY_HEIGHT and GAUGE_H used to be applied as inline
+// styles from here; those fixed values now live in CSS instead
+// (.ternary-plot-wrapper, .car-gauge-dial) since they never change per
+// calculation. GAUGE_W is still used below — it's also passed into
+// buildCarGaugeSVG() to size the SVG's internal viewBox math, not just
+// as a DOM style.
 const MARKER_SIZE = 8;       // ternary marker size (smaller if plot is tiny)
 
 const GAUGE_W = 210;         // px for gauge dial width (track-style gauge, ported from reference viewBox 520x560)
-const GAUGE_H = 226;         // px for gauge dial height (keeps the 520:560 aspect of the reference artwork)
 const OVERALL_GRAPH_WIDTH = 480; // px for the overall bar (was 550)
         async function calculateWeightedAverage() {
 
@@ -345,20 +356,14 @@ let scoreMappings = {
         
             blendValuesDiv.innerHTML = propertiesHTML;
             
-            // keep a reference to the download button (if it exists)
-const dlBtn = document.getElementById('downloadPDF');
-
-// clear results (this removes DOM children but dlBtn variable still references the node)
-rightContainerDiv.innerHTML = "";
-
-// put the download button back at the top and show it
-if (dlBtn) {
-  // insert at the top so it stays in the top-right visually
-  rightContainerDiv.insertBefore(dlBtn, rightContainerDiv.firstChild);
-  dlBtn.classList.remove('hidden'); // remove the hidden class so it displays
-  // ensure visibility over other elements
-  dlBtn.style.zIndex = '9999';
-}
+            // The download button is now a persistent static element (see
+            // the HTML) instead of being destroyed and recreated here —
+            // just reveal it.
+            const dlBtn = document.getElementById('downloadPDF');
+            if (dlBtn) {
+                dlBtn.classList.remove('hidden');
+                dlBtn.style.zIndex = '9999';
+            }
         
             let newSample = {
                 acidicOxides: acidicOxidesAvg,
@@ -583,9 +588,9 @@ if (dlBtn) {
                     <tr><td>Fouling Factor (B/A*Na)</td><td>${FFT.toFixed(2)}</td><td>${FFS}</td></tr>
                 </table>`;
                 
-                rightContainerDiv.appendChild(blendPropertiesBtn);
-                
-                
+                // blendPropertiesBtn is a persistent static element now — no
+                // need to re-append it each time.
+
                 // ============================================================
                 // CAR-DASHBOARD STYLE GAUGES
                 // Two circular instrument-cluster dials (Slagging / Fouling), each
@@ -594,26 +599,16 @@ if (dlBtn) {
                 // a vertical "fuel style" score bar in between them. The
                 // click-to-reveal-table behaviour on each dial works exactly as
                 // before.
+                //
+                // The panel/cluster/gauge-wrap/center-stack markup is now
+                // static HTML (#carDashboardPanel etc.) instead of being
+                // built with document.createElement() every Calculate — just
+                // reveal it and fill in this run's computed values below.
                 // ============================================================
 
-                let chartWrapper = document.createElement("div");
-                chartWrapper.className = "car-dashboard-panel";
-                rightContainerDiv.appendChild(chartWrapper);
-
-                // Inner cluster that hugs exactly the two gauges + connector
-                // (width: max-content in CSS) — the enclosing border lives on
-                // THIS element, not on chartWrapper, because chartWrapper is
-                // full-width (100%) and centers its content with flexbox; if
-                // the border were drawn on chartWrapper it would stretch the
-                // full width of the results panel and taper into two flat
-                // disconnected lines instead of hugging the gauges.
-                let dashboardCluster = document.createElement("div");
-                dashboardCluster.className = "car-dashboard-cluster";
-                dashboardCluster.style.position = "relative";
-                dashboardCluster.style.display = "inline-flex";
-                dashboardCluster.style.alignItems = "center";
-                dashboardCluster.style.maxWidth = "100%";
-                chartWrapper.appendChild(dashboardCluster);
+                const carDashboardPanel = document.getElementById('carDashboardPanel');
+                carDashboardPanel.classList.remove('hidden');
+                const dashboardCluster = document.getElementById('dashboardCluster');
 
                 // Color ranges for FSP (0 to 6)
                 const fspColorRanges = {
@@ -885,30 +880,9 @@ if (dlBtn) {
                     }
                 }
 
-                // Builds one full gauge cluster (just the dial now — the title and
-                // status live inside the SVG face itself). Returns
-                // { wrapper, dialContainer } so click / advanced-view wiring
-                // can attach to it afterwards.
-                function buildGaugeCluster() {
-                    const wrapper = document.createElement("div");
-                    wrapper.className = "car-gauge-wrap";
-
-                    const dialContainer = document.createElement("div");
-                    dialContainer.className = "car-gauge-dial";
-                    dialContainer.style.width = GAUGE_W + "px";
-                    dialContainer.style.height = GAUGE_H + "px";
-                    wrapper.appendChild(dialContainer);
-
-                    return { wrapper, dialContainer };
-                }
-
                 // ---- Slagging dial ----
-                const fspCluster = buildGaugeCluster();
-                const fspGraphWrapper = fspCluster.wrapper;
-                const fspGraphContainer = fspCluster.dialContainer;
-                fspGraphContainer.id = "fspGaugeChart";
+                const fspGraphContainer = document.getElementById("fspGaugeChart");
                 fspGraphContainer.innerHTML = buildCarGaugeSVG(FSP, 0, 6, fspColorRanges, GAUGE_W, "SLAGGING\nPOTENTIAL", FSPD, true, "fsp");
-                dashboardCluster.appendChild(fspGraphWrapper);
                 animateGaugeReveal(fspGraphContainer);
 
                 // ---- central overall-score stack: value floats above the
@@ -916,29 +890,19 @@ if (dlBtn) {
                 // holds the full-rectangle bottom-up score fill, and the
                 // OVERALL SCORE caption + breakdown float below the bottom
                 // border line ----
-                const carCenterStack = document.createElement("div");
-                carCenterStack.className = "car-center-stack";
-                dashboardCluster.appendChild(carCenterStack);
-
-                const carCenterBar = document.createElement("div");
-                carCenterBar.className = "car-center-bar-wrap";
-                carCenterBar.id = "carCenterBar";
-                carCenterStack.appendChild(carCenterBar);
+                const carCenterStack = document.getElementById("carCenterStack");
 
                 // ---- Fouling dial ----
-                const ffftsCluster = buildGaugeCluster();
-                const ffftsGraphWrapper = ffftsCluster.wrapper;
-                const ffftsGraphContainer = ffftsCluster.dialContainer;
-                ffftsGraphContainer.id = "ffftsGaugeChart";
+                const ffftsGraphContainer = document.getElementById("ffftsGaugeChart");
                 ffftsGraphContainer.innerHTML = buildCarGaugeSVG(FFFTS, 0, 3, ffftsColorRanges, GAUGE_W, "FOULING\nPOTENTIAL", FFFD, false, "fffts");
-                dashboardCluster.appendChild(ffftsGraphWrapper);
                 animateGaugeReveal(ffftsGraphContainer);
 
-                // Create a separate table container BELOW the dashboard panel
-                let tableContainer = document.createElement("div");
-                tableContainer.style.width = "100%";
-                tableContainer.style.marginTop = "8px";
-                rightContainerDiv.appendChild(tableContainer);
+                // Table container BELOW the dashboard panel — persistent
+                // static element now; clear any leftover FSP/FFTS detail
+                // table from a previous calculation before this run's fresh
+                // click-to-reveal state takes over below.
+                let tableContainer = document.getElementById('tableContainer');
+                tableContainer.innerHTML = "";
 
                 // Table toggle logic
                 let fspTableVisible = false;
@@ -963,8 +927,13 @@ if (dlBtn) {
                     }
                 }
 
-                // Toggle logic for Slagging Table (click anywhere on the dial)
-                fspGraphContainer.addEventListener("click", () => {
+                // Toggle logic for Slagging Table (click anywhere on the dial).
+                // Assigned via .onclick (not addEventListener) because
+                // fspGraphContainer is now a persistent element that's
+                // reused across Calculate clicks — addEventListener would
+                // stack an extra listener (with its own stale FoulingHTML)
+                // on every run instead of replacing it.
+                fspGraphContainer.onclick = () => {
                     fspTableVisible = !fspTableVisible;
 
                     if (fspTableVisible) {
@@ -977,10 +946,10 @@ if (dlBtn) {
                     }
 
                     updateTableLayout();
-                });
+                };
 
                 // Toggle logic for Fouling Table (click anywhere on the dial)
-                ffftsGraphContainer.addEventListener("click", () => {
+                ffftsGraphContainer.onclick = () => {
                     ffftsTableVisible = !ffftsTableVisible;
 
                     if (ffftsTableVisible) {
@@ -993,7 +962,7 @@ if (dlBtn) {
                     }
 
                     updateTableLayout();
-                });
+                };
 
                 // Builds the overall-score stack. Same functionality as the
                 // original narrow bar — fill height is proportional to the
@@ -1211,146 +1180,39 @@ if (dlBtn) {
                 blendPropertiesBtn.style.display = "block";
                 createOverallGraph(totalScore, checkboxScore, overallTotal);
 
-// Clean up any leftover expanded ternary card / advanced dashboard from a
-// previous calculation (e.g. if the user re-clicked Calculate while still
-// hovering it) before building the new one.
-const staleTernaryWrapper = document.getElementById('ternaryPlotWrapper');
-if (staleTernaryWrapper) staleTernaryWrapper.remove();
-const staleAdvancedDashboard = document.getElementById('advancedDashboard');
-if (staleAdvancedDashboard) staleAdvancedDashboard.remove();
-if (_ternaryHoverBackdrop) _ternaryHoverBackdrop.classList.remove('active');
-const staleTernaryOuter = document.getElementById('ternaryCardOuter');
-if (staleTernaryOuter) staleTernaryOuter.remove();
+// The ternary card / advanced dashboard / toggle button are now
+// persistent static elements (see the HTML) instead of being destroyed
+// and recreated on every Calculate — grab them, reset to the default
+// (ternary-visible) state, and refresh their contents for this run.
+// The click-to-expand and toggle-button wiring itself only needs to
+// happen once and is done by _initResultsPanelInteractivity() below
+// (called once at DOMContentLoaded).
+const plotDiv = document.getElementById('ternary-plot');
+const ternaryWrapper = document.getElementById('ternaryPlotWrapper');
+const ternaryCardOuter = document.getElementById('ternaryCardOuter');
+const advancedDashboard = document.getElementById('advancedDashboard');
+const advancedViewToggleBtn = document.getElementById('advancedViewToggleBtn');
 
-const plotDiv = document.createElement('div');
-plotDiv.id = "ternary-plot";
-plotDiv.style.width = "100%";
-plotDiv.style.height = "100%";
+// Close out of an expanded card (if any) so it's back in its normal spot
+// before this run touches its contents/visibility.
+if (_currentExpandedCollapse) _currentExpandedCollapse();
 
-const ternaryWrapper = document.createElement('div');
-ternaryWrapper.id = "ternaryPlotWrapper";
-ternaryWrapper.className = "ternary-plot-wrapper";
-ternaryWrapper.style.width = (typeof TERNARY_WIDTH === "string" && TERNARY_WIDTH.indexOf("%") !== -1) ? TERNARY_WIDTH : (TERNARY_WIDTH + "px");
-// Fill whatever vertical space is left in the right panel instead of a
-// fixed pixel height, so the chart always fits the available area rather
-// than getting cut off / forcing the page to scroll. TERNARY_HEIGHT is
-// kept only as a minimum so it never gets squeezed unreadably small.
-ternaryWrapper.style.flex = "1 1 auto";
-ternaryWrapper.style.minHeight = TERNARY_HEIGHT + "px";
-ternaryWrapper.style.maxWidth = "100%";
-ternaryWrapper.style.margin = "0 auto";
-ternaryWrapper.appendChild(plotDiv);
+ternaryCardOuter.classList.remove('hidden');
 
-// ---- Outer card: ternary plot OR advanced dashboard, toggled by a corner
-// button that sits OUTSIDE ternaryWrapper (a sibling, never a descendant)
-// so hovering/clicking it can never trigger the ternary hover-to-expand
-// behaviour set up below. Everything about the ternary card itself is
-// left completely untouched. ----
-const ternaryCardOuter = document.createElement('div');
-ternaryCardOuter.id = "ternaryCardOuter";
-ternaryCardOuter.className = "ternary-card-outer";
-ternaryCardOuter.style.flex = "1 1 auto";
-ternaryCardOuter.style.minHeight = "0";
-ternaryCardOuter.style.display = "flex";
-ternaryCardOuter.style.flexDirection = "column";
+// Every new calculation starts back on the ternary view, exactly like
+// the old destroy-and-rebuild-from-scratch version always did.
+showingAdvancedDashboard = false;
+advancedChartsDrawn = false;
+ternaryWrapper.style.display = '';
+advancedDashboard.classList.add('hidden');
+advancedViewToggleBtn.classList.remove('active');
+const _advToggleLabel = advancedViewToggleBtn.querySelector('.advanced-view-corner-btn-label');
+if (_advToggleLabel) _advToggleLabel.textContent = 'Advanced View';
 
-const advancedDashboard = document.createElement('div');
-advancedDashboard.id = "advancedDashboard";
-advancedDashboard.className = "advanced-dashboard hidden";
-
-const advancedViewToggleBtn = document.createElement('button');
-advancedViewToggleBtn.type = "button";
-advancedViewToggleBtn.id = "advancedViewToggleBtn";
-advancedViewToggleBtn.className = "advanced-view-corner-btn";
-advancedViewToggleBtn.title = "Switch between the ternary plot and the advanced view";
-advancedViewToggleBtn.innerHTML = '<span class="advanced-view-corner-btn-icon">\u2726</span><span class="advanced-view-corner-btn-label">Advanced View</span>';
-
-const advDashData = { SIO, ALO, FEO, CAO, MGO, NAO, KO, S, FT: predictedAFT, HT, IDT, FSP, FSPD, FFFTS, FFFD, omScore: checkboxScore };
+advDashData = { SIO, ALO, FEO, CAO, MGO, NAO, KO, S, FT: predictedAFT, HT, IDT, FSP, FSPD, FFFTS, FFFD, omScore: checkboxScore };
 buildAdvancedDashboard(advancedDashboard, advDashData);
 
-let showingAdvancedDashboard = false;
-let advancedChartsDrawn = false;
-advancedViewToggleBtn.addEventListener('click', () => {
-    showingAdvancedDashboard = !showingAdvancedDashboard;
-    const label = advancedViewToggleBtn.querySelector('.advanced-view-corner-btn-label');
-
-    if (showingAdvancedDashboard) {
-        ternaryWrapper.style.display = 'none';
-        advancedDashboard.classList.remove('hidden');
-        advancedViewToggleBtn.classList.add('active');
-        if (label) label.textContent = 'Ternary View';
-
-        if (window.Plotly) {
-            if (!advancedChartsDrawn) {
-                drawRadarChart(advDashData);
-                drawAshFusionChart(advDashData);
-                drawTendencyMapChart(advDashData);
-                advancedChartsDrawn = true;
-            } else {
-                ['radarChart', 'ashFusionChart', 'tendencyMapChart'].forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) { try { Plotly.Plots.resize(el); } catch (e) {} }
-                });
-            }
-        }
-    } else {
-        ternaryWrapper.style.display = '';
-        advancedDashboard.classList.add('hidden');
-        advancedViewToggleBtn.classList.remove('active');
-        if (label) label.textContent = 'Advanced View';
-    }
-});
-
-ternaryCardOuter.appendChild(ternaryWrapper);
-ternaryCardOuter.appendChild(advancedDashboard);
-ternaryCardOuter.appendChild(advancedViewToggleBtn);
-rightContainerDiv.appendChild(ternaryCardOuter);
 updatePlot();
-_setupTernaryHoverExpand(ternaryWrapper, plotDiv);
-_setupAdvancedExpand(advancedDashboard);
-
-// The two setup calls above populate _expandRegistry with plain
-// expand()/collapse() pairs that know nothing about the ternary/advanced
-// toggle button. Wrap them here (where showingAdvancedDashboard,
-// advancedChartsDrawn, etc. are in scope) so that switching straight from
-// one expanded card to the other via its in-card "switch view" button
-// also flips the toggle button and inline visibility, exactly as if the
-// user had clicked it themselves — and so the advanced charts get drawn
-// first if the user jumps there without ever having toggled to it inline.
-const _rawTernaryExpand = _expandRegistry.ternary;
-const _rawAdvancedExpand = _expandRegistry.advanced;
-
-_expandRegistry.ternary = {
-    expand: () => {
-        showingAdvancedDashboard = false;
-        ternaryWrapper.style.display = '';
-        advancedDashboard.classList.add('hidden');
-        advancedViewToggleBtn.classList.remove('active');
-        const label = advancedViewToggleBtn.querySelector('.advanced-view-corner-btn-label');
-        if (label) label.textContent = 'Advanced View';
-        _rawTernaryExpand.expand();
-    },
-    collapse: _rawTernaryExpand.collapse
-};
-
-_expandRegistry.advanced = {
-    expand: () => {
-        showingAdvancedDashboard = true;
-        ternaryWrapper.style.display = 'none';
-        advancedDashboard.classList.remove('hidden');
-        advancedViewToggleBtn.classList.add('active');
-        const label = advancedViewToggleBtn.querySelector('.advanced-view-corner-btn-label');
-        if (label) label.textContent = 'Ternary View';
-        if (window.Plotly && !advancedChartsDrawn) {
-            drawRadarChart(advDashData);
-            drawAshFusionChart(advDashData);
-            drawTendencyMapChart(advDashData);
-            advancedChartsDrawn = true;
-        }
-        _rawAdvancedExpand.expand();
-    },
-    collapse: _rawAdvancedExpand.collapse
-};
         
                 
             } 
@@ -1458,31 +1320,12 @@ function updatePlot() {
    card draws flat reference lines at the real IDT/HT/FT temperatures
    (no fake heating-rate curve, since only single-point values exist).
 ----------------------------------------------------------------------- */
-function _advCard(titleText, chartId) {
-    const card = document.createElement('div');
-    card.className = 'advanced-card';
-    const title = document.createElement('div');
-    title.className = 'advanced-card-title';
-    title.textContent = titleText;
-    const chartDiv = document.createElement('div');
-    chartDiv.id = chartId;
-    chartDiv.className = 'advanced-card-chart';
-    card.appendChild(title);
-    card.appendChild(chartDiv);
-    return card;
-}
-
+// The grid + 3 chart cards (#radarChart/#ashFusionChart/#tendencyMapChart)
+// and the 6 key-indicator cards are now static markup in the HTML (see
+// #advancedDashboard) instead of being rebuilt with document.createElement()
+// every Calculate — this just refreshes the key-indicator values in place.
 function buildAdvancedDashboard(container, d) {
-    container.innerHTML = '';
-
-    const grid = document.createElement('div');
-    grid.className = 'advanced-dashboard-grid';
-    grid.appendChild(_advCard('Compositional Radar', 'radarChart'));
-    grid.appendChild(_advCard('Ash Fusion Characteristics', 'ashFusionChart'));
-    grid.appendChild(_advCard('Ash Deposition Tendency Map', 'tendencyMapChart'));
-    container.appendChild(grid);
-
-    container.appendChild(buildKeyIndicatorsRow(d));
+    updateKeyIndicatorsRow(d);
 }
 
 function drawRadarChart(d) {
@@ -1604,38 +1447,115 @@ function drawTendencyMapChart(d) {
     Plotly.newPlot(el, data, layout, { displayModeBar: false, responsive: true });
 }
 
-function buildKeyIndicatorsRow(d) {
-    const row = document.createElement('div');
-    row.className = 'advanced-key-indicators';
-
-    const items = [
-        { label: 'Fluid Temp (FT)', value: (d.FT != null && !isNaN(d.FT)) ? Math.round(d.FT) + ' \u00b0C' : 'N/A', icon: '\uD83D\uDD25' },
-        { label: 'Total Sulfur', value: (d.S != null && !isNaN(d.S)) ? d.S.toFixed(2) + ' wt%' : 'N/A', icon: '\u24C8' },
-        { label: 'Slagging (FSP)', value: (d.FSP != null) ? d.FSP.toFixed(1) + '/6 \u00b7 ' + d.FSPD : 'N/A', icon: '\u26A0\uFE0F' },
-        { label: 'Fouling (FFFTS)', value: (d.FFFTS != null) ? d.FFFTS.toFixed(1) + '/3 \u00b7 ' + d.FFFD : 'N/A', icon: '\u2601\uFE0F' },
-        { label: 'Initial Deformation (IDT)', value: (d.IDT != null && !isNaN(d.IDT)) ? Math.round(d.IDT) + ' \u00b0C' : 'N/A', icon: '\uD83C\uDF21\uFE0F' },
-        { label: 'O&M Score', value: (d.omScore != null) ? d.omScore.toFixed(2) + ' / 3.5' : 'N/A', icon: '\u2699\uFE0F' }
-    ];
-
-    items.forEach(it => {
-        const card = document.createElement('div');
-        card.className = 'advanced-indicator-card';
-        card.innerHTML =
-            '<div class="advanced-indicator-icon">' + it.icon + '</div>' +
-            '<div class="advanced-indicator-body">' +
-                '<div class="advanced-indicator-value">' + it.value + '</div>' +
-                '<div class="advanced-indicator-label">' + it.label + '</div>' +
-            '</div>';
-        row.appendChild(card);
-    });
-
-    return row;
+function updateKeyIndicatorsRow(d) {
+    const set = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = value;
+    };
+    set('kiFluidTemp', (d.FT != null && !isNaN(d.FT)) ? Math.round(d.FT) + ' \u00b0C' : 'N/A');
+    set('kiTotalSulfur', (d.S != null && !isNaN(d.S)) ? d.S.toFixed(2) + ' wt%' : 'N/A');
+    set('kiSlagging', (d.FSP != null) ? d.FSP.toFixed(1) + '/6 \u00b7 ' + d.FSPD : 'N/A');
+    set('kiFouling', (d.FFFTS != null) ? d.FFFTS.toFixed(1) + '/3 \u00b7 ' + d.FFFD : 'N/A');
+    set('kiIDT', (d.IDT != null && !isNaN(d.IDT)) ? Math.round(d.IDT) + ' \u00b0C' : 'N/A');
+    set('kiOmScore', (d.omScore != null) ? d.omScore.toFixed(2) + ' / 3.5' : 'N/A');
 }
 
 
 function removeBlend(button) {
             button.parentElement.remove(); 
         }
+
+// Wires up the advanced-view toggle button and the ternary/advanced
+// click-to-expand behaviour exactly once, since #ternaryPlotWrapper,
+// #advancedDashboard and #advancedViewToggleBtn are now persistent
+// elements (see the HTML) rather than being torn down and rebuilt --
+// with fresh addEventListener closures -- on every Calculate click.
+// calculateWeightedAverage() only refreshes advDashData/content afterwards.
+function _initResultsPanelInteractivity() {
+    const plotDiv = document.getElementById('ternary-plot');
+    const ternaryWrapper = document.getElementById('ternaryPlotWrapper');
+    const advancedDashboard = document.getElementById('advancedDashboard');
+    const advancedViewToggleBtn = document.getElementById('advancedViewToggleBtn');
+    if (!plotDiv || !ternaryWrapper || !advancedDashboard || !advancedViewToggleBtn) return;
+
+    advancedViewToggleBtn.addEventListener('click', () => {
+        showingAdvancedDashboard = !showingAdvancedDashboard;
+        const label = advancedViewToggleBtn.querySelector('.advanced-view-corner-btn-label');
+
+        if (showingAdvancedDashboard) {
+            ternaryWrapper.style.display = 'none';
+            advancedDashboard.classList.remove('hidden');
+            advancedViewToggleBtn.classList.add('active');
+            if (label) label.textContent = 'Ternary View';
+
+            if (window.Plotly) {
+                if (!advancedChartsDrawn) {
+                    drawRadarChart(advDashData || {});
+                    drawAshFusionChart(advDashData || {});
+                    drawTendencyMapChart(advDashData || {});
+                    advancedChartsDrawn = true;
+                } else {
+                    ['radarChart', 'ashFusionChart', 'tendencyMapChart'].forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) { try { Plotly.Plots.resize(el); } catch (e) {} }
+                    });
+                }
+            }
+        } else {
+            ternaryWrapper.style.display = '';
+            advancedDashboard.classList.add('hidden');
+            advancedViewToggleBtn.classList.remove('active');
+            if (label) label.textContent = 'Advanced View';
+        }
+    });
+
+    _setupTernaryHoverExpand(ternaryWrapper, plotDiv);
+    _setupAdvancedExpand(advancedDashboard);
+
+    // The two setup calls above populate _expandRegistry with plain
+    // expand()/collapse() pairs that know nothing about the ternary/advanced
+    // toggle button. Wrap them here so that switching straight from one
+    // expanded card to the other via its in-card "switch view" button also
+    // flips the toggle button and inline visibility, exactly as if the user
+    // had clicked it themselves — and so the advanced charts get drawn
+    // first if the user jumps there without ever having toggled to it inline.
+    const _rawTernaryExpand = _expandRegistry.ternary;
+    const _rawAdvancedExpand = _expandRegistry.advanced;
+
+    _expandRegistry.ternary = {
+        expand: () => {
+            showingAdvancedDashboard = false;
+            ternaryWrapper.style.display = '';
+            advancedDashboard.classList.add('hidden');
+            advancedViewToggleBtn.classList.remove('active');
+            const label = advancedViewToggleBtn.querySelector('.advanced-view-corner-btn-label');
+            if (label) label.textContent = 'Advanced View';
+            _rawTernaryExpand.expand();
+        },
+        collapse: _rawTernaryExpand.collapse
+    };
+
+    _expandRegistry.advanced = {
+        expand: () => {
+            showingAdvancedDashboard = true;
+            ternaryWrapper.style.display = 'none';
+            advancedDashboard.classList.remove('hidden');
+            advancedViewToggleBtn.classList.add('active');
+            const label = advancedViewToggleBtn.querySelector('.advanced-view-corner-btn-label');
+            if (label) label.textContent = 'Ternary View';
+            if (window.Plotly && !advancedChartsDrawn) {
+                drawRadarChart(advDashData || {});
+                drawAshFusionChart(advDashData || {});
+                drawTendencyMapChart(advDashData || {});
+                advancedChartsDrawn = true;
+            }
+            _rawAdvancedExpand.expand();
+        },
+        collapse: _rawAdvancedExpand.collapse
+    };
+}
+document.addEventListener('DOMContentLoaded', _initResultsPanelInteractivity);
+        
         
         document.addEventListener('DOMContentLoaded', () => {
             fetch('./get_coal_types')
