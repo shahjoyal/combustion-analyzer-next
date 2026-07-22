@@ -606,14 +606,26 @@ body{
   min-height: 0;
 }
 #resultsContainer > .car-dashboard-panel {
-  flex: 1 1 50%;
+  flex: 1 0 50%;   /* flex-shrink:0 -- the gauge dashboard keeps its natural size
+                       and is never compressed to make room for the results
+                       table below it; #resultsContainer scrolls instead. */
   min-height: 0;
-  overflow: auto;
+  overflow: visible;
 }
 #resultsContainer > .ternary-card-outer {
-  flex: 1 1 50%;
+  flex: 1 1 50%;   /* dynamic: grows/shrinks to exactly fill whatever space
+                       is left after the (now fixed-size) gauge dashboard and
+                       the table above it, so it fits without its own
+                       scrollbar instead of forcing the whole panel taller */
   min-height: 0;
-  overflow: auto;
+  overflow: visible;
+}
+/* the results table sits between the two panels above as a normal,
+   non-shrinkable block -- it pushes the ternary card down and grows
+   #resultsContainer's scrollable content instead of stealing height
+   from the gauge dashboard */
+#resultsContainer > #tableContainer {
+  flex: 0 0 auto;
 }
 
 @media (max-width:900px){
