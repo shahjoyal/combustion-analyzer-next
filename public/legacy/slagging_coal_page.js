@@ -1528,16 +1528,27 @@ let scoreMappings = {
                 function renderOverallDeposition(barTrackEl, basePct, level) {
                     if (!barTrackEl || level === "Low" || !level) return;
 
+                    // Render on the tube's OUTER border, not inside the liquid.
+                    // barTrackEl itself clips its contents (overflow:hidden,
+                    // same reason edgeLeft/edgeRight/glassPane live outside
+                    // it — see createOverallGraph above), so the overlay is
+                    // appended to its parent (.car-vertical-scale, the actual
+                    // tube housing) instead of into barTrackEl. That parent is
+                    // exactly the same size as the tube's outer border, so
+                    // building the SVG off its own box (not barTrackEl's)
+                    // keeps the guide paths sitting right on that border.
+                    const scaleEl = barTrackEl.parentElement || barTrackEl;
+
                     // Clear any leftover overlay from a previous Calculate run.
-                    const prevOverlay = barTrackEl.querySelector('.overall-rust-svg');
+                    const prevOverlay = scaleEl.querySelector('.overall-rust-svg');
                     if (prevOverlay) prevOverlay.remove();
 
-                    if (getComputedStyle(barTrackEl).position === 'static') {
-                        barTrackEl.style.position = 'relative';
+                    if (getComputedStyle(scaleEl).position === 'static') {
+                        scaleEl.style.position = 'relative';
                     }
 
-                    const w = barTrackEl.clientWidth;
-                    const h = barTrackEl.clientHeight;
+                    const w = scaleEl.clientWidth;
+                    const h = scaleEl.clientHeight;
                     if (!w || !h) return;
 
                     const filledPx = h * (basePct / 100);
@@ -1554,16 +1565,20 @@ let scoreMappings = {
                     svg.style.top = "0";
                     svg.style.overflow = "visible";
                     svg.style.pointerEvents = "none";
-                    svg.style.zIndex = "3";
-                    barTrackEl.appendChild(svg);
+                    // Above glassPane/edgeLeft/edgeRight so the buildup reads
+                    // as sitting on the outside of the glass, not under it.
+                    svg.style.zIndex = "7";
+                    scaleEl.appendChild(svg);
 
                     // Two straight vertical guide paths hugging the tube's
-                    // left/right rims (a straight-line stand-in for the
-                    // gauge's curved arc) — measured via getPointAtLength,
-                    // same as _placeRustBand expects.
+                    // OUTER left/right border (a straight-line stand-in for
+                    // the gauge's curved arc) — measured via getPointAtLength,
+                    // same as _placeRustBand expects. edgeMargin now sits
+                    // right at the tube's border instead of 10% inset into
+                    // the liquid.
                     const yBottom = h;
                     const yTop = h - filledPx;
-                    const edgeMargin = Math.max(2, w * 0.1);
+                    const edgeMargin = Math.max(1, w * 0.015);
 
                     const leftPath = document.createElementNS(NS, "path");
                     leftPath.setAttribute("d", `M${edgeMargin} ${yBottom} L${edgeMargin} ${yTop}`);

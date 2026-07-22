@@ -1754,14 +1754,16 @@ body.page-slagging #ffftsGaugeChart {
   position: relative;
   flex: 1 1 auto;
   height: 100%;
-  border-radius: 10px 10px 50% 50% / 10px 10px 38px 38px;
-  border: 2px solid rgba(50, 226, 241, .82);
+  /* Cylinder, not a test tube: bottom corners now match the top's
+     10px instead of ballooning out to a 50%/38px rounded bottom. */
+  border-radius: 10px;
+  border: 2px solid rgba(184, 115, 51, .85); /* was cyan rgba(50,226,241,.82) — now copper */
   padding: 5px;
   box-sizing: border-box;
   background: linear-gradient(180deg, #07101a, #02070b);
   box-shadow:
-    0 0 12px rgba(25, 203, 242, .18),
-    inset 0 0 16px rgba(19, 121, 158, .11);
+    0 0 12px rgba(184, 115, 51, .22),
+    inset 0 0 16px rgba(140, 85, 35, .13);
   /* Turns the tube into an actual draggable 3D object (see
      _makeTube3DInteractive in the JS): preserve-3d lets its glass-pane
      and edge-strip children (below) sit at their own translateZ depth
@@ -1814,14 +1816,14 @@ body.page-slagging #ffftsGaugeChart {
 .car-tube-edge-right { right: -3px; transform: rotateY(-50deg) translateZ(2px); transform-origin: right center; border-radius: 0 10px 10px 0; }
 
 
-/* Inner track that actually clips the fill — ported from .bar-track,
-   now rounded into a test-tube / chemical-glass silhouette (flat-ish
-   shoulders, big rounded bottom) instead of a plain rectangle. */
+/* Inner track that actually clips the fill — ported from .bar-track.
+   Bottom corners now match the top (8px all round) so the silhouette
+   reads as a straight cylinder instead of a test-tube's rounded base. */
 .car-bar-track {
   position: relative;
   height: 100%;
   overflow: hidden;
-  border-radius: 8px 8px 50% 50% / 8px 8px 34px 34px;
+  border-radius: 8px;
   background: #091620;
   border: 1px solid rgba(82, 159, 184, .32);
 }
@@ -1831,16 +1833,16 @@ body.page-slagging #ffftsGaugeChart {
    solid colour chosen from the score's zone (green/yellow/red via
    getOverallZoneColor), set inline by the JS — not the fixed rainbow
    gradient. The gradient below is just a neutral fallback in case JS
-   hasn't set a colour yet. Rounded bottom to match .car-bar-track's
-   test-tube silhouette, so the "liquid" pools into the tube's rounded
-   base instead of sitting square. */
+   hasn't set a colour yet. Flat bottom to match .car-bar-track's
+   cylinder silhouette, so the "liquid" sits square instead of pooling
+   into a rounded test-tube base. */
 .car-bar-fill {
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
   height: 0%; /* set inline per score */
-  border-radius: 0 0 50% 50% / 0 0 34px 34px;
+  border-radius: 0;
   background: #3ddc84; /* fallback only — overridden inline per zone */
   box-shadow: 0 0 16px rgba(61, 220, 132, .4);
   transition: height 1.05s cubic-bezier(.2, .78, .18, 1), filter .5s ease, background .4s ease;
