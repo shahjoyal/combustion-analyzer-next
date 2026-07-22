@@ -736,12 +736,35 @@ let scoreMappings = {
                 const _TRACK_D_LEFT  = "M440 470 H210 L60 320 V240 L210 90 H440";
                 const _TRACK_D_RIGHT = "M80 470 H310 L460 320 V240 L310 90 H80";
 
-                function buildCarGaugeSVG(value, minValue, maxValue, colorRanges, size, titleText, statusText, mirror, uid) {
+                function buildCarGaugeSVG(value, minValue, maxValue, colorRanges, size, titleText, statusText, mirror, uid, depositionEnabled) {
                     uid = uid || ("g" + Math.random().toString(36).slice(2, 9));
+                    // Slagging deposition overlay: only gauges opted in via
+                    // depositionEnabled ever show it, and even then only
+                    // once the reading itself is in the "High" zone -- it
+                    // represents real ash/clinker buildup, so it has no
+                    // business appearing on a Low/Moderate reading.
+                    const showDeposition = !!depositionEnabled && statusText === "High";
                     const range = maxValue - minValue;
                     const pct = Math.max(0, Math.min(100, ((value - minValue) / range) * 100));
-                    const zoneColor = _statusColor(statusText);
-                    const zoneGlow = _statusGlow(statusText);
+
+                    // ------------------------------------------------------------
+                    // Previous flat 3-band colour logic (green/yellow/red for
+                    // Low/Moderate/High) -- kept here commented out in case
+                    // we need to fall back to it later.
+                    // ------------------------------------------------------------
+                    // const zoneColor = _statusColor(statusText);
+                    // const zoneGlow = _statusGlow(statusText);
+
+                    // Now reuses the SAME 10-stop colour scale as the overall
+                    // score bar (SCORE_COLOR_STOPS / _scoreToRgb), just
+                    // rescaled from this gauge's own 0..maxValue range onto
+                    // that 0-10 scale first -- so the colour steps every
+                    // maxValue/10 units (every 0.6 for the 0-6 slagging
+                    // gauge, every 0.3 for the 0-3 fouling gauge) instead of
+                    // jumping between 3 hard Low/Moderate/High bands.
+                    const score10 = ((value - minValue) / range) * 10;
+                    const zoneColor = _overallScoreColor(score10);
+                    const zoneGlow = _overallScoreGlow(score10);
                     const den = (maxValue % 1 === 0) ? maxValue : maxValue.toFixed(1);
 
                     const trackD = mirror ? _TRACK_D_LEFT : _TRACK_D_RIGHT;
@@ -807,6 +830,9 @@ let scoreMappings = {
                         <filter id="cgBorderGlow-${uid}" x="-30%" y="-30%" width="160%" height="160%">
                           <feGaussianBlur stdDeviation="3.5"/>
                         </filter>
+                        ${showDeposition ? `<filter id="cgRustShadow-${uid}" x="-50%" y="-50%" width="200%" height="200%">
+                          <feDropShadow dx="0" dy="1" stdDeviation="1.2" flood-color="#000" flood-opacity="0.5"/>
+                        </filter>` : ""}
                       </defs>
                       <style>
                         .cg-border-${uid}{fill:none;stroke:rgba(50,226,241,.82);stroke-width:53;stroke-linecap:round;stroke-linejoin:miter;filter:url(#cgBorderGlow-${uid});}
@@ -825,6 +851,7 @@ let scoreMappings = {
                       <path class="cg-track-edge-${uid}" d="${trackD}"/>
                       <path class="cg-track-${uid}" d="${trackD}"/>
                       <path class="cg-active-${uid} car-gauge-fill-path" data-uid="${uid}" d="${trackD}"/>
+                      ${showDeposition ? `<g class="cg-rust-layer" filter="url(#cgRustShadow-${uid})"></g>` : ""}
 
                       ${tickLabels}
 
@@ -880,9 +907,193 @@ let scoreMappings = {
                     }
                 }
 
+                // ------------------------------------------------------------
+                // Slagging deposition overlay: when the slagging gauge's
+                // status is "High", scatter small irregular rust/clinker
+                // chunks along the filled length of the arc (using the
+                // path's real on-screen geometry via getPointAtLength, so
+                // it always lines up no matter the gauge's rendered size).
+                // Purely decorative -- represents ash/clinker actually
+                // building up on the tube once slagging potential is high.
+                //
+                // Built as three stratified bands instead of one uniform
+                // scatter, from the rim outward: a dark, near-continuous
+                // compacted BASE crust closest to the tube -> an
+                // established MIDDLE layer of mixed chunks overlapping
+                // outward -> a sparse, pale, still-forming OUTER layer of
+                // fresh flecks on the very tip. Each band fades in a beat
+                // after the last, so it visually reads as buildup that
+                // accumulated in stages rather than appearing all at once.
+                // ------------------------------------------------------------
+                function _rustBlobPalette(tones) {
+                    return tones || ["#8a8378", "#6f6a5e", "#9c8f7c", "#5c4d3f", "#77685a", "#a4917a"];
+                }
+
+                // Irregular 6-8 sided lump centered on the origin (later
+                // translated + rotated into place along the arc).
+                function _rustBlobPath(radius) {
+                    const spikes = 6 + Math.floor(Math.random() * 3);
+                    let d = "";
+                    for (let i = 0; i < spikes; i++) {
+                        const angle = (i / spikes) * Math.PI * 2;
+                        const r = radius * (0.65 + Math.random() * 0.55);
+                        const x = Math.cos(angle) * r;
+                        const y = Math.sin(angle) * r;
+                        d += (i === 0 ? "M" : "L") + x.toFixed(1) + " " + y.toFixed(1) + " ";
+                    }
+                    return d + "Z";
+                }
+
+                // Places one stratified band of blobs hugging both rims
+                // along the arc's filled length. `opts` controls how that
+                // band reads (how compacted/fresh it looks):
+                //   edgeOffset   distance from centerline (bigger = further out / closer to the visible tip)
+                //   radius       [min, max] blob radius
+                //   spacing      [min, max] gap between placements along the arc
+                //   gapChance    probability of skipping a placement (0 = solid crust, higher = patchier)
+                //   jitter       how loosely each blob wobbles off the rim
+                //   palette      colour tones for this band
+                //   opacity      [min, max]
+                //   cracks       probability of a dark crack line through a blob (0 disables)
+                function _placeRustBand(group, path, len, filledLen, opts) {
+                    const NS = "http://www.w3.org/2000/svg";
+                    const palette = opts.palette;
+                    let dist = 6;
+                    while (dist < filledLen - 4) {
+                        const p = path.getPointAtLength(dist);
+                        const pAhead = path.getPointAtLength(Math.min(len, dist + 1));
+                        const angleDeg = Math.atan2(pAhead.y - p.y, pAhead.x - p.x) * 180 / Math.PI;
+                        const nx = Math.cos((angleDeg + 90) * Math.PI / 180);
+                        const ny = Math.sin((angleDeg + 90) * Math.PI / 180);
+                        const alongJitter = (Math.random() - 0.5) * (opts.jitter * 1.3);
+
+                        [1, -1].forEach(side => {
+                            if (Math.random() < opts.gapChance) return;
+                            const edgeJitter = (Math.random() - 0.5) * opts.jitter;
+                            const offset = side * (opts.edgeOffset + edgeJitter);
+                            const cx = p.x + nx * offset + alongJitter;
+                            const cy = p.y + ny * offset + alongJitter;
+
+                            const blobRadius = opts.radius[0] + Math.random() * (opts.radius[1] - opts.radius[0]);
+                            const blob = document.createElementNS(NS, "path");
+                            blob.setAttribute("d", _rustBlobPath(blobRadius));
+                            blob.setAttribute("transform", `translate(${cx.toFixed(1)},${cy.toFixed(1)}) rotate(${(Math.random() * 360).toFixed(0)})`);
+                            blob.setAttribute("fill", palette[Math.floor(Math.random() * palette.length)]);
+                            blob.setAttribute("opacity", (opts.opacity[0] + Math.random() * (opts.opacity[1] - opts.opacity[0])).toFixed(2));
+                            blob.setAttribute("class", "cg-rust-blob");
+                            group.appendChild(blob);
+
+                            if (opts.cracks > 0 && Math.random() < opts.cracks) {
+                                const crackLen = blobRadius * 1.3;
+                                const crackAngle = Math.random() * Math.PI * 2;
+                                const crack = document.createElementNS(NS, "line");
+                                crack.setAttribute("x1", (cx - Math.cos(crackAngle) * crackLen / 2).toFixed(1));
+                                crack.setAttribute("y1", (cy - Math.sin(crackAngle) * crackLen / 2).toFixed(1));
+                                crack.setAttribute("x2", (cx + Math.cos(crackAngle) * crackLen / 2).toFixed(1));
+                                crack.setAttribute("y2", (cy + Math.sin(crackAngle) * crackLen / 2).toFixed(1));
+                                crack.setAttribute("stroke", "#2b241c");
+                                crack.setAttribute("stroke-width", "1.1");
+                                crack.setAttribute("opacity", "0.55");
+                                crack.setAttribute("stroke-linecap", "round");
+                                group.appendChild(crack);
+                            }
+                        });
+
+                        dist += opts.spacing[0] + Math.random() * (opts.spacing[1] - opts.spacing[0]);
+                    }
+                }
+
+                function renderSlaggingDeposition(container) {
+                    const svg = container.querySelector("svg");
+                    if (!svg) return;
+                    const layer = svg.querySelector(".cg-rust-layer");
+                    const path = svg.querySelector(".car-gauge-fill-path");
+                    if (!layer || !path) return; // not a deposition-enabled gauge, or status isn't High
+
+                    layer.innerHTML = ""; // clear any previous run (re-Calculate)
+
+                    const len = path.getTotalLength();
+                    const pct = parseFloat(svg.getAttribute("data-pct")) || 0;
+                    const filledLen = len * (pct / 100);
+                    if (filledLen < 10) return;
+
+                    const NS = "http://www.w3.org/2000/svg";
+                    // The active arc is drawn at stroke-width:38, so its
+                    // colour band runs roughly +/-19 either side of the
+                    // centerline. Keep every band confined to the rim
+                    // area (not the middle), so the colour still shows
+                    // clearly down the center -- real ash clings to the
+                    // edges of a tube, not the face.
+                    const trackHalfWidth = 19;
+
+                    // Base crust -- oldest, darkest, most compacted, sits
+                    // closest to the coloured track and covers almost
+                    // continuously.
+                    const baseGroup = document.createElementNS(NS, "g");
+                    _placeRustBand(baseGroup, path, len, filledLen, {
+                        edgeOffset: trackHalfWidth - 6,
+                        radius: [4, 7],
+                        spacing: [5, 8],
+                        gapChance: 0.05,
+                        jitter: 3,
+                        palette: _rustBlobPalette(["#4a3f33", "#5c4d3f", "#443a2e"]),
+                        opacity: [0.88, 1],
+                        cracks: 0.25
+                    });
+                    layer.appendChild(baseGroup);
+
+                    // Middle layer -- established, mixed chunks, the
+                    // "main body" of the deposit, overlapping outward
+                    // from the base crust.
+                    const midGroup = document.createElementNS(NS, "g");
+                    _placeRustBand(midGroup, path, len, filledLen, {
+                        edgeOffset: trackHalfWidth - 2,
+                        radius: [3.5, 8],
+                        spacing: [7, 13],
+                        gapChance: 0.15,
+                        jitter: 6,
+                        palette: _rustBlobPalette(),
+                        opacity: [0.72, 0.98],
+                        cracks: 0.3
+                    });
+                    layer.appendChild(midGroup);
+
+                    // Outer layer -- newest, palest, sparsest flecks
+                    // still forming right on the outermost tip; no
+                    // cracks yet, too fresh.
+                    const outerGroup = document.createElementNS(NS, "g");
+                    _placeRustBand(outerGroup, path, len, filledLen, {
+                        edgeOffset: trackHalfWidth + 2,
+                        radius: [2, 4],
+                        spacing: [10, 16],
+                        gapChance: 0.35,
+                        jitter: 8,
+                        palette: _rustBlobPalette(["#a4917a", "#9c8f7c", "#b7a68c"]),
+                        opacity: [0.5, 0.82],
+                        cracks: 0
+                    });
+                    layer.appendChild(outerGroup);
+
+                    // Staggered fade-in -- base crust settles in first,
+                    // then the middle layer builds on it, then the fresh
+                    // outer flecks last, reading as sequential buildup
+                    // rather than one layer popping in all at once.
+                    [[baseGroup, 1100], [midGroup, 1450], [outerGroup, 1800]].forEach(([g, delay]) => {
+                        g.style.opacity = "0";
+                        g.style.transition = "opacity .6s ease";
+                        requestAnimationFrame(() => {
+                            setTimeout(() => { g.style.opacity = "1"; }, delay);
+                        });
+                    });
+                }
+
                 // ---- Slagging dial ----
+                // Deposition/rust buildup no longer renders here — the
+                // gauge itself now stays clean. The same effect is applied
+                // to the overall-score tube instead (see createOverallGraph /
+                // renderOverallDeposition below), scaled by FSPD.
                 const fspGraphContainer = document.getElementById("fspGaugeChart");
-                fspGraphContainer.innerHTML = buildCarGaugeSVG(FSP, 0, 6, fspColorRanges, GAUGE_W, "SLAGGING\nPOTENTIAL", FSPD, true, "fsp");
+                fspGraphContainer.innerHTML = buildCarGaugeSVG(FSP, 0, 6, fspColorRanges, GAUGE_W, "SLAGGING\nPOTENTIAL", FSPD, true, "fsp", false);
                 animateGaugeReveal(fspGraphContainer);
 
                 // ---- central overall-score stack: value floats above the
@@ -964,6 +1175,94 @@ let scoreMappings = {
                     updateTableLayout();
                 };
 
+                // Makes an element (the score tube's .car-vertical-scale)
+                // a real click-and-drag 3D object via CSS rotateX/rotateY,
+                // rendered with actual depth thanks to that element's own
+                // transform-style:preserve-3d + the perspective set on its
+                // parent .car-center-bar-wrap (see CSS). Mouse AND touch
+                // drag both rotate it; released position stays put (like
+                // picking up and turning a real tube) rather than
+                // snapping back; double-click/double-tap resets it.
+                function _makeTube3DInteractive(el) {
+                    let rotX = -8, rotY = 0; // slight default tilt so it doesn't look flat even before interacting
+                    let dragging = false, moved = false;
+                    let startX = 0, startY = 0, startRotX = rotX, startRotY = rotY;
+                    const MIN_X = -22, MAX_X = 22, MIN_Y = -55, MAX_Y = 55;
+                    const MOVE_THRESHOLD = 4;
+
+                    function apply() {
+                        el.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+                    }
+
+                    function onDown(x, y) {
+                        dragging = true;
+                        moved = false;
+                        startX = x; startY = y;
+                        startRotX = rotX; startRotY = rotY;
+                        el.style.transition = "none";
+                        el.style.cursor = "grabbing";
+                        window.addEventListener("mousemove", onMouseMoveWin);
+                        window.addEventListener("mouseup", onMouseUpWin);
+                    }
+                    function onMove(x, y) {
+                        if (!dragging) return;
+                        const dx = x - startX, dy = y - startY;
+                        if (Math.abs(dx) > MOVE_THRESHOLD || Math.abs(dy) > MOVE_THRESHOLD) moved = true;
+                        rotY = Math.max(MIN_Y, Math.min(MAX_Y, startRotY + dx * 0.4));
+                        rotX = Math.max(MIN_X, Math.min(MAX_X, startRotX - dy * 0.4));
+                        apply();
+                    }
+                    function onUp() {
+                        if (!dragging) return;
+                        dragging = false;
+                        el.style.transition = "transform .5s cubic-bezier(.2,.8,.2,1)";
+                        el.style.cursor = "grab";
+                        window.removeEventListener("mousemove", onMouseMoveWin);
+                        window.removeEventListener("mouseup", onMouseUpWin);
+                    }
+                    // Named (not inline) so they can be removed again in
+                    // onUp -- kept scoped to only exist while this specific
+                    // tube is actually being dragged, since a fresh tube
+                    // (and a fresh _makeTube3DInteractive call) is built on
+                    // every Calculate; leaving these permanently on
+                    // `window` would leak one more pair of listeners per
+                    // recalculation.
+                    function onMouseMoveWin(e) { onMove(e.clientX, e.clientY); }
+                    function onMouseUpWin(e) { onUp(); }
+
+                    el.addEventListener("mousedown", e => { onDown(e.clientX, e.clientY); e.preventDefault(); });
+                    el.addEventListener("touchmove", e => { const t = e.touches[0]; onMove(t.clientX, t.clientY); }, { passive: true });
+                    el.addEventListener("touchend", onUp);
+
+                    // A rotate-drag shouldn't also toggle the S+F/O&M
+                    // breakdown text that a plain click on the bar
+                    // normally does -- swallow the click that follows a
+                    // real drag, but let a genuine tap/click through.
+                    el.addEventListener("click", e => {
+                        if (moved) { e.stopPropagation(); moved = false; }
+                    });
+
+                    el.addEventListener("dblclick", e => {
+                        e.stopPropagation();
+                        rotX = -8; rotY = 0;
+                        el.style.transition = "transform .5s cubic-bezier(.2,.8,.2,1)";
+                        apply();
+                    });
+
+                    apply();
+                    // Brief "this rotates" hint on first render so the
+                    // interaction isn't undiscoverable.
+                    requestAnimationFrame(() => {
+                        el.style.transition = "transform 1.1s ease-in-out";
+                        rotY = 16;
+                        apply();
+                        setTimeout(() => {
+                            rotY = 0;
+                            apply();
+                        }, 1100);
+                    });
+                }
+
                 // Builds the overall-score stack. Same functionality as the
                 // original narrow bar — fill height is proportional to the
                 // score out of 10 (e.g. score of 2 = 20% filled) and the
@@ -974,7 +1273,7 @@ let scoreMappings = {
                 // box itself out of vertical alignment with the circles —
                 // that's what was breaking the top border's connection to
                 // the circle rings.
-                function createOverallGraph(totalScore, checkboxScore, overallTotal) {
+                function createOverallGraph(totalScore, checkboxScore, overallTotal, slaggingLevel) {
                     const maxValue = 10;
                     const clampedTotal = Math.min(Math.max(overallTotal, 0), maxValue);
                     const fillPct = (clampedTotal / maxValue) * 100;
@@ -1005,7 +1304,7 @@ let scoreMappings = {
                     carCenterBar.id = "carCenterBar";
                     carCenterBar.setAttribute(
                         "data-tooltip",
-                        `${overallTotal.toFixed(1)} / ${maxValue} \u00B7 ${getOverallZoneLabel(clampedTotal)}`
+                        `${overallTotal.toFixed(1)} / ${maxValue} \u00B7 ${getOverallZoneLabel(clampedTotal)} \u00B7 drag to rotate`
                     );
 
                     // Tick labels — same relative spacing as i.html's 0/25/50/75/100,
@@ -1038,6 +1337,34 @@ let scoreMappings = {
                     barFill.style.background = oz.color;
                     barTrack.appendChild(barFill);
 
+                    // Chemical-glass touch: a handful of small bubbles drifting
+                    // up through the liquid, each with a randomised horizontal
+                    // position/size/speed so they don't all move in lockstep.
+                    // Only added when there's actually some liquid for them to
+                    // rise through.
+                    if (basePct > 2) {
+                        const bubbleCount = 6;
+                        // --car-connector-h (see CSS) is 170px at every
+                        // breakpoint; minus the housing/track padding and
+                        // borders that's ~154px of real liquid travel space
+                        // at 100% fill. Bubbles should stay well inside the
+                        // current liquid, not reach all the way to its
+                        // surface, so scale by the fill fraction and back
+                        // off to ~70% of that.
+                        const approxTrackPx = 154;
+                        const liquidPx = approxTrackPx * (basePct / 100);
+                        for (let i = 0; i < bubbleCount; i++) {
+                            const bubble = document.createElement("div");
+                            bubble.className = "car-bar-bubble";
+                            bubble.style.setProperty("--bubble-left", `${10 + Math.random() * 80}%`);
+                            bubble.style.setProperty("--bubble-size", `${2.5 + Math.random() * 3}px`);
+                            bubble.style.setProperty("--bubble-duration", `${2.4 + Math.random() * 2.2}s`);
+                            bubble.style.setProperty("--bubble-delay", `${-Math.random() * 4}s`); // negative delay so bubbles are already mid-flight on load, not all synced
+                            bubble.style.setProperty("--bubble-rise", `${-(liquidPx * (0.55 + Math.random() * 0.3)).toFixed(0)}px`);
+                            barFill.appendChild(bubble);
+                        }
+                    }
+
                     // Checkbox (O&M) highlight segment — sits directly on top
                     // of the base fill, showing only the extra score added by
                     // the ticked checkboxes. Original portion's colour/height
@@ -1060,7 +1387,30 @@ let scoreMappings = {
                     barTrack.appendChild(barHighlight);
 
                     verticalScale.appendChild(barTrack);
+
+                    // 3D depth layers -- see .car-vertical-scale /
+                    // .car-tube-glasspane / .car-tube-edge-* in the CSS.
+                    // Siblings of barTrack (not inside it) so they sit at
+                    // their own translateZ in front of/around the liquid
+                    // rather than being clipped by barTrack's overflow:hidden.
+                    const glassPane = document.createElement("div");
+                    glassPane.className = "car-tube-glasspane";
+                    verticalScale.appendChild(glassPane);
+
+                    const edgeLeft = document.createElement("div");
+                    edgeLeft.className = "car-tube-edge-left";
+                    verticalScale.appendChild(edgeLeft);
+
+                    const edgeRight = document.createElement("div");
+                    edgeRight.className = "car-tube-edge-right";
+                    verticalScale.appendChild(edgeRight);
+
                     carCenterBar.appendChild(verticalScale);
+
+                    // Makes the tube a real click-and-drag 3D object: rotate
+                    // it around to see it from other angles, same spirit as
+                    // the 3D coal-AFT plot elsewhere on this page.
+                    _makeTube3DInteractive(verticalScale);
 
                     // Value — absolutely positioned just above the box's top border.
                     // Appended to the stack (not the bar) so the bar can safely
@@ -1114,6 +1464,7 @@ let scoreMappings = {
                             barFill.style.height = `${basePct}%`;
                             barFill.style.filter = `drop-shadow(0 0 14px ${oz.glow})`;
                             barFillCheckbox.style.height = `${checkboxPct}%`;
+                            renderOverallDeposition(barTrack, basePct, slaggingLevel);
                         });
                     });
                     (function animateOverallNumber() {
@@ -1128,6 +1479,144 @@ let scoreMappings = {
                         }
                         requestAnimationFrame(step);
                     })();
+                }
+
+                // ------------------------------------------------------------
+                // Deposition/rust buildup — moved here from the slagging
+                // gauge (see the Slagging dial section above, which now
+                // always renders clean). Back to small particles (like the
+                // original gauge effect) via _placeRustBand/_rustBlobPath —
+                // just smaller, and with continuous (not sparse) coverage
+                // for both High and Moderate.
+                //
+                // Severity tracks the slagging status (FSPD) directly:
+                //   High     -> full 3-layer buildup, small particles,
+                //               continuous along the whole border
+                //   Moderate -> a single thin layer, small particles,
+                //               still continuous (no gaps) — just one layer
+                //               instead of three
+                //   Low      -> nothing at all — tube stays clean
+                // ------------------------------------------------------------
+                function renderOverallDeposition(barTrackEl, basePct, level) {
+                    if (!barTrackEl || level === "Low" || !level) return;
+
+                    // Clear any leftover overlay from a previous Calculate run.
+                    const prevOverlay = barTrackEl.querySelector('.overall-rust-svg');
+                    if (prevOverlay) prevOverlay.remove();
+
+                    if (getComputedStyle(barTrackEl).position === 'static') {
+                        barTrackEl.style.position = 'relative';
+                    }
+
+                    const w = barTrackEl.clientWidth;
+                    const h = barTrackEl.clientHeight;
+                    if (!w || !h) return;
+
+                    const filledPx = h * (basePct / 100);
+                    if (filledPx < 10) return;
+
+                    const NS = "http://www.w3.org/2000/svg";
+                    const svg = document.createElementNS(NS, "svg");
+                    svg.setAttribute("class", "overall-rust-svg");
+                    svg.setAttribute("width", w);
+                    svg.setAttribute("height", h);
+                    svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+                    svg.style.position = "absolute";
+                    svg.style.left = "0";
+                    svg.style.top = "0";
+                    svg.style.overflow = "visible";
+                    svg.style.pointerEvents = "none";
+                    svg.style.zIndex = "3";
+                    barTrackEl.appendChild(svg);
+
+                    // Two straight vertical guide paths hugging the tube's
+                    // left/right rims (a straight-line stand-in for the
+                    // gauge's curved arc) — measured via getPointAtLength,
+                    // same as _placeRustBand expects.
+                    const yBottom = h;
+                    const yTop = h - filledPx;
+                    const edgeMargin = Math.max(2, w * 0.1);
+
+                    const leftPath = document.createElementNS(NS, "path");
+                    leftPath.setAttribute("d", `M${edgeMargin} ${yBottom} L${edgeMargin} ${yTop}`);
+                    leftPath.setAttribute("fill", "none");
+                    leftPath.setAttribute("stroke", "none");
+                    svg.appendChild(leftPath);
+
+                    const rightPath = document.createElementNS(NS, "path");
+                    rightPath.setAttribute("d", `M${w - edgeMargin} ${yBottom} L${w - edgeMargin} ${yTop}`);
+                    rightPath.setAttribute("fill", "none");
+                    rightPath.setAttribute("stroke", "none");
+                    svg.appendChild(rightPath);
+
+                    const isHigh = level === "High";
+                    const edgeOffset = Math.max(2, w * 0.05);
+
+                    // gapChance is kept low for BOTH levels now (continuous
+                    // coverage along the whole border, no gaps) — the only
+                    // difference between High and Moderate is layer count
+                    // and how pale/thin that single layer is for Moderate.
+                    const baseGroup = document.createElementNS(NS, "g");
+                    [leftPath, rightPath].forEach(p => {
+                        _placeRustBand(baseGroup, p, filledPx, filledPx, {
+                            edgeOffset,
+                            radius: isHigh ? [1.5, 2.8] : [1.2, 2.2],
+                            spacing: isHigh ? [2.5, 4] : [3, 5],
+                            gapChance: isHigh ? 0.03 : 0.08,
+                            jitter: isHigh ? 2 : 1.5,
+                            palette: _rustBlobPalette(isHigh ? ["#4a3f33", "#5c4d3f", "#443a2e"] : ["#8a8378", "#9c8f7c"]),
+                            opacity: isHigh ? [0.85, 1] : [0.4, 0.65],
+                            cracks: isHigh ? 0.15 : 0
+                        });
+                    });
+                    svg.appendChild(baseGroup);
+
+                    if (isHigh) {
+                        // Moderate stays at just the base layer (thin,
+                        // pale, but still continuous); High builds two
+                        // more layers on top so it reads as real,
+                        // established buildup — same staged-accumulation
+                        // feel as before, just with smaller particles.
+                        const midGroup = document.createElementNS(NS, "g");
+                        [leftPath, rightPath].forEach(p => {
+                            _placeRustBand(midGroup, p, filledPx, filledPx, {
+                                edgeOffset: edgeOffset + 2.5,
+                                radius: [1.3, 2.5],
+                                spacing: [3, 5],
+                                gapChance: 0.06,
+                                jitter: 2,
+                                palette: _rustBlobPalette(),
+                                opacity: [0.7, 0.95],
+                                cracks: 0.2
+                            });
+                        });
+                        svg.appendChild(midGroup);
+
+                        const outerGroup = document.createElementNS(NS, "g");
+                        [leftPath, rightPath].forEach(p => {
+                            _placeRustBand(outerGroup, p, filledPx, filledPx, {
+                                edgeOffset: edgeOffset + 5,
+                                radius: [0.9, 1.8],
+                                spacing: [3.5, 5.5],
+                                gapChance: 0.12,
+                                jitter: 2.5,
+                                palette: _rustBlobPalette(["#a4917a", "#9c8f7c", "#b7a68c"]),
+                                opacity: [0.45, 0.78],
+                                cracks: 0
+                            });
+                        });
+                        svg.appendChild(outerGroup);
+
+                        [[baseGroup, 1100], [midGroup, 1450], [outerGroup, 1800]].forEach(([g, delay]) => {
+                            g.style.opacity = "0";
+                            g.style.transition = "opacity .6s ease";
+                            requestAnimationFrame(() => setTimeout(() => { g.style.opacity = "1"; }, delay));
+                        });
+                    } else {
+                        baseGroup.style.opacity = "0";
+                        baseGroup.style.transition = "opacity .6s ease";
+                        requestAnimationFrame(() => setTimeout(() => { baseGroup.style.opacity = "1"; }, 900));
+                    }
                 }
 
                 // Zone color for the overall-score connector fill — pulled
@@ -1178,7 +1667,7 @@ let scoreMappings = {
                 document.getElementById("resultsContainer").style.display = "flex";
                 document.getElementById("blendValues").style.display = "flex";
                 blendPropertiesBtn.style.display = "block";
-                createOverallGraph(totalScore, checkboxScore, overallTotal);
+                createOverallGraph(totalScore, checkboxScore, overallTotal, FSPD);
 
 // The ternary card / advanced dashboard / toggle button are now
 // persistent static elements (see the HTML) instead of being destroyed
@@ -1328,25 +1817,49 @@ function buildAdvancedDashboard(container, d) {
     updateKeyIndicatorsRow(d);
 }
 
+// Remembers the last-drawn series for each advanced chart so the
+// zoomed/expanded-view blink cycles (and the 3D tendency map rebuild)
+// can reuse the exact same numbers without re-deriving them from `d`.
+let _lastRadarSeries = null;      // { categories, values }
+let _lastAshFusionRefs = null;    // [{ label, value, color }]
+
 function drawRadarChart(d) {
     const el = document.getElementById('radarChart');
     if (!el || !window.Plotly) return;
 
     const categories = ['SiO\u2082', 'Al\u2082O\u2083', 'Fe\u2082O\u2083', 'CaO', 'MgO', 'Na\u2082O + K\u2082O'];
     const values = [d.SIO, d.ALO, d.FEO, d.CAO, d.MGO, (d.NAO || 0) + (d.KO || 0)];
+    _lastRadarSeries = { categories, values };
     const r = values.concat([values[0]]);
     const theta = categories.concat([categories[0]]);
 
-    const data = [{
-        type: 'scatterpolar',
-        r: r,
-        theta: theta,
-        fill: 'toself',
-        name: 'Blend',
-        line: { color: '#4f8dff' },
-        fillcolor: 'rgba(79,141,255,0.28)',
-        marker: { color: '#4f8dff', size: 6 }
-    }];
+    const data = [
+        {
+            type: 'scatterpolar',
+            r: r,
+            theta: theta,
+            fill: 'toself',
+            name: 'Blend',
+            line: { color: '#4f8dff' },
+            fillcolor: 'rgba(79,141,255,0.28)',
+            marker: { color: '#4f8dff', size: 6 }
+        },
+        // Highlight overlay -- starts empty; the zoomed-view blink cycle
+        // (see _startRadarBlink) restyles just this trace to flash one
+        // oxide's marker + name/value at a time, without touching the
+        // 'Blend' trace above.
+        {
+            type: 'scatterpolar',
+            r: [], theta: [], text: [],
+            mode: 'markers+text',
+            textposition: 'top center',
+            textfont: { color: '#ffe066', size: 12 },
+            marker: { color: '#ffe066', size: 14, line: { color: '#fff', width: 2 } },
+            hoverinfo: 'skip',
+            showlegend: false,
+            name: 'Highlight'
+        }
+    ];
     const layout = {
         polar: {
             bgcolor: 'transparent',
@@ -1362,6 +1875,43 @@ function drawRadarChart(d) {
     Plotly.newPlot(el, data, layout, { displayModeBar: false, responsive: true });
 }
 
+// Cycles the radar chart's highlight trace through every oxide category
+// one at a time -- each vertex flashes bigger with its own name + %
+// value shown, no hover needed. Only meant to run while the advanced
+// card is in its zoomed/expanded view (started/stopped there).
+function _startRadarBlink(el) {
+    if (!window.Plotly || !el || !_lastRadarSeries || !_lastRadarSeries.categories.length) return null;
+    const { categories, values } = _lastRadarSeries;
+    let idx = 0, stopped = false, timeoutId = null;
+    const VISIBLE_MS = 1300, GAP_MS = 250;
+
+    function clearHighlight() {
+        return Plotly.restyle(el, { r: [[]], theta: [[]], text: [[]] }, [1]).catch(() => {});
+    }
+    function showNext() {
+        if (stopped || !document.body.contains(el)) return;
+        const v = values[idx];
+        const label = `${categories[idx]}: ${(typeof v === 'number' ? v.toFixed(2) : v)}%`;
+        Plotly.restyle(el, { r: [[v]], theta: [[categories[idx]]], text: [[label]] }, [1]).catch(() => {});
+        idx = (idx + 1) % categories.length;
+        timeoutId = setTimeout(hide, VISIBLE_MS);
+    }
+    function hide() {
+        if (stopped) return;
+        clearHighlight();
+        timeoutId = setTimeout(showNext, GAP_MS);
+    }
+
+    showNext();
+    return {
+        stop() {
+            stopped = true;
+            if (timeoutId) clearTimeout(timeoutId);
+            clearHighlight();
+        }
+    };
+}
+
 function drawAshFusionChart(d) {
     const el = document.getElementById('ashFusionChart');
     if (!el || !window.Plotly) return;
@@ -1371,6 +1921,7 @@ function drawAshFusionChart(d) {
         { label: 'HT', value: d.HT, color: '#ffb703' },
         { label: 'FT', value: d.FT, color: '#ff5b5b' }
     ].filter(r => r.value != null && !isNaN(r.value));
+    _lastAshFusionRefs = refs;
 
     const shapes = refs.map(r => ({
         type: 'line', xref: 'paper', x0: 0, x1: 1, y0: r.value, y1: r.value,
@@ -1400,9 +1951,52 @@ function drawAshFusionChart(d) {
     Plotly.newPlot(el, data, layout, { displayModeBar: false, responsive: true });
 }
 
+// Cycles emphasis through the ash-fusion chart's IDT/HT/FT lines one at
+// a time (thickened + glowing), since the labels themselves are already
+// always visible and there's nothing to reveal on hover here -- the
+// "blink" instead calls out each threshold in turn.
+function _startAshFusionBlink(el) {
+    if (!window.Plotly || !el || !_lastAshFusionRefs || !_lastAshFusionRefs.length) return null;
+    const refs = _lastAshFusionRefs;
+    let idx = 0, stopped = false, timeoutId = null;
+    const VISIBLE_MS = 1300, GAP_MS = 250;
+
+    function baseShapes() {
+        return refs.map(r => ({
+            type: 'line', xref: 'paper', x0: 0, x1: 1, y0: r.value, y1: r.value,
+            line: { color: r.color, width: 2 }
+        }));
+    }
+    function showNext() {
+        if (stopped || !document.body.contains(el)) return;
+        const shapes = baseShapes();
+        shapes[idx].line.width = 6;
+        Plotly.relayout(el, { shapes }).catch(() => {});
+        idx = (idx + 1) % refs.length;
+        timeoutId = setTimeout(hide, VISIBLE_MS);
+    }
+    function hide() {
+        if (stopped) return;
+        Plotly.relayout(el, { shapes: baseShapes() }).catch(() => {});
+        timeoutId = setTimeout(showNext, GAP_MS);
+    }
+
+    showNext();
+    return {
+        stop() {
+            stopped = true;
+            if (timeoutId) clearTimeout(timeoutId);
+            if (document.body.contains(el)) Plotly.relayout(el, { shapes: baseShapes() }).catch(() => {});
+        }
+    };
+}
+
+let _lastTendencyData = null; // remembers `d` so the zoomed view can rebuild this chart as 3D and drawTendencyMapChart() can rebuild it back to 2D on collapse
+
 function drawTendencyMapChart(d) {
     const el = document.getElementById('tendencyMapChart');
     if (!el || !window.Plotly) return;
+    _lastTendencyData = d;
 
     // Background field is a simple visual gradient (like the color bands
     // already used on the FSP/FFFTS gauges) — not a fitted model. The
@@ -1445,6 +2039,62 @@ function drawTendencyMapChart(d) {
         showlegend: false
     };
     Plotly.newPlot(el, data, layout, { displayModeBar: false, responsive: true });
+}
+
+// 3D counterpart of the tendency map, used only in the zoomed/expanded
+// advanced view: the same background field, but as a real rotatable
+// surface (type 'surface') instead of a flat contour, with the blend's
+// point lifted onto it as a scatter3d marker. Same data/colours as the
+// 2D card -- just given real depth for the enlarged view.
+function _buildTendencyMap3D(d) {
+    const n = 30;
+    const xs = [], ys = [], zs = [];
+    for (let i = 0; i < n; i++) xs.push(i / (n - 1));
+    for (let j = 0; j < n; j++) ys.push(j / (n - 1));
+    for (let j = 0; j < n; j++) {
+        const row = [];
+        for (let i = 0; i < n; i++) row.push((1 - xs[i]) * 0.5 + ys[j] * 0.5);
+        zs.push(row);
+    }
+
+    const x = d.SIO / ((d.SIO + d.ALO) || 1);
+    const y = d.CAO / ((d.CAO + d.MGO) || 1);
+    const zAtPoint = (1 - x) * 0.5 + y * 0.5;
+    const pointLabel = d.FFFD ? (d.FFFD + ' Fouling') : '';
+
+    const data = [
+        {
+            type: 'surface', x: xs, y: ys, z: zs, showscale: false,
+            colorscale: [[0, '#2ecc71'], [0.5, '#f1c40f'], [1, '#e74c3c']],
+            opacity: 0.9,
+            contours: { z: { show: true, usecolormap: true, highlightcolor: '#fff', project: { z: true } } },
+            hoverinfo: 'skip'
+        },
+        {
+            type: 'scatter3d', mode: 'markers+text',
+            x: [x], y: [y], z: [zAtPoint + 0.05],
+            text: [pointLabel], textposition: 'top center',
+            textfont: { color: '#fff', size: 12 },
+            marker: { size: 6, color: '#fff', line: { color: '#0a1a44', width: 2 } },
+            hoverinfo: 'text', showlegend: false
+        }
+    ];
+    const layout = {
+        autosize: true,
+        margin: { l: 0, r: 0, t: 20, b: 0 },
+        paper_bgcolor: 'transparent',
+        plot_bgcolor: 'transparent',
+        showlegend: false,
+        scene: {
+            bgcolor: 'transparent',
+            camera: { eye: { x: 1.4, y: 1.4, z: 1.1 } },
+            xaxis: { title: { text: 'SiO\u2082 / (SiO\u2082 + Al\u2082O\u2083)', font: { color: '#9db2dd', size: 10 } }, gridcolor: 'rgba(255,255,255,0.15)', tickfont: { color: '#9db2dd', size: 9 }, backgroundcolor: 'rgba(0,0,0,0)' },
+            yaxis: { title: { text: 'CaO / (CaO + MgO)', font: { color: '#9db2dd', size: 10 } }, gridcolor: 'rgba(255,255,255,0.15)', tickfont: { color: '#9db2dd', size: 9 }, backgroundcolor: 'rgba(0,0,0,0)' },
+            zaxis: { title: { text: 'Fouling Tendency', font: { color: '#9db2dd', size: 10 } }, gridcolor: 'rgba(255,255,255,0.15)', tickfont: { color: '#9db2dd', size: 9 }, backgroundcolor: 'rgba(0,0,0,0)' }
+        },
+        font: { color: '#f4f8ff' }
+    };
+    return { data, layout };
 }
 
 function updateKeyIndicatorsRow(d) {
@@ -1999,7 +2649,8 @@ function _build3DExpandedPlot() {
         showlegend: false,
         scene: {
             bgcolor: 'rgba(0,0,0,0)',
-            camera: { eye: { x: 1.5, y: 1.5, z: 0.9 } },
+            aspectmode: 'cube', // forces the plot's bounding box to render as a literal cube
+            camera: { eye: { x: 1.5, y: 1.5, z: 0.9 }, center: { x: 0, y: 0, z: 0 }, up: { x: 0, y: 0, z: 1 } },
             xaxis: {
                 title: { text: "Thermal Stability (Acidic Oxides %)", font: AXIS_LABEL_FONT },
                 showticklabels: true,
@@ -2032,6 +2683,95 @@ function _build3DExpandedPlot() {
     };
 
     return { data, layout };
+}
+
+/* -----------------------------------------------------------------------
+   Cube view helpers
+   Turns the expanded 3D scatter into a literal cube (fixed equal-aspect
+   bounding box + wireframe edges) and adds camera "presets" so rotating
+   isn't the only way to focus on one thing: the default/Overview preset
+   shows every coal blended together in one view (same as before), while
+   clicking a coal button (or double-clicking the cube) snaps the camera
+   to look at that coal's corner of the box and fades the rest out — or
+   a pair of coals, showing just those two. Nothing here touches the
+   flat 2D ternary card; it only applies inside the expanded 3D view.
+----------------------------------------------------------------------- */
+const CUBE_WIREFRAME_NAME = '__cube_wireframe__';
+
+function _cubePad(min, max) {
+  const span = (max - min) || 1;
+  const pad = span * 0.18 || 0.5;
+  return [min - pad, max + pad];
+}
+
+// Bounding box (with padding) that encloses every point currently on
+// the cube, used both for the wireframe edges and to fix the scene's
+// axis ranges so the box doesn't resize/jump as traces are swapped.
+function _cubeRangesFor(points) {
+  const xs = points.map(p => p.x), ys = points.map(p => p.y), zs = points.map(p => p.z);
+  return {
+    xr: _cubePad(Math.min(...xs), Math.max(...xs)),
+    yr: _cubePad(Math.min(...ys), Math.max(...ys)),
+    zr: _cubePad(Math.min(...zs), Math.max(...zs))
+  };
+}
+
+// Plotly's scene.camera.eye is specified in the scene's own normalized
+// coordinates, not raw data units -- so a point's real (x,y,z) has to be
+// rescaled into roughly -1..1 against the cube's own box before it can
+// be used as a camera direction.
+function _cubeNorm(v, range) {
+  const mid = (range[0] + range[1]) / 2;
+  const half = (range[1] - range[0]) / 2 || 1;
+  return (v - mid) / half;
+}
+
+// Eye position that looks in from just outside the cube, roughly
+// face-on to the given point (or the averaged direction of a couple of
+// points, for a pair preset) -- so "snapping" to a coal genuinely faces
+// that coal's side of the box instead of jumping to an arbitrary angle.
+function _cubeEyeForPoints(pts, ranges) {
+  const R = 2.1; // similar magnitude to the default overview eye
+  let nx = 0, ny = 0, nz = 0;
+  pts.forEach(p => {
+    nx += _cubeNorm(p.x, ranges.xr);
+    ny += _cubeNorm(p.y, ranges.yr);
+    nz += _cubeNorm(p.z, ranges.zr);
+  });
+  nx /= pts.length; ny /= pts.length; nz /= pts.length;
+  const len = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1;
+  return {
+    x: (nx / len) * R,
+    y: (ny / len) * R,
+    z: Math.max((nz / len) * R, 0.55) // keep a bit of elevation so it never looks flat
+  };
+}
+
+// 12-edge box outline as one scatter3d line trace (a `null` after each
+// edge breaks the line so it doesn't zig-zag across the box).
+function _cubeWireframeTrace(ranges) {
+  const [x0, x1] = ranges.xr, [y0, y1] = ranges.yr, [z0, z1] = ranges.zr;
+  const corners = {
+    a: [x0, y0, z0], b: [x1, y0, z0], c: [x1, y1, z0], d: [x0, y1, z0],
+    e: [x0, y0, z1], f: [x1, y0, z1], g: [x1, y1, z1], h: [x0, y1, z1]
+  };
+  const edges = [
+    ['a', 'b'], ['b', 'c'], ['c', 'd'], ['d', 'a'],
+    ['e', 'f'], ['f', 'g'], ['g', 'h'], ['h', 'e'],
+    ['a', 'e'], ['b', 'f'], ['c', 'g'], ['d', 'h']
+  ];
+  const x = [], y = [], z = [];
+  edges.forEach(([p1, p2]) => {
+    x.push(corners[p1][0], corners[p2][0], null);
+    y.push(corners[p1][1], corners[p2][1], null);
+    z.push(corners[p1][2], corners[p2][2], null);
+  });
+  return {
+    type: 'scatter3d', mode: 'lines', name: CUBE_WIREFRAME_NAME,
+    x, y, z,
+    line: { color: 'rgba(50, 226, 241, 0.35)', width: 2 },
+    hoverinfo: 'skip', showlegend: false
+  };
 }
 
 let _ternaryHoverBackdrop = null;
@@ -2067,11 +2807,210 @@ function _getTernaryBlendSignature() {
   return parts.join('|');
 }
 
+// Cycles a single blinking label through every point currently plotted
+// in the expanded 3D scatter (both the "Blended AFT" trace and the
+// "Individual Coal AFT" trace once it's added) -- so each coal's name
+// and AFT is shown automatically in turn instead of requiring a hover.
+// Reuses each trace's own `text` array (the exact same string already
+// used for the hover tooltip), so the auto-shown label always matches
+// what hovering that point would show. Anchored in real 3D coordinates
+// (scene.annotations), so it stays pinned to its point even while the
+// user rotates/zooms the plot.
+function _startAutoCycleLabels(plotDiv, pointsOverride) {
+  if (!window.Plotly || !plotDiv || !plotDiv.data) return null;
+
+  // pointsOverride lets a cube preset (e.g. "just this one coal") cycle
+  // only through the points that preset is focused on, instead of every
+  // point on the plot.
+  let points = pointsOverride;
+  if (!points) {
+    points = [];
+    plotDiv.data.forEach(trace => {
+      if (trace.type !== 'scatter3d' || !trace.x || trace.name === CUBE_WIREFRAME_NAME) return;
+      trace.x.forEach((x, i) => {
+        const y = trace.y[i], z = trace.z[i];
+        const text = Array.isArray(trace.text) ? trace.text[i] : trace.text;
+        if (x == null || y == null || z == null || !text) return;
+        points.push({ x, y, z, text });
+      });
+    });
+  }
+  if (!points.length) return null;
+
+  let idx = 0;
+  let stopped = false;
+  let timeoutId = null;
+  const VISIBLE_MS = 1600; // how long each label stays up
+  const BLINK_GAP_MS = 280; // brief blank "blink" before the next one
+
+  function showNext() {
+    if (stopped || !document.body.contains(plotDiv)) return;
+    const pt = points[idx];
+    idx = (idx + 1) % points.length;
+    Plotly.relayout(plotDiv, {
+      'scene.annotations': [{
+        x: pt.x, y: pt.y, z: pt.z,
+        text: pt.text,
+        showarrow: true,
+        arrowcolor: '#f4f8ff',
+        arrowhead: 2,
+        arrowsize: 0.8,
+        ax: 0, ay: -40,
+        font: { color: '#f4f8ff', size: 13 },
+        bgcolor: 'rgba(6, 14, 22, 0.88)',
+        bordercolor: 'rgba(50, 226, 241, 0.82)',
+        borderwidth: 1,
+        borderpad: 4
+      }]
+    }).catch(() => {});
+    timeoutId = setTimeout(hide, VISIBLE_MS);
+  }
+  function hide() {
+    if (stopped) return;
+    Plotly.relayout(plotDiv, { 'scene.annotations': [] }).catch(() => {});
+    timeoutId = setTimeout(showNext, BLINK_GAP_MS);
+  }
+
+  showNext();
+  return {
+    stop() {
+      stopped = true;
+      if (timeoutId) clearTimeout(timeoutId);
+      if (document.body.contains(plotDiv)) {
+        Plotly.relayout(plotDiv, { 'scene.annotations': [] }).catch(() => {});
+      }
+    }
+  };
+}
+
 function _setupTernaryHoverExpand(wrapper, plotDiv) {
   let expanded = false;
   let individualTraceAdded = false;
   let originalParent = null;
   let originalNextSibling = null;
+  let _autoCycleController = null;
+
+  // Cube-view state -- rebuilt fresh on every expand() since which coals
+  // are selected can change between runs.
+  let _cubeCoalPoints = [];   // [{x,y,z,text,name}] one per distinct coal
+  let _cubeBlendPoints = [];  // [{x,y,z,text}] the blended point(s)
+  let _cubeRanges = null;
+  let _cubePresetOrder = [];  // overview, then each coal, then each pair
+  let _cubePresetCycleIdx = 0;
+
+  function _cubeAllPoints() { return _cubeBlendPoints.concat(_cubeCoalPoints); }
+
+  // Applies one cube "preset": fades marker opacity so only the point(s)
+  // of interest stand out, and snaps the camera to face them.
+  // kind is 'overview' | 'coal' | 'pair'; payload is null | coalIndex | [i,j].
+  async function _applyCubePreset(kind, payload) {
+    if (!window.Plotly || !plotDiv) return;
+    let eye = { x: 1.5, y: 1.5, z: 0.9 };
+    let cyclePoints = _cubeAllPoints();
+    let blendOpacity = 1;
+    let coalOpacities = _cubeCoalPoints.map(() => 1);
+
+    if (kind === 'coal' && _cubeCoalPoints[payload] && _cubeRanges) {
+      const p = _cubeCoalPoints[payload];
+      eye = _cubeEyeForPoints([p], _cubeRanges);
+      coalOpacities = _cubeCoalPoints.map((_, i) => i === payload ? 1 : 0.06);
+      blendOpacity = 0.15;
+      cyclePoints = [p];
+    } else if (kind === 'pair' && Array.isArray(payload) && _cubeRanges) {
+      const [i, j] = payload;
+      const pi = _cubeCoalPoints[i], pj = _cubeCoalPoints[j];
+      if (pi && pj) {
+        eye = _cubeEyeForPoints([pi, pj], _cubeRanges);
+        coalOpacities = _cubeCoalPoints.map((_, k) => (k === i || k === j) ? 1 : 0.06);
+        blendOpacity = 0.15;
+        cyclePoints = [pi, pj];
+      }
+    }
+    // 'overview' (default) leaves everything above at full opacity / the
+    // default camera / cycling through every point.
+
+    try {
+      if (individualTraceAdded) {
+        await Plotly.restyle(plotDiv, { 'marker.opacity': [coalOpacities] }, [1]);
+      }
+      await Plotly.restyle(plotDiv, { 'marker.opacity': [blendOpacity] }, [0]);
+      await Plotly.relayout(plotDiv, {
+        'scene.camera': { eye, center: { x: 0, y: 0, z: 0 }, up: { x: 0, y: 0, z: 1 } }
+      });
+    } catch (e) {}
+
+    if (_autoCycleController) _autoCycleController.stop();
+    _autoCycleController = _startAutoCycleLabels(plotDiv, cyclePoints.length ? cyclePoints : null);
+
+    const bar = wrapper.querySelector('.cube-preset-bar');
+    if (bar) {
+      bar.querySelectorAll('.cube-preset-btn').forEach(b => {
+        b.classList.toggle('cube-preset-active', b.dataset.cubeKind === kind && b.dataset.cubePayload === JSON.stringify(payload));
+      });
+    }
+  }
+
+  // Overview -> each coal -> each adjacent pair -> back to overview.
+  function _cubeNextPreset() {
+    if (!_cubePresetOrder.length) return;
+    _cubePresetCycleIdx = (_cubePresetCycleIdx + 1) % _cubePresetOrder.length;
+    const next = _cubePresetOrder[_cubePresetCycleIdx];
+    _applyCubePreset(next.kind, next.payload);
+  }
+
+  // Builds the row of buttons under the cube: Overview, one per coal,
+  // and one per adjacent pair (only when there's more than one coal).
+  function _buildCubePresetBar() {
+    const oldBar = wrapper.querySelector('.cube-preset-bar');
+    if (oldBar) oldBar.remove();
+    const oldHint = wrapper.querySelector('.cube-preset-hint');
+    if (oldHint) oldHint.remove();
+
+    _cubePresetOrder = [{ kind: 'overview', payload: null, label: 'Overview' }];
+    _cubeCoalPoints.forEach((p, i) => {
+      _cubePresetOrder.push({ kind: 'coal', payload: i, label: p.name });
+    });
+    if (_cubeCoalPoints.length > 1) {
+      for (let i = 0; i < _cubeCoalPoints.length; i++) {
+        const j = (i + 1) % _cubeCoalPoints.length;
+        if (j > i || _cubeCoalPoints.length === 2) {
+          const n1 = _cubeCoalPoints[i].name.split(' ')[0];
+          const n2 = _cubeCoalPoints[j].name.split(' ')[0];
+          _cubePresetOrder.push({ kind: 'pair', payload: [i, j], label: `${n1} + ${n2}` });
+        }
+      }
+    }
+    _cubePresetCycleIdx = 0;
+
+    const bar = document.createElement('div');
+    bar.className = 'cube-preset-bar';
+    _cubePresetOrder.forEach((preset, idx) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'cube-preset-btn';
+      let label = preset.label;
+      if (label.length > 16) label = label.slice(0, 15) + '\u2026';
+      btn.textContent = label;
+      btn.title = preset.kind === 'overview' ? 'Show every coal blended together' : preset.label;
+      btn.dataset.cubeKind = preset.kind;
+      btn.dataset.cubePayload = JSON.stringify(preset.payload);
+      if (idx === 0) btn.classList.add('cube-preset-active');
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        _cubePresetCycleIdx = idx;
+        _applyCubePreset(preset.kind, preset.payload);
+      });
+      bar.appendChild(btn);
+    });
+    wrapper.appendChild(bar);
+
+    if (_cubePresetOrder.length > 1) {
+      const hint = document.createElement('div');
+      hint.className = 'cube-preset-hint';
+      hint.textContent = 'Double-click the cube, or tap below, to focus one coal or a pair';
+      wrapper.appendChild(hint);
+    }
+  }
 
   async function expand() {
     if (expanded) return;
@@ -2139,6 +3078,18 @@ function _setupTernaryHoverExpand(wrapper, plotDiv) {
             svg.style.filter = 'drop-shadow(0 0 3px rgba(244, 248, 255, 0.55))';
           });
         });
+
+        // Double-click cycles Overview -> each coal -> each pair -> back to
+        // Overview. Bound once per plot element (Plotly.newPlot reuses the
+        // same DOM node on repeat expands); returning false suppresses
+        // Plotly's own "double-click resets camera" default.
+        if (!plotDiv._cubeDblClickBound) {
+          plotDiv._cubeDblClickBound = true;
+          plotDiv.on('plotly_doubleclick', () => {
+            _cubeNextPreset();
+            return false;
+          });
+        }
       } catch (e) {}
     }
 
@@ -2153,43 +3104,93 @@ function _setupTernaryHoverExpand(wrapper, plotDiv) {
       }
       const valid = (results || []).filter(r => r && r.aft != null && !isNaN(r.aft) && r.a != null && r.b != null && r.c != null);
 
-      if (expanded && window.Plotly && valid.length) {
-        if (individualTraceAdded) {
-          await Plotly.deleteTraces(plotDiv, [1]);
-          individualTraceAdded = false;
-        }
-        await Plotly.addTraces(plotDiv, {
-          type: 'scatter3d',
-          mode: 'markers',
-          name: 'Individual Coal AFT',
-          x: valid.map(r => r.a),
-          y: valid.map(r => r.b),
-          z: valid.map(r => r.aft),
+      _cubeCoalPoints = valid.map(r => ({
+        x: r.a, y: r.b, z: r.aft, name: r.name,
+        text: `${r.name} — Individual AFT: ${Math.round(Number(r.aft))}°C`
+      }));
+      _cubeBlendPoints = samples.map(s => ({
+        x: s.acidicOxides, y: s.basicOxides, z: s.AFT,
+        text: `Blended AFT: ${parseFloat(s.AFT).toFixed(2)}°C`
+      }));
+
+      if (expanded && window.Plotly) {
+        const allPts = _cubeAllPoints();
+        _cubeRanges = allPts.length ? _cubeRangesFor(allPts) : null;
+
+        const blendedTrace = {
+          type: 'scatter3d', mode: 'markers', name: 'Blended AFT',
+          x: _cubeBlendPoints.map(p => p.x), y: _cubeBlendPoints.map(p => p.y), z: _cubeBlendPoints.map(p => p.z),
+          marker: {
+            size: MARKER_SIZE + 2,
+            color: _cubeBlendPoints.map(p => p.z),
+            colorscale: 'Jet', showscale: false,
+            line: { width: 1, color: 'rgba(255,255,255,0.6)' }
+          },
+          text: _cubeBlendPoints.map(p => p.text), hoverinfo: 'text'
+        };
+        const individualTrace = {
+          type: 'scatter3d', mode: 'markers', name: 'Individual Coal AFT',
+          x: _cubeCoalPoints.map(p => p.x), y: _cubeCoalPoints.map(p => p.y), z: _cubeCoalPoints.map(p => p.z),
           marker: {
             symbol: 'diamond',
             size: (typeof MARKER_SIZE !== 'undefined' ? MARKER_SIZE : 9) + 4,
-            color: valid.map(r => r.aft),
-            colorscale: 'Jet',
-            showscale: false,
+            color: _cubeCoalPoints.map(p => p.z),
+            colorscale: 'Jet', showscale: false,
             line: { width: 1.5, color: '#111' }
           },
-          text: valid.map(r => `${r.name} — Individual AFT: ${Math.round(Number(r.aft))}°C`),
-          hoverinfo: 'text',
-          showlegend: false
-        });
-        individualTraceAdded = true;
+          text: _cubeCoalPoints.map(p => p.text), hoverinfo: 'text', showlegend: false
+        };
+        individualTraceAdded = _cubeCoalPoints.length > 0;
+
+        // Fresh full trace set every time (blended + individual + cube
+        // wireframe) via react() instead of delete/addTraces, so trace
+        // indices stay fixed (0 = blended, 1 = individual) for the preset
+        // opacity restyles in _applyCubePreset().
+        const dataFull = [blendedTrace, individualTrace];
+        if (_cubeRanges) dataFull.push(_cubeWireframeTrace(_cubeRanges));
+
+        await Plotly.react(plotDiv, dataFull, plotDiv.layout);
+
+        if (_cubeRanges) {
+          await Plotly.relayout(plotDiv, {
+            'scene.xaxis.range': _cubeRanges.xr, 'scene.xaxis.autorange': false,
+            'scene.yaxis.range': _cubeRanges.yr, 'scene.yaxis.autorange': false,
+            'scene.zaxis.range': _cubeRanges.zr, 'scene.zaxis.autorange': false
+          });
+        }
+
+        // Preset buttons only make sense once there's more than the
+        // blended point to focus on.
+        if (_cubeCoalPoints.length) _buildCubePresetBar();
       }
     } catch (e) {
       console.warn('ternary hover: individual coal AFT lookup failed', e);
+    }
+
+    // Start the auto-blink label cycle over whatever points ended up on
+    // the plot (blended point(s), plus individual coals if that lookup
+    // succeeded above) -- no hover needed to see each name/AFT. This is
+    // the "Overview" state: every coal blended together in one view.
+    if (expanded) {
+      if (_autoCycleController) _autoCycleController.stop();
+      const allPts = _cubeAllPoints();
+      _autoCycleController = _startAutoCycleLabels(plotDiv, allPts.length ? allPts : null);
     }
   }
 
   async function collapse() {
     expanded = false;
+    if (_autoCycleController) { _autoCycleController.stop(); _autoCycleController = null; }
     if (_currentExpandedCollapse === collapse) _currentExpandedCollapse = null;
     wrapper.classList.remove('ternary-expanded');
     const legend = wrapper.querySelector('.ternary-hover-legend');
     if (legend) legend.style.display = 'none';
+    const cubeBar = wrapper.querySelector('.cube-preset-bar');
+    if (cubeBar) cubeBar.remove();
+    const cubeHint = wrapper.querySelector('.cube-preset-hint');
+    if (cubeHint) cubeHint.remove();
+    _cubeCoalPoints = []; _cubeBlendPoints = []; _cubeRanges = null;
+    _cubePresetOrder = []; _cubePresetCycleIdx = 0;
     _getTernaryHoverBackdrop().classList.remove('active');
 
     if (originalParent) {
@@ -2230,6 +3231,8 @@ function _setupAdvancedExpand(wrapper) {
   let expanded = false;
   let originalParent = null;
   let originalNextSibling = null;
+  let _radarBlink = null;
+  let _ashFusionBlink = null;
 
   function _resizeAdvancedCharts() {
     if (!window.Plotly) return;
@@ -2237,6 +3240,32 @@ function _setupAdvancedExpand(wrapper) {
       const el = document.getElementById(id);
       if (el) { try { Plotly.Plots.resize(el); } catch (e) {} }
     });
+  }
+
+  // Turns the zoomed view's charts "on": swaps the tendency map from its
+  // flat 2D contour to a real rotatable 3D surface, and starts the
+  // radar/ash-fusion blink cycles that flash each element's name/value
+  // automatically instead of requiring a hover. All three are reversed
+  // in _deactivateZoomedCharts() on collapse.
+  function _activateZoomedCharts() {
+    if (!window.Plotly) return;
+    const tendEl = document.getElementById('tendencyMapChart');
+    if (tendEl && _lastTendencyData) {
+      const { data, layout } = _buildTendencyMap3D(_lastTendencyData);
+      Plotly.newPlot(tendEl, data, layout, { displayModeBar: false, responsive: true }).catch(() => {});
+    }
+    const radarEl = document.getElementById('radarChart');
+    if (radarEl) { if (_radarBlink) _radarBlink.stop(); _radarBlink = _startRadarBlink(radarEl); }
+    const ashEl = document.getElementById('ashFusionChart');
+    if (ashEl) { if (_ashFusionBlink) _ashFusionBlink.stop(); _ashFusionBlink = _startAshFusionBlink(ashEl); }
+  }
+
+  function _deactivateZoomedCharts() {
+    if (_radarBlink) { _radarBlink.stop(); _radarBlink = null; }
+    if (_ashFusionBlink) { _ashFusionBlink.stop(); _ashFusionBlink = null; }
+    if (window.Plotly) {
+      try { drawTendencyMapChart(_lastTendencyData || advDashData || {}); } catch (e) {}
+    }
   }
 
   function expand() {
@@ -2282,7 +3311,10 @@ function _setupAdvancedExpand(wrapper) {
 
     // Wait two frames so the card has actually taken on its enlarged
     // layout size before Plotly measures the containers to resize into.
-    requestAnimationFrame(() => requestAnimationFrame(_resizeAdvancedCharts));
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      _resizeAdvancedCharts();
+      _activateZoomedCharts();
+    }));
   }
 
   function collapse() {
@@ -2290,6 +3322,7 @@ function _setupAdvancedExpand(wrapper) {
     if (_currentExpandedCollapse === collapse) _currentExpandedCollapse = null;
     wrapper.classList.remove('advanced-expanded');
     _getTernaryHoverBackdrop().classList.remove('active');
+    _deactivateZoomedCharts();
 
     if (originalParent) {
       if (originalNextSibling && originalNextSibling.parentNode === originalParent) {

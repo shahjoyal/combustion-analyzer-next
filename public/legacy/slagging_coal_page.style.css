@@ -1266,6 +1266,83 @@ body.page-slagging #ffftsGaugeChart {
   border-radius: 50%;
 }
 
+/* Cube-view preset bar: Overview / per-coal / per-pair buttons for the
+   expanded 3D cube (see _buildCubePresetBar() in the JS). Stacked as a
+   vertical column down the right-hand side, in the empty space next to
+   the cube, rather than wrapping along the bottom where it would collide
+   with .ternary-hover-legend and spill past the card edge. */
+.cube-preset-bar {
+  position: absolute;
+  top: 96px;
+  right: 14px;
+  bottom: 44px;
+  width: 136px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  overflow-y: auto;
+  z-index: 5;
+  padding-right: 2px;
+}
+.cube-preset-bar::-webkit-scrollbar { width: 4px; }
+.cube-preset-bar::-webkit-scrollbar-thumb {
+  background: rgba(50, 226, 241, 0.4);
+  border-radius: 4px;
+}
+.cube-preset-btn {
+  flex: none;
+  width: 100%;
+  text-align: left;
+  font-size: 11px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--cxd-white, #f4f8ff);
+  background: rgba(6, 14, 22, 0.72);
+  border: 1px solid rgba(50, 226, 241, 0.45);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.cube-preset-btn:hover {
+  background: rgba(50, 226, 241, 0.18);
+}
+.cube-preset-btn.cube-preset-active {
+  background: rgba(50, 226, 241, 0.85);
+  color: #06131c;
+  border-color: rgba(50, 226, 241, 0.85);
+  font-weight: 600;
+}
+.cube-preset-hint {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 62%;
+  text-align: center;
+  font-size: 10.5px;
+  color: rgba(244, 248, 255, 0.55);
+  z-index: 5;
+  pointer-events: none;
+}
+/* Narrow screens: the enlarged card itself shrinks to ~92vw, so a fixed
+   136px sidebar gets cramped next to the cube -- fall back to the
+   original bottom row (wrapping, centered) below that width. */
+@media (max-width: 560px) {
+  .cube-preset-bar {
+    position: static;
+    width: auto;
+    max-height: none;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 8px;
+    overflow: visible;
+  }
+  .cube-preset-btn { width: auto; }
+}
+
 /* ============================================================
    Advanced view: corner toggle button + radar / ash-fusion /
    deposition-tendency-map dashboard + key indicators.
@@ -1614,6 +1691,8 @@ body.page-slagging #ffftsGaugeChart {
   width: var(--car-connector-w);
   height: var(--car-connector-h);
   cursor: pointer;
+  perspective: 650px; /* gives .car-vertical-scale's rotateX/rotateY (see below) real 3D depth instead of just skewing flat */
+  perspective-origin: 50% 50%;
 }
 
 /* Value — sits just above the connector, on the stack rather than the
@@ -1664,7 +1743,7 @@ body.page-slagging #ffftsGaugeChart {
   position: relative;
   flex: 1 1 auto;
   height: 100%;
-  border-radius: 10px;
+  border-radius: 10px 10px 50% 50% / 10px 10px 38px 38px;
   border: 2px solid rgba(50, 226, 241, .82);
   padding: 5px;
   box-sizing: border-box;
@@ -1672,14 +1751,66 @@ body.page-slagging #ffftsGaugeChart {
   box-shadow:
     0 0 12px rgba(25, 203, 242, .18),
     inset 0 0 16px rgba(19, 121, 158, .11);
+  /* Turns the tube into an actual draggable 3D object (see
+     _makeTube3DInteractive in the JS): preserve-3d lets its glass-pane
+     and edge-strip children (below) sit at their own translateZ depth
+     instead of being flattened onto the tube's own plane, so rotating
+     it via mouse/touch drag shows real parallax between the liquid and
+     the glass reflection in front of it, not just a flat tilt. */
+  transform-style: preserve-3d;
+  cursor: grab;
+  touch-action: none; /* dragging the tube shouldn't also scroll the page on touch */
+  will-change: transform;
 }
 
-/* Inner track that actually clips the fill — ported from .bar-track */
+/* Floating glass reflection, offset in front of the liquid (translateZ
+   in the JS-applied inline transform's local space via its own
+   translateZ below) -- the whole point of a SEPARATE layer here rather
+   than baking the sheen into .car-bar-highlight is that it visibly
+   slides relative to the liquid underneath as the tube rotates,
+   which is what actually sells the 3D-ness while dragging. */
+.car-tube-glasspane {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(115deg,
+    rgba(255, 255, 255, .38) 0%,
+    rgba(255, 255, 255, .38) 10%,
+    transparent 32%,
+    transparent 62%,
+    rgba(255, 255, 255, .16) 74%,
+    transparent 92%);
+  transform: translateZ(9px);
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* Thin strips angled back in Z at the tube's left/right edges -- a
+   cheap approximation of a cylinder's curved side wrapping out of
+   view, so the silhouette doesn't read as a flat card even when
+   rotated well off-center. */
+.car-tube-edge-left,
+.car-tube-edge-right {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 7px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .3), rgba(0, 0, 0, .5));
+  pointer-events: none;
+  z-index: 4;
+}
+.car-tube-edge-left  { left: -3px;  transform: rotateY(50deg)  translateZ(2px); transform-origin: left center; border-radius: 10px 0 0 10px; }
+.car-tube-edge-right { right: -3px; transform: rotateY(-50deg) translateZ(2px); transform-origin: right center; border-radius: 0 10px 10px 0; }
+
+
+/* Inner track that actually clips the fill — ported from .bar-track,
+   now rounded into a test-tube / chemical-glass silhouette (flat-ish
+   shoulders, big rounded bottom) instead of a plain rectangle. */
 .car-bar-track {
   position: relative;
   height: 100%;
   overflow: hidden;
-  border-radius: 6px;
+  border-radius: 8px 8px 50% 50% / 8px 8px 34px 34px;
   background: #091620;
   border: 1px solid rgba(82, 159, 184, .32);
 }
@@ -1689,17 +1820,65 @@ body.page-slagging #ffftsGaugeChart {
    solid colour chosen from the score's zone (green/yellow/red via
    getOverallZoneColor), set inline by the JS — not the fixed rainbow
    gradient. The gradient below is just a neutral fallback in case JS
-   hasn't set a colour yet. */
+   hasn't set a colour yet. Rounded bottom to match .car-bar-track's
+   test-tube silhouette, so the "liquid" pools into the tube's rounded
+   base instead of sitting square. */
 .car-bar-fill {
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
   height: 0%; /* set inline per score */
-  border-radius: 5px;
+  border-radius: 0 0 50% 50% / 0 0 34px 34px;
   background: #3ddc84; /* fallback only — overridden inline per zone */
   box-shadow: 0 0 16px rgba(61, 220, 132, .4);
   transition: height 1.05s cubic-bezier(.2, .78, .18, 1), filter .5s ease, background .4s ease;
+  overflow: hidden; /* keeps bubbles contained to the liquid itself */
+}
+
+/* Curved meniscus — a small ellipse sitting right at the liquid's
+   surface (brighter than the fill itself) so the flat CSS height edge
+   reads as a rounded liquid surface instead of a hard line. Colour
+   always matches the fill (background:inherit picks up whatever the
+   JS just set inline). */
+.car-bar-fill::before {
+  content: "";
+  position: absolute;
+  left: 1px;
+  right: 1px;
+  top: 0;
+  height: 8px;
+  border-radius: 50%;
+  background: inherit;
+  filter: brightness(1.45) saturate(1.15);
+  opacity: .9;
+}
+
+/* Rising bubbles inside the liquid — small glowing dots that drift
+   upward and fade, looping continuously while a score is filled in.
+   Position (left%), size, duration/delay AND the actual rise distance
+   are set per-bubble by the JS via inline custom properties -- the
+   rise distance in particular has to be a real px value computed from
+   the liquid's own height, since a CSS "%" in translateY() would
+   resolve against the bubble's own (tiny) size, not the liquid. */
+.car-bar-bubble {
+  position: absolute;
+  bottom: 2%;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .8);
+  box-shadow: 0 0 4px rgba(255, 255, 255, .6);
+  opacity: 0;
+  left: var(--bubble-left, 50%);
+  width: var(--bubble-size, 4px);
+  height: var(--bubble-size, 4px);
+  animation: carBubbleRise var(--bubble-duration, 3.2s) ease-in infinite;
+  animation-delay: var(--bubble-delay, 0s);
+}
+@keyframes carBubbleRise {
+  0%   { transform: translateY(0) scale(0.7); opacity: 0; }
+  12%  { opacity: .85; }
+  85%  { opacity: .5; }
+  100% { transform: translateY(var(--bubble-rise, -60px)) scale(1); opacity: 0; }
 }
 
 /* Checkbox (O&M) highlight segment — sits directly above .car-bar-fill in
@@ -1725,12 +1904,24 @@ body.page-slagging #ffftsGaugeChart {
   z-index: 1;
 }
 
-/* Glassy diagonal sheen overlay — ported from .bar-highlight */
+/* Glassy cylinder sheen — ported from .bar-highlight, reworked from a
+   single diagonal streak into two vertical light bands (one strong
+   near the left edge, a fainter one further across) so the flat track
+   reads as a lit round glass tube rather than a flat panel. */
 .car-bar-highlight {
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, rgba(255, 255, 255, .15), transparent 35%, transparent 70%, rgba(255, 255, 255, .1));
+  background:
+    linear-gradient(90deg,
+      rgba(255, 255, 255, .32) 0%,
+      rgba(255, 255, 255, .32) 8%,
+      transparent 22%,
+      transparent 58%,
+      rgba(255, 255, 255, .14) 68%,
+      rgba(255, 255, 255, .14) 76%,
+      transparent 90%);
   pointer-events: none;
+  z-index: 2;
 }
 
 .car-center-bar-wrap::after {
