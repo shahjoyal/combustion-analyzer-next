@@ -199,7 +199,8 @@ body {
             background-color: #e74c3c;
             color: white;
             border: none;
-            padding: 8px 10px;
+            padding: 6px 9px;
+            font-size: 12px;
             cursor: pointer;
             border-radius: 4px;
             transition: background-color 0.3s;
@@ -584,10 +585,18 @@ body{
   gap: 14px;
 }
 
-.coal-selection-panel,
+.coal-selection-panel {
+  flex: 0 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;   /* independent internal scrolling, same behaviour as before -- just scoped to each half now instead of the whole left panel */
+  overflow-x: hidden;
+  padding-right: 4px;
+}
 .operational-parameters-panel {
-  flex: 1 1 50%;
-  min-height: 0; /* required for flex children to actually respect the 50% cap instead of growing to fit content */
+  flex: 1 1 auto;
+  min-height: 0; /* required for flex children to actually respect the cap instead of growing to fit content */
   display: flex;
   flex-direction: column;
   overflow-y: auto;   /* independent internal scrolling, same behaviour as before -- just scoped to each half now instead of the whole left panel */
@@ -646,17 +655,17 @@ body{
   overflow-y: auto;       /* internal scroll */
   overflow-x: hidden;
   padding-right: 6px;  }
-.blend{ display:flex; gap:12px; align-items:center; width:100%; }
-.blend label{ min-width:42px; color:var(--muted); font-weight:600; }
+.blend{ display:flex; gap:8px; align-items:center; width:100%; font-size:13px; margin-bottom:0; }
+.blend label{ min-width:36px; color:var(--muted); font-weight:600; font-size:13px; }
 
 /* inputs & selects - premium fields */
 .blend select, .blend-entry select, .blend input, .blend-entry input{
-  padding:10px 12px;
-  border-radius:10px;
+  padding:6px 8px;
+  border-radius:8px;
   border:1px solid rgba(11,23,47,0.06);
   box-shadow: inset 0 2px 6px rgba(11,23,47,0.02);
   background: #fff;
-  font-size:14px;
+  font-size:13px;
   transition: box-shadow .12s, transform .08s;
   outline: none;
 }
@@ -676,12 +685,14 @@ body{
 /* primary buttons */
 button, .add-blend-btn, .calculate-properties-btn, .blendProperties{
   cursor:pointer;
-  border-radius:12px;
-  font-weight:700;
+  border-radius:10px;
+  font-weight:600;
   letter-spacing:0.2px;
+  padding:6px 10px;
+  font-size:13px;
 }
-.add-blend-btn{ width:180px; margin:20px auto; display:block; }
-.calculate-properties-btn{ width:220px; margin:8px auto 0; display:block; }
+.add-blend-btn{ width:140px; margin:14px auto; display:block; }
+.calculate-properties-btn{ width:170px; margin:8px auto 0; display:block; }
 
 /* tables - modern / compact */
 table{

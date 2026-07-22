@@ -5,13 +5,13 @@
             <div class="coal-selection-panel">
             <div id="coalBlends">
 
-<div class="unit-capacity" style="margin-bottom:15px; display:flex; align-items:center; gap:10px; width:100%;">
+<div class="unit-capacity" style="margin-bottom:15px; display:flex; align-items:center; gap:10px; width:100%; font-size:13px;">
   <!-- left group: unit capacity (unchanged) -->
-  <div style="display:flex; align-items:center; gap:10px;">
-    <label for="unitCapacity" style="font-weight:800;">Unit Capacity:</label>
+  <div style="display:flex; align-items:center; gap:8px;">
+    <label for="unitCapacity" style="font-weight:600; font-size:13px;">Unit Capacity:</label>
 
     <select id="unitCapacity" name="unitCapacity"
-            style="padding:8px 12px; border-radius:8px; border:1px solid #ccc;">
+            style="padding:6px 10px; border-radius:8px; border:1px solid #ccc; font-size:13px;">
       <option value="">Select Unit Capacity</option>
       <option value="150">150 MW</option>
       <option value="210">210 MW</option>
@@ -27,11 +27,11 @@
   </div>
 
   <!-- right group: firing type (kept on same line using margin-left:auto) -->
-  <div style="margin-left:auto; display:flex; align-items:center; gap:10px;">
-    <label for="firingType" style="font-weight:800;">Type of Firing:</label>
+  <div style="margin-left:auto; display:flex; align-items:center; gap:8px;">
+    <label for="firingType" style="font-weight:600; font-size:13px;">Type of Firing:</label>
 
     <select id="firingType" name="firingType"
-            style="padding:8px 12px; border-radius:8px; border:1px solid #ccc;">
+            style="padding:6px 10px; border-radius:8px; border:1px solid #ccc; font-size:13px;">
       <option value="">Select Firing Type</option>
       <option value="front_fired">Front</option>
       <option value="tangential_fired">Tangential</option>
@@ -73,7 +73,7 @@
             <div class="operational-parameters-panel">
                 <div class="checkbox-card" id="checkboxCard">
                     <h3>Operational Parameters</h3>
-                    
+                    <span class="toggle-icon">▾</span>
                 </div>
             
                 <!-- Collapsible Checkbox Section -->

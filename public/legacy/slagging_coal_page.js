@@ -25,7 +25,13 @@ function addBlend() {
     propertiesDiv.id = `properties${index}`;
 
     removeBtn.addEventListener('click', () => removeBlend(removeBtn));
-    propertiesBtn.addEventListener('click', () => fetchCoalProperties(index));
+    // Look up this row's *current* position at click time (via blendDiv),
+    // instead of capturing `index` now -- so this stays correct even after
+    // earlier rows are removed and everything gets renumbered below.
+    propertiesBtn.addEventListener('click', () => {
+        const liveIndex = Array.from(document.querySelectorAll('.blend')).indexOf(blendDiv);
+        fetchCoalProperties(liveIndex);
+    });
     rangeInput.addEventListener("input", updateTotalRange);
 
     const blendRow = document.querySelector(".blend-row");
@@ -34,6 +40,28 @@ function addBlend() {
     populateDropdown(select);
     updateTotalRange();
     sizeBlendRowVisible();
+}
+
+// Keep every remaining row's id/name/for/properties-id in sync with its
+// actual position in the list. Needed because removeBlend() deletes a row
+// from the middle without shifting the rest -- every downstream function
+// (calculateWeightedAverage, AFT lookups, etc.) assumes #coal{index} matches
+// the row's position, so after any removal the survivors must be relabeled.
+function renumberBlends() {
+    document.querySelectorAll('.blend').forEach((blend, index) => {
+        const label = blend.querySelector('label');
+        const select = blend.querySelector('select');
+        const rangeInput = blend.querySelector('input[type="number"]');
+        const propertiesDiv = blend.querySelector('.properties');
+
+        if (label) label.setAttribute('for', `coal${index}`);
+        if (select) {
+            select.id = `coal${index}`;
+            select.name = `coal${index}`;
+        }
+        if (rangeInput) rangeInput.id = `currentrange${index}`;
+        if (propertiesDiv) propertiesDiv.id = `properties${index}`;
+    });
 }
 
 // Show exactly 2 coal rows in the list; anything beyond that scrolls
@@ -2112,7 +2140,10 @@ function updateKeyIndicatorsRow(d) {
 
 
 function removeBlend(button) {
-            button.parentElement.remove(); 
+            button.parentElement.remove();
+            renumberBlends();
+            updateTotalRange();
+            sizeBlendRowVisible();
         }
 
 // Wires up the advanced-view toggle button and the ternary/advanced
