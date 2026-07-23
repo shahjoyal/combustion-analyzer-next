@@ -1365,34 +1365,6 @@ let scoreMappings = {
                     barFill.style.background = oz.color;
                     barTrack.appendChild(barFill);
 
-                    // Chemical-glass touch: a handful of small bubbles drifting
-                    // up through the liquid, each with a randomised horizontal
-                    // position/size/speed so they don't all move in lockstep.
-                    // Only added when there's actually some liquid for them to
-                    // rise through.
-                    if (basePct > 2) {
-                        const bubbleCount = 6;
-                        // --car-connector-h (see CSS) is 170px at every
-                        // breakpoint; minus the housing/track padding and
-                        // borders that's ~154px of real liquid travel space
-                        // at 100% fill. Bubbles should stay well inside the
-                        // current liquid, not reach all the way to its
-                        // surface, so scale by the fill fraction and back
-                        // off to ~70% of that.
-                        const approxTrackPx = 154;
-                        const liquidPx = approxTrackPx * (basePct / 100);
-                        for (let i = 0; i < bubbleCount; i++) {
-                            const bubble = document.createElement("div");
-                            bubble.className = "car-bar-bubble";
-                            bubble.style.setProperty("--bubble-left", `${10 + Math.random() * 80}%`);
-                            bubble.style.setProperty("--bubble-size", `${2.5 + Math.random() * 3}px`);
-                            bubble.style.setProperty("--bubble-duration", `${2.4 + Math.random() * 2.2}s`);
-                            bubble.style.setProperty("--bubble-delay", `${-Math.random() * 4}s`); // negative delay so bubbles are already mid-flight on load, not all synced
-                            bubble.style.setProperty("--bubble-rise", `${-(liquidPx * (0.55 + Math.random() * 0.3)).toFixed(0)}px`);
-                            barFill.appendChild(bubble);
-                        }
-                    }
-
                     // Checkbox (O&M) highlight segment — sits directly on top
                     // of the base fill, showing only the extra score added by
                     // the ticked checkboxes. Original portion's colour/height
