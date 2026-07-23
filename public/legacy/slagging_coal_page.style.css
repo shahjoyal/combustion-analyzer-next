@@ -1354,6 +1354,28 @@ body.page-slagging #ffftsGaugeChart {
   .cube-preset-btn { width: auto; }
 }
 
+/* The Coal AFT Cube View card (advanced dashboard, replaces the old Ash
+   Deposition Tendency Map) reuses the same .cube-preset-bar/.cube-preset-btn
+   markup as the old ternary-card cube, but it now lives inside one of three
+   small side-by-side cards instead of being the whole enlarged card -- so
+   it needs its own (much smaller) sizing/positioning, scoped to just this
+   card instead of the old full-card top/right/bottom offsets. */
+.advanced-card.cube-card { position: relative; }
+.advanced-card.cube-card .cube-preset-bar {
+  top: 22px;
+  right: 4px;
+  bottom: 4px;
+  width: 84px;
+  gap: 4px;
+}
+.advanced-card.cube-card .cube-preset-btn {
+  font-size: 9px;
+  padding: 4px 6px;
+}
+/* No room for the hint line in this compact card -- the buttons and
+   double-click are discoverable on their own. */
+.advanced-card.cube-card .cube-preset-hint { display: none; }
+
 /* ============================================================
    Advanced view: corner toggle button + radar / ash-fusion /
    deposition-tendency-map dashboard + key indicators.

@@ -1844,7 +1844,7 @@ function updatePlot() {
 
 /* -----------------------------------------------------------------------
    Advanced view: Compositional Radar / Ash Fusion Characteristics /
-   Ash Deposition Tendency Map + Key Indicators.
+   Coal AFT Cube View + Key Indicators.
 
    Everything here is built from values already calculated in
    calculateWeightedAverage() (oxide weight %, predicted AFT, IDT/HT,
@@ -1852,7 +1852,7 @@ function updatePlot() {
    card draws flat reference lines at the real IDT/HT/FT temperatures
    (no fake heating-rate curve, since only single-point values exist).
 ----------------------------------------------------------------------- */
-// The grid + 3 chart cards (#radarChart/#ashFusionChart/#tendencyMapChart)
+// The grid + 3 chart cards (#radarChart/#ashFusionChart/#coalCubeChart)
 // and the 6 key-indicator cards are now static markup in the HTML (see
 // #advancedDashboard) instead of being rebuilt with document.createElement()
 // every Calculate — this just refreshes the key-indicator values in place.
@@ -2034,110 +2034,124 @@ function _startAshFusionBlink(el) {
     };
 }
 
-let _lastTendencyData = null; // remembers `d` so the zoomed view can rebuild this chart as 3D and drawTendencyMapChart() can rebuild it back to 2D on collapse
-
-function drawTendencyMapChart(d) {
-    const el = document.getElementById('tendencyMapChart');
-    if (!el || !window.Plotly) return;
-    _lastTendencyData = d;
-
-    // Background field is a simple visual gradient (like the color bands
-    // already used on the FSP/FFFTS gauges) — not a fitted model. The
-    // marker position is the real computed oxide ratio for this blend.
-    const n = 30;
-    const xs = [], ys = [], zs = [];
-    for (let i = 0; i < n; i++) xs.push(i / (n - 1));
-    for (let j = 0; j < n; j++) ys.push(j / (n - 1));
-    for (let j = 0; j < n; j++) {
-        const row = [];
-        for (let i = 0; i < n; i++) row.push((1 - xs[i]) * 0.5 + ys[j] * 0.5);
-        zs.push(row);
+// Gathers the current blend point(s) + each selected coal's own (100%)
+// predicted AFT, for the Coal AFT Cube View card -- the same data/lookup
+// (computeIndividualCoalAFTs(), cached via _individualAftCache) that used
+// to feed the ternary card's click-to-expand cube. Shared by the compact
+// in-grid render and the zoomed/expanded render below.
+async function _gatherCoalCubePoints() {
+    const sig = _getTernaryBlendSignature();
+    let results;
+    if (_individualAftCache && _individualAftCache.sig === sig) {
+        results = _individualAftCache.results;
+    } else {
+        results = await computeIndividualCoalAFTs();
+        _individualAftCache = { sig, results };
     }
+    const valid = (results || []).filter(r => r && r.aft != null && !isNaN(r.aft) && r.a != null && r.b != null && r.c != null);
 
-    const x = d.SIO / ((d.SIO + d.ALO) || 1);
-    const y = d.CAO / ((d.CAO + d.MGO) || 1);
-    const pointLabel = d.FFFD ? (d.FFFD + ' Fouling') : '';
-
-    const data = [
-        {
-            type: 'contour', x: xs, y: ys, z: zs, showscale: false,
-            colorscale: [[0, '#2ecc71'], [0.5, '#f1c40f'], [1, '#e74c3c']],
-            contours: { coloring: 'heatmap' }, line: { width: 0 }, opacity: 0.85, hoverinfo: 'skip'
-        },
-        {
-            type: 'scatter', mode: 'markers+text', x: [x], y: [y],
-            text: [pointLabel], textposition: 'top center',
-            textfont: { color: '#fff', size: 11 },
-            marker: { size: 12, color: '#fff', line: { color: '#0a1a44', width: 2 } },
-            hoverinfo: 'text', showlegend: false
-        }
-    ];
-    const layout = {
-        xaxis: { title: { text: 'SiO\u2082 / (SiO\u2082 + Al\u2082O\u2083)', font: { color: '#9db2dd', size: 10 } }, range: [0, 1], gridcolor: 'rgba(255,255,255,0.15)', tickfont: { color: '#9db2dd', size: 9 } },
-        yaxis: { title: { text: 'CaO / (CaO + MgO)', font: { color: '#9db2dd', size: 10 } }, range: [0, 1], gridcolor: 'rgba(255,255,255,0.15)', tickfont: { color: '#9db2dd', size: 9 } },
-        paper_bgcolor: 'transparent',
-        plot_bgcolor: 'transparent',
-        margin: { l: 55, r: 15, t: 15, b: 45 },
-        font: { color: '#f4f8ff' },
-        showlegend: false
-    };
-    Plotly.newPlot(el, data, layout, { displayModeBar: false, responsive: true });
+    const coalPoints = valid.map(r => ({
+        x: r.a, y: r.b, z: r.aft, name: r.name,
+        text: `${r.name} — Individual AFT: ${Math.round(Number(r.aft))}°C`
+    }));
+    const blendPoints = samples.map(s => ({
+        x: s.acidicOxides, y: s.basicOxides, z: s.AFT,
+        text: `Blended AFT: ${parseFloat(s.AFT).toFixed(2)}°C`
+    }));
+    const allPts = blendPoints.concat(coalPoints);
+    const ranges = allPts.length ? _cubeRangesFor(allPts) : null;
+    return { blendPoints, coalPoints, ranges };
 }
 
-// 3D counterpart of the tendency map, used only in the zoomed/expanded
-// advanced view: the same background field, but as a real rotatable
-// surface (type 'surface') instead of a flat contour, with the blend's
-// point lifted onto it as a scatter3d marker. Same data/colours as the
-// 2D card -- just given real depth for the enlarged view.
-function _buildTendencyMap3D(d) {
-    const n = 30;
-    const xs = [], ys = [], zs = [];
-    for (let i = 0; i < n; i++) xs.push(i / (n - 1));
-    for (let j = 0; j < n; j++) ys.push(j / (n - 1));
-    for (let j = 0; j < n; j++) {
-        const row = [];
-        for (let i = 0; i < n; i++) row.push((1 - xs[i]) * 0.5 + ys[j] * 0.5);
-        zs.push(row);
-    }
+// Builds the {data, layout} for the Coal AFT Cube View chart -- identical
+// styling/axes to the 3D view the ternary card used to expand into
+// (_build3DExpandedPlot), plus the wireframe box, just reused here for the
+// advanced-dashboard card instead. `compact` trims margins/labels/marker
+// size down for the small in-grid card; the zoomed view passes false for
+// the same full-size look the ternary card's cube used to have.
+function _buildCoalCubePlot(blendPoints, coalPoints, ranges, compact) {
+    const GLOW_WHITE = "#f4f8ff";
+    const GLOW_WHITE_SOFT = "rgba(244, 248, 255, 0.55)";
+    const AXIS_LABEL_FONT = { size: compact ? 9 : 12, color: GLOW_WHITE };
+    const TICK_FONT = { size: compact ? 8 : 10, color: GLOW_WHITE_SOFT };
 
-    const x = d.SIO / ((d.SIO + d.ALO) || 1);
-    const y = d.CAO / ((d.CAO + d.MGO) || 1);
-    const zAtPoint = (1 - x) * 0.5 + y * 0.5;
-    const pointLabel = d.FFFD ? (d.FFFD + ' Fouling') : '';
-
-    const data = [
-        {
-            type: 'surface', x: xs, y: ys, z: zs, showscale: false,
-            colorscale: [[0, '#2ecc71'], [0.5, '#f1c40f'], [1, '#e74c3c']],
-            opacity: 0.9,
-            contours: { z: { show: true, usecolormap: true, highlightcolor: '#fff', project: { z: true } } },
-            hoverinfo: 'skip'
+    const blendedTrace = {
+        type: 'scatter3d', mode: 'markers', name: 'Blended AFT',
+        x: blendPoints.map(p => p.x), y: blendPoints.map(p => p.y), z: blendPoints.map(p => p.z),
+        marker: {
+            size: MARKER_SIZE + (compact ? 0 : 2),
+            color: blendPoints.map(p => p.z), colorscale: 'Jet', showscale: false,
+            line: { width: 1, color: 'rgba(255,255,255,0.6)' }
         },
-        {
-            type: 'scatter3d', mode: 'markers+text',
-            x: [x], y: [y], z: [zAtPoint + 0.05],
-            text: [pointLabel], textposition: 'top center',
-            textfont: { color: '#fff', size: 12 },
-            marker: { size: 6, color: '#fff', line: { color: '#0a1a44', width: 2 } },
-            hoverinfo: 'text', showlegend: false
-        }
-    ];
+        text: blendPoints.map(p => p.text), hoverinfo: 'text'
+    };
+    const individualTrace = {
+        type: 'scatter3d', mode: 'markers', name: 'Individual Coal AFT',
+        x: coalPoints.map(p => p.x), y: coalPoints.map(p => p.y), z: coalPoints.map(p => p.z),
+        marker: {
+            symbol: 'diamond',
+            size: (typeof MARKER_SIZE !== 'undefined' ? MARKER_SIZE : 9) + (compact ? 2 : 4),
+            color: coalPoints.map(p => p.z), colorscale: 'Jet', showscale: false,
+            line: { width: 1.5, color: '#111' }
+        },
+        text: coalPoints.map(p => p.text), hoverinfo: 'text', showlegend: false
+    };
+    const data = [blendedTrace, individualTrace];
+    if (ranges) data.push(_cubeWireframeTrace(ranges));
+
     const layout = {
         autosize: true,
-        margin: { l: 0, r: 0, t: 20, b: 0 },
-        paper_bgcolor: 'transparent',
-        plot_bgcolor: 'transparent',
-        showlegend: false,
+        margin: compact ? { l: 0, r: 0, t: 8, b: 0 } : { l: 10, r: 10, t: 30, b: 10 },
+        paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)', showlegend: false,
         scene: {
-            bgcolor: 'transparent',
-            camera: { eye: { x: 1.4, y: 1.4, z: 1.1 } },
-            xaxis: { title: { text: 'SiO\u2082 / (SiO\u2082 + Al\u2082O\u2083)', font: { color: '#9db2dd', size: 10 } }, gridcolor: 'rgba(255,255,255,0.15)', tickfont: { color: '#9db2dd', size: 9 }, backgroundcolor: 'rgba(0,0,0,0)' },
-            yaxis: { title: { text: 'CaO / (CaO + MgO)', font: { color: '#9db2dd', size: 10 } }, gridcolor: 'rgba(255,255,255,0.15)', tickfont: { color: '#9db2dd', size: 9 }, backgroundcolor: 'rgba(0,0,0,0)' },
-            zaxis: { title: { text: 'Fouling Tendency', font: { color: '#9db2dd', size: 10 } }, gridcolor: 'rgba(255,255,255,0.15)', tickfont: { color: '#9db2dd', size: 9 }, backgroundcolor: 'rgba(0,0,0,0)' }
+            bgcolor: 'rgba(0,0,0,0)',
+            aspectmode: 'cube',
+            camera: { eye: { x: 1.5, y: 1.5, z: 0.9 }, center: { x: 0, y: 0, z: 0 }, up: { x: 0, y: 0, z: 1 } },
+            xaxis: {
+                title: compact ? undefined : { text: "Thermal Stability (Acidic Oxides %)", font: AXIS_LABEL_FONT },
+                showticklabels: !compact, tickfont: TICK_FONT,
+                color: GLOW_WHITE_SOFT, gridcolor: GLOW_WHITE_SOFT, zerolinecolor: GLOW_WHITE_SOFT,
+                backgroundcolor: 'rgba(0,0,0,0)'
+            },
+            yaxis: {
+                title: compact ? undefined : { text: "Fusion Accelerator (Basic Oxides %)", font: AXIS_LABEL_FONT },
+                showticklabels: !compact, tickfont: TICK_FONT,
+                color: GLOW_WHITE_SOFT, gridcolor: GLOW_WHITE_SOFT, zerolinecolor: GLOW_WHITE_SOFT,
+                backgroundcolor: 'rgba(0,0,0,0)'
+            },
+            zaxis: {
+                title: compact ? undefined : { text: "AFT (°C)", font: AXIS_LABEL_FONT },
+                showticklabels: !compact, tickfont: TICK_FONT,
+                color: GLOW_WHITE_SOFT, gridcolor: GLOW_WHITE_SOFT, zerolinecolor: GLOW_WHITE_SOFT,
+                backgroundcolor: 'rgba(0,0,0,0)'
+            }
         },
-        font: { color: '#f4f8ff' }
+        font: { color: GLOW_WHITE }
     };
+    if (ranges) {
+        layout.scene.xaxis.range = ranges.xr; layout.scene.xaxis.autorange = false;
+        layout.scene.yaxis.range = ranges.yr; layout.scene.yaxis.autorange = false;
+        layout.scene.zaxis.range = ranges.zr; layout.scene.zaxis.autorange = false;
+    }
     return { data, layout };
+}
+
+// Compact (in-grid) render of the Coal AFT Cube View card -- replaces the
+// old drawTendencyMapChart(). `d` is accepted for call-site symmetry with
+// drawRadarChart/drawAshFusionChart but isn't used: the cube's own data
+// comes from `samples` + computeIndividualCoalAFTs(), same as the ternary
+// card's old expanded cube did. Still rotatable/draggable like any Plotly
+// 3D scene; the camera-preset buttons + auto-labels only appear once this
+// card's dashboard is itself zoomed (see _setupAdvancedExpand below).
+async function drawCoalCubeChart(d) {
+    const el = document.getElementById('coalCubeChart');
+    if (!el || !window.Plotly) return;
+    try {
+        const { blendPoints, coalPoints, ranges } = await _gatherCoalCubePoints();
+        if (!document.body.contains(el)) return; // dashboard may have changed while this awaited
+        const { data, layout } = _buildCoalCubePlot(blendPoints, coalPoints, ranges, true);
+        await Plotly.newPlot(el, data, layout, { displayModeBar: false, responsive: true });
+    } catch (e) { console.warn('Coal AFT Cube View (compact) render failed', e); }
 }
 
 function updateKeyIndicatorsRow(d) {
@@ -2188,10 +2202,10 @@ function _initResultsPanelInteractivity() {
                 if (!advancedChartsDrawn) {
                     drawRadarChart(advDashData || {});
                     drawAshFusionChart(advDashData || {});
-                    drawTendencyMapChart(advDashData || {});
+                    drawCoalCubeChart(advDashData || {});
                     advancedChartsDrawn = true;
                 } else {
-                    ['radarChart', 'ashFusionChart', 'tendencyMapChart'].forEach(id => {
+                    ['radarChart', 'ashFusionChart', 'coalCubeChart'].forEach(id => {
                         const el = document.getElementById(id);
                         if (el) { try { Plotly.Plots.resize(el); } catch (e) {} }
                     });
@@ -2242,7 +2256,7 @@ function _initResultsPanelInteractivity() {
             if (window.Plotly && !advancedChartsDrawn) {
                 drawRadarChart(advDashData || {});
                 drawAshFusionChart(advDashData || {});
-                drawTendencyMapChart(advDashData || {});
+                drawCoalCubeChart(advDashData || {});
                 advancedChartsDrawn = true;
             }
             _rawAdvancedExpand.expand();
@@ -2648,88 +2662,14 @@ async function computeIndividualCoalAFTs() {
 
 /* -----------------------------------------------------------------------
    Ternary click-to-expand
-   Clicking the on-screen ternary card enlarges it and dims/blurs the rest
-   of the page behind it, so it's easier to read. While expanded, each
-   currently selected coal's own predicted AFT is overlaid on the SAME
-   ternary axes as the existing blend plot (which is left completely
-   untouched — only an extra trace is added and then removed again), with
-   a small legend distinguishing the two. Clicking the close (×) button,
-   or clicking anywhere on the dimmed backdrop, restores everything
-   exactly as it was.
+   Clicking the on-screen ternary card enlarges the SAME flat ternary
+   triangle (see _setupTernaryHoverExpand below), with each currently
+   selected coal's own predicted AFT plotted and labeled directly on the
+   chart. Clicking the close (×) button, or clicking anywhere on the
+   dimmed backdrop, restores everything exactly as it was. (The 3D "cube"
+   view that used to open here now lives in the Advanced View's "Coal AFT
+   Cube View" card instead -- see drawCoalCubeChart / _setupAdvancedExpand.)
 ----------------------------------------------------------------------- */
-// Builds the data/layout for the EXPANDED (click-to-enlarge) view: a real
-// 3D scatter plot (acidic oxides / basic oxides / AFT as X/Y/Z) instead of
-// the flat 2D ternary triangle used for the on-screen card. Styling
-// (dark-glass transparent background, glowing off-white axes/labels, Jet
-// colorscale) intentionally mirrors updatePlot() exactly so the expanded
-// view feels like the same chart, just in 3D.
-function _build3DExpandedPlot() {
-    const GLOW_WHITE = "#f4f8ff";
-    const GLOW_WHITE_SOFT = "rgba(244, 248, 255, 0.55)";
-    const AXIS_LABEL_FONT = { size: 12, color: GLOW_WHITE };
-    const TICK_FONT = { size: 10, color: GLOW_WHITE_SOFT };
-
-    const data = [{
-        type: 'scatter3d',
-        mode: 'markers',
-        name: 'Blended AFT',
-        x: samples.map(s => s.acidicOxides),
-        y: samples.map(s => s.basicOxides),
-        z: samples.map(s => s.AFT),
-        marker: {
-            size: MARKER_SIZE + 2, // slightly bigger; small markers get lost in 3D
-            color: samples.map(s => s.AFT),
-            colorscale: 'Jet',
-            showscale: false,
-            line: { width: 1, color: 'rgba(255,255,255,0.6)' }
-        },
-        text: samples.map(s => `Fusion Temperature: ${parseFloat(s.AFT).toFixed(2)}°C`),
-        hoverinfo: 'text'
-    }];
-
-    const layout = {
-        autosize: true,
-        margin: { l: 10, r: 10, t: 30, b: 10 },
-        paper_bgcolor: 'rgba(0,0,0,0)',
-        plot_bgcolor: 'rgba(0,0,0,0)',
-        showlegend: false,
-        scene: {
-            bgcolor: 'rgba(0,0,0,0)',
-            aspectmode: 'cube', // forces the plot's bounding box to render as a literal cube
-            camera: { eye: { x: 1.5, y: 1.5, z: 0.9 }, center: { x: 0, y: 0, z: 0 }, up: { x: 0, y: 0, z: 1 } },
-            xaxis: {
-                title: { text: "Thermal Stability (Acidic Oxides %)", font: AXIS_LABEL_FONT },
-                showticklabels: true,
-                tickfont: TICK_FONT,
-                color: GLOW_WHITE_SOFT,
-                gridcolor: GLOW_WHITE_SOFT,
-                zerolinecolor: GLOW_WHITE_SOFT,
-                backgroundcolor: 'rgba(0,0,0,0)'
-            },
-            yaxis: {
-                title: { text: "Fusion Accelerator (Basic Oxides %)", font: AXIS_LABEL_FONT },
-                showticklabels: true,
-                tickfont: TICK_FONT,
-                color: GLOW_WHITE_SOFT,
-                gridcolor: GLOW_WHITE_SOFT,
-                zerolinecolor: GLOW_WHITE_SOFT,
-                backgroundcolor: 'rgba(0,0,0,0)'
-            },
-            zaxis: {
-                title: { text: "AFT (°C)", font: AXIS_LABEL_FONT },
-                showticklabels: true,
-                tickfont: TICK_FONT,
-                color: GLOW_WHITE_SOFT,
-                gridcolor: GLOW_WHITE_SOFT,
-                zerolinecolor: GLOW_WHITE_SOFT,
-                backgroundcolor: 'rgba(0,0,0,0)'
-            }
-        },
-        font: { color: GLOW_WHITE }
-    };
-
-    return { data, layout };
-}
 
 /* -----------------------------------------------------------------------
    Cube view helpers
@@ -2931,131 +2871,118 @@ function _startAutoCycleLabels(plotDiv, pointsOverride) {
 
 function _setupTernaryHoverExpand(wrapper, plotDiv) {
   let expanded = false;
-  let individualTraceAdded = false;
   let originalParent = null;
   let originalNextSibling = null;
-  let _autoCycleController = null;
 
-  // Cube-view state -- rebuilt fresh on every expand() since which coals
-  // are selected can change between runs.
-  let _cubeCoalPoints = [];   // [{x,y,z,text,name}] one per distinct coal
-  let _cubeBlendPoints = [];  // [{x,y,z,text}] the blended point(s)
-  let _cubeRanges = null;
-  let _cubePresetOrder = [];  // overview, then each coal, then each pair
-  let _cubePresetCycleIdx = 0;
+  // ---------------------------------------------------------------------
+  // Zoomed ternary view: instead of the old 3D/cube expansion, clicking
+  // the ternary card now enlarges the SAME flat ternary triangle, with
+  // every currently selected coal's own (100%) predicted AFT plotted and
+  // labeled directly on the chart (no hover needed to see which dot is
+  // which). If two coals land close together on the triangle, the second
+  // one's label is flipped to the opposite side of its dot from the
+  // first, so the two labels don't overlap. The 3D "cube" view now lives
+  // in the Advanced View's "Coal AFT Cube View" card instead (see
+  // drawCoalCubeChart / _setupAdvancedExpand).
+  // ---------------------------------------------------------------------
 
-  function _cubeAllPoints() { return _cubeBlendPoints.concat(_cubeCoalPoints); }
-
-  // Applies one cube "preset": fades marker opacity so only the point(s)
-  // of interest stand out, and snaps the camera to face them.
-  // kind is 'overview' | 'coal' | 'pair'; payload is null | coalIndex | [i,j].
-  async function _applyCubePreset(kind, payload) {
-    if (!window.Plotly || !plotDiv) return;
-    let eye = { x: 1.5, y: 1.5, z: 0.9 };
-    let cyclePoints = _cubeAllPoints();
-    let blendOpacity = 1;
-    let coalOpacities = _cubeCoalPoints.map(() => 1);
-
-    if (kind === 'coal' && _cubeCoalPoints[payload] && _cubeRanges) {
-      const p = _cubeCoalPoints[payload];
-      eye = _cubeEyeForPoints([p], _cubeRanges);
-      coalOpacities = _cubeCoalPoints.map((_, i) => i === payload ? 1 : 0.06);
-      blendOpacity = 0.15;
-      cyclePoints = [p];
-    } else if (kind === 'pair' && Array.isArray(payload) && _cubeRanges) {
-      const [i, j] = payload;
-      const pi = _cubeCoalPoints[i], pj = _cubeCoalPoints[j];
-      if (pi && pj) {
-        eye = _cubeEyeForPoints([pi, pj], _cubeRanges);
-        coalOpacities = _cubeCoalPoints.map((_, k) => (k === i || k === j) ? 1 : 0.06);
-        blendOpacity = 0.15;
-        cyclePoints = [pi, pj];
-      }
-    }
-    // 'overview' (default) leaves everything above at full opacity / the
-    // default camera / cycling through every point.
-
-    try {
-      if (individualTraceAdded) {
-        await Plotly.restyle(plotDiv, { 'marker.opacity': [coalOpacities] }, [1]);
-      }
-      await Plotly.restyle(plotDiv, { 'marker.opacity': [blendOpacity] }, [0]);
-      await Plotly.relayout(plotDiv, {
-        'scene.camera': { eye, center: { x: 0, y: 0, z: 0 }, up: { x: 0, y: 0, z: 1 } }
-      });
-    } catch (e) {}
-
-    if (_autoCycleController) _autoCycleController.stop();
-    _autoCycleController = _startAutoCycleLabels(plotDiv, cyclePoints.length ? cyclePoints : null);
-
-    const bar = wrapper.querySelector('.cube-preset-bar');
-    if (bar) {
-      bar.querySelectorAll('.cube-preset-btn').forEach(b => {
-        b.classList.toggle('cube-preset-active', b.dataset.cubeKind === kind && b.dataset.cubePayload === JSON.stringify(payload));
-      });
-    }
+  // Converts a point's raw ternary (a,b,c) into the same equilateral-
+  // triangle x/y that Plotly's ternary renderer effectively uses, purely
+  // so label-overlap can be judged by real on-triangle distance -- not
+  // for display (Plotly still does its own a/b/c layout).
+  function _ternarySimplexXY(a, b, c) {
+    const total = (a + b + c) || 1;
+    const bf = b / total, cf = c / total;
+    return { x: 0.5 * (2 * bf + cf), y: (Math.sqrt(3) / 2) * cf };
   }
 
-  // Overview -> each coal -> each adjacent pair -> back to overview.
-  function _cubeNextPreset() {
-    if (!_cubePresetOrder.length) return;
-    _cubePresetCycleIdx = (_cubePresetCycleIdx + 1) % _cubePresetOrder.length;
-    const next = _cubePresetOrder[_cubePresetCycleIdx];
-    _applyCubePreset(next.kind, next.payload);
-  }
+  const LABEL_OPPOSITE = {
+    'top center': 'bottom center', 'bottom center': 'top center',
+    'top right': 'bottom left', 'bottom left': 'top right',
+    'top left': 'bottom right', 'bottom right': 'top left',
+    'middle left': 'middle right', 'middle right': 'middle left'
+  };
+  const LABEL_DEFAULT = 'top center';
+  // Two coal points closer than this (in the normalized 0..~1 triangle
+  // above) are considered "near" each other for label placement.
+  const LABEL_NEAR_THRESHOLD = 0.055;
 
-  // Builds the row of buttons under the cube: Overview, one per coal,
-  // and one per adjacent pair (only when there's more than one coal).
-  function _buildCubePresetBar() {
-    const oldBar = wrapper.querySelector('.cube-preset-bar');
-    if (oldBar) oldBar.remove();
-    const oldHint = wrapper.querySelector('.cube-preset-hint');
-    if (oldHint) oldHint.remove();
-
-    _cubePresetOrder = [{ kind: 'overview', payload: null, label: 'Overview' }];
-    _cubeCoalPoints.forEach((p, i) => {
-      _cubePresetOrder.push({ kind: 'coal', payload: i, label: p.name });
-    });
-    if (_cubeCoalPoints.length > 1) {
-      for (let i = 0; i < _cubeCoalPoints.length; i++) {
-        const j = (i + 1) % _cubeCoalPoints.length;
-        if (j > i || _cubeCoalPoints.length === 2) {
-          const n1 = _cubeCoalPoints[i].name.split(' ')[0];
-          const n2 = _cubeCoalPoints[j].name.split(' ')[0];
-          _cubePresetOrder.push({ kind: 'pair', payload: [i, j], label: `${n1} + ${n2}` });
+  // For each point (in the order given), if it lands near an
+  // already-placed point, flip its label to that point's opposite side;
+  // otherwise use the default position. Simple and cheap, but it's
+  // exactly the "if two AFTs are close, put the labels on opposite
+  // sides" behaviour that keeps them legible without a full layout solver.
+  function _assignLabelPositions(points) {
+    const positions = [];
+    for (let i = 0; i < points.length; i++) {
+      let chosen = LABEL_DEFAULT;
+      for (let j = 0; j < i; j++) {
+        const dx = points[i].x - points[j].x, dy = points[i].y - points[j].y;
+        if (Math.sqrt(dx * dx + dy * dy) < LABEL_NEAR_THRESHOLD) {
+          chosen = LABEL_OPPOSITE[positions[j]] || 'bottom center';
+          break;
         }
       }
+      positions.push(chosen);
     }
-    _cubePresetCycleIdx = 0;
+    return positions;
+  }
 
-    const bar = document.createElement('div');
-    bar.className = 'cube-preset-bar';
-    _cubePresetOrder.forEach((preset, idx) => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'cube-preset-btn';
-      let label = preset.label;
-      if (label.length > 16) label = label.slice(0, 15) + '\u2026';
-      btn.textContent = label;
-      btn.title = preset.kind === 'overview' ? 'Show every coal blended together' : preset.label;
-      btn.dataset.cubeKind = preset.kind;
-      btn.dataset.cubePayload = JSON.stringify(preset.payload);
-      if (idx === 0) btn.classList.add('cube-preset-active');
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        _cubePresetCycleIdx = idx;
-        _applyCubePreset(preset.kind, preset.payload);
-      });
-      bar.appendChild(btn);
-    });
-    wrapper.appendChild(bar);
+  // Builds the {data, layout} for the zoomed ternary: the same "Blended
+  // AFT" trace as the on-screen card (updatePlot()), plus an "Individual
+  // Coal AFT" trace with each coal's name + AFT drawn right on its dot.
+  function _buildZoomedTernaryPlot(individualResults) {
+    const GLOW_WHITE = "#f4f8ff";
+    const GLOW_WHITE_SOFT = "rgba(244, 248, 255, 0.55)";
+    const AXIS_LABEL_FONT = { size: 13, color: GLOW_WHITE };
+    const TICK_FONT = { size: 11, color: GLOW_WHITE_SOFT };
 
-    if (_cubePresetOrder.length > 1) {
-      const hint = document.createElement('div');
-      hint.className = 'cube-preset-hint';
-      hint.textContent = 'Double-click the cube, or tap below, to focus one coal or a pair';
-      wrapper.appendChild(hint);
+    const blendedTrace = {
+      type: 'scatterternary', mode: 'markers', name: 'Blended AFT',
+      a: samples.map(s => s.acidicOxides), b: samples.map(s => s.basicOxides), c: samples.map(s => s.otherOxides),
+      marker: {
+        size: MARKER_SIZE + 3, color: samples.map(s => s.AFT), colorscale: 'Jet', showscale: false,
+        line: { width: 1, color: 'rgba(255,255,255,0.6)' }
+      },
+      text: samples.map(s => `Blended AFT: ${parseFloat(s.AFT).toFixed(2)}°C`), hoverinfo: 'text'
+    };
+
+    const data = [blendedTrace];
+
+    if (individualResults.length) {
+      const simplexPts = individualResults.map(r => _ternarySimplexXY(r.a, r.b, r.c));
+      const positions = _assignLabelPositions(simplexPts);
+
+      const individualTrace = {
+        type: 'scatterternary', mode: 'markers+text', name: 'Individual Coal AFT',
+        a: individualResults.map(r => r.a), b: individualResults.map(r => r.b), c: individualResults.map(r => r.c),
+        marker: {
+          symbol: 'diamond', size: MARKER_SIZE + 5,
+          color: individualResults.map(r => r.aft), colorscale: 'Jet', showscale: false,
+          line: { width: 1.5, color: '#111' }
+        },
+        text: individualResults.map(r => `${r.name}<br>${Math.round(Number(r.aft))}°C`),
+        textposition: positions,
+        textfont: { size: 11, color: GLOW_WHITE },
+        hovertext: individualResults.map(r => `${r.name} — Individual AFT: ${Math.round(Number(r.aft))}°C`),
+        hoverinfo: 'text', showlegend: false
+      };
+      data.push(individualTrace);
     }
+
+    const layout = {
+      autosize: true,
+      margin: { l: 60, r: 50, t: 40, b: 40 },
+      paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)', showlegend: false,
+      ternary: {
+        bgcolor: 'rgba(0,0,0,0)', sum: 100,
+        aaxis: { title: { text: "Thermal Stability", font: AXIS_LABEL_FONT }, showticklabels: true, tickfont: TICK_FONT, linecolor: GLOW_WHITE, linewidth: 2, gridcolor: GLOW_WHITE_SOFT },
+        baxis: { title: { text: "Fusion Accelerator", font: AXIS_LABEL_FONT }, showticklabels: true, tickfont: TICK_FONT, linecolor: GLOW_WHITE, linewidth: 2, gridcolor: GLOW_WHITE_SOFT },
+        caxis: { title: { text: "Hardening Index", font: AXIS_LABEL_FONT, standoff: 10 }, showticklabels: true, title_standoff: 10, tickfont: TICK_FONT, linecolor: GLOW_WHITE, linewidth: 2, gridcolor: GLOW_WHITE_SOFT }
+      },
+      font: { color: GLOW_WHITE }
+    };
+    return { data, layout };
   }
 
   async function expand() {
@@ -3112,33 +3039,9 @@ function _setupTernaryHoverExpand(wrapper, plotDiv) {
       wrapper.appendChild(switchBtn);
     }
 
-    // Swap the flat 2D ternary triangle out for a real 3D scatter plot
-    // (same data, same dark-glass styling) for the enlarged view.
-    if (window.Plotly) {
-      try {
-        const { data: data3d, layout: layout3d } = _build3DExpandedPlot();
-        await Plotly.newPlot(plotDiv, data3d, layout3d, { responsive: true });
-        requestAnimationFrame(() => {
-          const svgLayers = plotDiv.querySelectorAll('.main-svg');
-          svgLayers.forEach(svg => {
-            svg.style.filter = 'drop-shadow(0 0 3px rgba(244, 248, 255, 0.55))';
-          });
-        });
-
-        // Double-click cycles Overview -> each coal -> each pair -> back to
-        // Overview. Bound once per plot element (Plotly.newPlot reuses the
-        // same DOM node on repeat expands); returning false suppresses
-        // Plotly's own "double-click resets camera" default.
-        if (!plotDiv._cubeDblClickBound) {
-          plotDiv._cubeDblClickBound = true;
-          plotDiv.on('plotly_doubleclick', () => {
-            _cubeNextPreset();
-            return false;
-          });
-        }
-      } catch (e) {}
-    }
-
+    // Fetch each selected coal's own (100%) predicted AFT (cached by
+    // blend signature, same cache the Coal AFT Cube View card uses) and
+    // redraw the ternary, enlarged, with those points labeled on-chart.
     try {
       const sig = _getTernaryBlendSignature();
       let results;
@@ -3150,93 +3053,27 @@ function _setupTernaryHoverExpand(wrapper, plotDiv) {
       }
       const valid = (results || []).filter(r => r && r.aft != null && !isNaN(r.aft) && r.a != null && r.b != null && r.c != null);
 
-      _cubeCoalPoints = valid.map(r => ({
-        x: r.a, y: r.b, z: r.aft, name: r.name,
-        text: `${r.name} — Individual AFT: ${Math.round(Number(r.aft))}°C`
-      }));
-      _cubeBlendPoints = samples.map(s => ({
-        x: s.acidicOxides, y: s.basicOxides, z: s.AFT,
-        text: `Blended AFT: ${parseFloat(s.AFT).toFixed(2)}°C`
-      }));
-
       if (expanded && window.Plotly) {
-        const allPts = _cubeAllPoints();
-        _cubeRanges = allPts.length ? _cubeRangesFor(allPts) : null;
-
-        const blendedTrace = {
-          type: 'scatter3d', mode: 'markers', name: 'Blended AFT',
-          x: _cubeBlendPoints.map(p => p.x), y: _cubeBlendPoints.map(p => p.y), z: _cubeBlendPoints.map(p => p.z),
-          marker: {
-            size: MARKER_SIZE + 2,
-            color: _cubeBlendPoints.map(p => p.z),
-            colorscale: 'Jet', showscale: false,
-            line: { width: 1, color: 'rgba(255,255,255,0.6)' }
-          },
-          text: _cubeBlendPoints.map(p => p.text), hoverinfo: 'text'
-        };
-        const individualTrace = {
-          type: 'scatter3d', mode: 'markers', name: 'Individual Coal AFT',
-          x: _cubeCoalPoints.map(p => p.x), y: _cubeCoalPoints.map(p => p.y), z: _cubeCoalPoints.map(p => p.z),
-          marker: {
-            symbol: 'diamond',
-            size: (typeof MARKER_SIZE !== 'undefined' ? MARKER_SIZE : 9) + 4,
-            color: _cubeCoalPoints.map(p => p.z),
-            colorscale: 'Jet', showscale: false,
-            line: { width: 1.5, color: '#111' }
-          },
-          text: _cubeCoalPoints.map(p => p.text), hoverinfo: 'text', showlegend: false
-        };
-        individualTraceAdded = _cubeCoalPoints.length > 0;
-
-        // Fresh full trace set every time (blended + individual + cube
-        // wireframe) via react() instead of delete/addTraces, so trace
-        // indices stay fixed (0 = blended, 1 = individual) for the preset
-        // opacity restyles in _applyCubePreset().
-        const dataFull = [blendedTrace, individualTrace];
-        if (_cubeRanges) dataFull.push(_cubeWireframeTrace(_cubeRanges));
-
-        await Plotly.react(plotDiv, dataFull, plotDiv.layout);
-
-        if (_cubeRanges) {
-          await Plotly.relayout(plotDiv, {
-            'scene.xaxis.range': _cubeRanges.xr, 'scene.xaxis.autorange': false,
-            'scene.yaxis.range': _cubeRanges.yr, 'scene.yaxis.autorange': false,
-            'scene.zaxis.range': _cubeRanges.zr, 'scene.zaxis.autorange': false
+        const { data, layout } = _buildZoomedTernaryPlot(valid);
+        await Plotly.newPlot(plotDiv, data, layout, { responsive: true });
+        requestAnimationFrame(() => {
+          const svgLayers = plotDiv.querySelectorAll('.main-svg');
+          svgLayers.forEach(svg => {
+            svg.style.filter = 'drop-shadow(0 0 3px rgba(244, 248, 255, 0.55))';
           });
-        }
-
-        // Preset buttons only make sense once there's more than the
-        // blended point to focus on.
-        if (_cubeCoalPoints.length) _buildCubePresetBar();
+        });
       }
     } catch (e) {
       console.warn('ternary hover: individual coal AFT lookup failed', e);
-    }
-
-    // Start the auto-blink label cycle over whatever points ended up on
-    // the plot (blended point(s), plus individual coals if that lookup
-    // succeeded above) -- no hover needed to see each name/AFT. This is
-    // the "Overview" state: every coal blended together in one view.
-    if (expanded) {
-      if (_autoCycleController) _autoCycleController.stop();
-      const allPts = _cubeAllPoints();
-      _autoCycleController = _startAutoCycleLabels(plotDiv, allPts.length ? allPts : null);
     }
   }
 
   async function collapse() {
     expanded = false;
-    if (_autoCycleController) { _autoCycleController.stop(); _autoCycleController = null; }
     if (_currentExpandedCollapse === collapse) _currentExpandedCollapse = null;
     wrapper.classList.remove('ternary-expanded');
     const legend = wrapper.querySelector('.ternary-hover-legend');
     if (legend) legend.style.display = 'none';
-    const cubeBar = wrapper.querySelector('.cube-preset-bar');
-    if (cubeBar) cubeBar.remove();
-    const cubeHint = wrapper.querySelector('.cube-preset-hint');
-    if (cubeHint) cubeHint.remove();
-    _cubeCoalPoints = []; _cubeBlendPoints = []; _cubeRanges = null;
-    _cubePresetOrder = []; _cubePresetCycleIdx = 0;
     _getTernaryHoverBackdrop().classList.remove('active');
 
     if (originalParent) {
@@ -3251,7 +3088,6 @@ function _setupTernaryHoverExpand(wrapper, plotDiv) {
     // extra "Individual Coal AFT" trace too, since it's a fresh newPlot).
     if (window.Plotly) {
       try {
-        individualTraceAdded = false;
         updatePlot();
       } catch (e) {}
     }
@@ -3282,24 +3118,195 @@ function _setupAdvancedExpand(wrapper) {
 
   function _resizeAdvancedCharts() {
     if (!window.Plotly) return;
-    ['radarChart', 'ashFusionChart', 'tendencyMapChart'].forEach(id => {
+    ['radarChart', 'ashFusionChart', 'coalCubeChart'].forEach(id => {
       const el = document.getElementById(id);
       if (el) { try { Plotly.Plots.resize(el); } catch (e) {} }
     });
   }
 
-  // Turns the zoomed view's charts "on": swaps the tendency map from its
-  // flat 2D contour to a real rotatable 3D surface, and starts the
+  // ---------------------------------------------------------------------
+  // Coal AFT Cube View: zoom-only controls.
+  // Ported from the ternary card's old click-to-expand cube (camera
+  // "presets" that snap to one coal or a pair, double-click to cycle
+  // through them, and auto-blinking point labels) -- now driven by the
+  // advanced dashboard's own expand()/collapse() instead of the ternary
+  // card's, since the cube itself now lives here (see drawCoalCubeChart /
+  // _buildCoalCubePlot above) in place of the old Ash Deposition
+  // Tendency Map. The compact in-grid card (drawCoalCubeChart) has none
+  // of this -- presets/labels only appear once this dashboard is zoomed.
+  // ---------------------------------------------------------------------
+  let _cubeCoalPoints = [];
+  let _cubeBlendPoints = [];
+  let _cubeRanges = null;
+  let _cubePresetOrder = [];
+  let _cubePresetCycleIdx = 0;
+  let _cubeAutoCycle = null;
+
+  function _cubeAllPoints() { return _cubeBlendPoints.concat(_cubeCoalPoints); }
+
+  async function _applyCubePreset(kind, payload) {
+    const el = document.getElementById('coalCubeChart');
+    if (!window.Plotly || !el) return;
+    let eye = { x: 1.5, y: 1.5, z: 0.9 };
+    let cyclePoints = _cubeAllPoints();
+    let blendOpacity = 1;
+    let coalOpacities = _cubeCoalPoints.map(() => 1);
+
+    if (kind === 'coal' && _cubeCoalPoints[payload] && _cubeRanges) {
+      const p = _cubeCoalPoints[payload];
+      eye = _cubeEyeForPoints([p], _cubeRanges);
+      coalOpacities = _cubeCoalPoints.map((_, i) => i === payload ? 1 : 0.06);
+      blendOpacity = 0.15;
+      cyclePoints = [p];
+    } else if (kind === 'pair' && Array.isArray(payload) && _cubeRanges) {
+      const [i, j] = payload;
+      const pi = _cubeCoalPoints[i], pj = _cubeCoalPoints[j];
+      if (pi && pj) {
+        eye = _cubeEyeForPoints([pi, pj], _cubeRanges);
+        coalOpacities = _cubeCoalPoints.map((_, k) => (k === i || k === j) ? 1 : 0.06);
+        blendOpacity = 0.15;
+        cyclePoints = [pi, pj];
+      }
+    }
+    // 'overview' (default) leaves everything above at full opacity / the
+    // default camera / cycling through every point.
+
+    try {
+      if (_cubeCoalPoints.length) await Plotly.restyle(el, { 'marker.opacity': [coalOpacities] }, [1]);
+      await Plotly.restyle(el, { 'marker.opacity': [blendOpacity] }, [0]);
+      await Plotly.relayout(el, { 'scene.camera': { eye, center: { x: 0, y: 0, z: 0 }, up: { x: 0, y: 0, z: 1 } } });
+    } catch (e) {}
+
+    if (_cubeAutoCycle) _cubeAutoCycle.stop();
+    _cubeAutoCycle = _startAutoCycleLabels(el, cyclePoints.length ? cyclePoints : null);
+
+    const bar = wrapper.querySelector('.cube-preset-bar');
+    if (bar) {
+      bar.querySelectorAll('.cube-preset-btn').forEach(b => {
+        b.classList.toggle('cube-preset-active', b.dataset.cubeKind === kind && b.dataset.cubePayload === JSON.stringify(payload));
+      });
+    }
+  }
+
+  // Overview -> each coal -> each adjacent pair -> back to overview.
+  function _cubeNextPreset() {
+    if (!_cubePresetOrder.length) return;
+    _cubePresetCycleIdx = (_cubePresetCycleIdx + 1) % _cubePresetOrder.length;
+    const next = _cubePresetOrder[_cubePresetCycleIdx];
+    _applyCubePreset(next.kind, next.payload);
+  }
+
+  // Builds the row of preset buttons, appended inside the small
+  // "Coal AFT Cube View" card itself (.cube-card) rather than the whole
+  // dashboard wrapper, so it doesn't overlap the radar / ash-fusion cards
+  // next to it.
+  function _buildCubePresetBar() {
+    const cubeCard = wrapper.querySelector('.cube-card') || wrapper;
+    const oldBar = cubeCard.querySelector('.cube-preset-bar');
+    if (oldBar) oldBar.remove();
+    const oldHint = cubeCard.querySelector('.cube-preset-hint');
+    if (oldHint) oldHint.remove();
+
+    _cubePresetOrder = [{ kind: 'overview', payload: null, label: 'Overview' }];
+    _cubeCoalPoints.forEach((p, i) => {
+      _cubePresetOrder.push({ kind: 'coal', payload: i, label: p.name });
+    });
+    if (_cubeCoalPoints.length > 1) {
+      for (let i = 0; i < _cubeCoalPoints.length; i++) {
+        const j = (i + 1) % _cubeCoalPoints.length;
+        if (j > i || _cubeCoalPoints.length === 2) {
+          const n1 = _cubeCoalPoints[i].name.split(' ')[0];
+          const n2 = _cubeCoalPoints[j].name.split(' ')[0];
+          _cubePresetOrder.push({ kind: 'pair', payload: [i, j], label: `${n1} + ${n2}` });
+        }
+      }
+    }
+    _cubePresetCycleIdx = 0;
+
+    const bar = document.createElement('div');
+    bar.className = 'cube-preset-bar';
+    _cubePresetOrder.forEach((preset, idx) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'cube-preset-btn';
+      let label = preset.label;
+      if (label.length > 16) label = label.slice(0, 15) + '\u2026';
+      btn.textContent = label;
+      btn.title = preset.kind === 'overview' ? 'Show every coal blended together' : preset.label;
+      btn.dataset.cubeKind = preset.kind;
+      btn.dataset.cubePayload = JSON.stringify(preset.payload);
+      if (idx === 0) btn.classList.add('cube-preset-active');
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        _cubePresetCycleIdx = idx;
+        _applyCubePreset(preset.kind, preset.payload);
+      });
+      bar.appendChild(btn);
+    });
+    cubeCard.appendChild(bar);
+
+    if (_cubePresetOrder.length > 1) {
+      const hint = document.createElement('div');
+      hint.className = 'cube-preset-hint';
+      hint.textContent = 'Double-click the cube, or tap below, to focus one coal or a pair';
+      cubeCard.appendChild(hint);
+    }
+  }
+
+  // Rebuilds the cube at full (zoomed) size and turns on presets/labels.
+  async function _activateCube() {
+    const el = document.getElementById('coalCubeChart');
+    if (!window.Plotly || !el) return;
+    try {
+      const gathered = await _gatherCoalCubePoints();
+      _cubeBlendPoints = gathered.blendPoints;
+      _cubeCoalPoints = gathered.coalPoints;
+      _cubeRanges = gathered.ranges;
+
+      const { data, layout } = _buildCoalCubePlot(_cubeBlendPoints, _cubeCoalPoints, _cubeRanges, false);
+      await Plotly.newPlot(el, data, layout, { responsive: true });
+
+      // Double-click cycles Overview -> each coal -> each pair -> back to
+      // Overview. Bound once per plot element; returning false suppresses
+      // Plotly's own "double-click resets camera" default.
+      if (!el._cubeDblClickBound) {
+        el._cubeDblClickBound = true;
+        el.on('plotly_doubleclick', () => {
+          _cubeNextPreset();
+          return false;
+        });
+      }
+
+      if (_cubeCoalPoints.length) _buildCubePresetBar();
+
+      if (_cubeAutoCycle) _cubeAutoCycle.stop();
+      const allPts = _cubeAllPoints();
+      _cubeAutoCycle = _startAutoCycleLabels(el, allPts.length ? allPts : null);
+    } catch (e) { console.warn('Coal AFT Cube View (zoom) render failed', e); }
+  }
+
+  function _deactivateCube() {
+    if (_cubeAutoCycle) { _cubeAutoCycle.stop(); _cubeAutoCycle = null; }
+    const cubeCard = wrapper.querySelector('.cube-card') || wrapper;
+    const bar = cubeCard.querySelector('.cube-preset-bar');
+    if (bar) bar.remove();
+    const hint = cubeCard.querySelector('.cube-preset-hint');
+    if (hint) hint.remove();
+    _cubeCoalPoints = []; _cubeBlendPoints = []; _cubeRanges = null;
+    _cubePresetOrder = []; _cubePresetCycleIdx = 0;
+    if (window.Plotly) {
+      try { drawCoalCubeChart(advDashData || {}); } catch (e) {}
+    }
+  }
+
+  // Turns the zoomed view's charts "on": rebuilds the Coal AFT Cube View
+  // at full size with its camera presets + auto-labels, and starts the
   // radar/ash-fusion blink cycles that flash each element's name/value
   // automatically instead of requiring a hover. All three are reversed
   // in _deactivateZoomedCharts() on collapse.
   function _activateZoomedCharts() {
     if (!window.Plotly) return;
-    const tendEl = document.getElementById('tendencyMapChart');
-    if (tendEl && _lastTendencyData) {
-      const { data, layout } = _buildTendencyMap3D(_lastTendencyData);
-      Plotly.newPlot(tendEl, data, layout, { displayModeBar: false, responsive: true }).catch(() => {});
-    }
+    _activateCube();
     const radarEl = document.getElementById('radarChart');
     if (radarEl) { if (_radarBlink) _radarBlink.stop(); _radarBlink = _startRadarBlink(radarEl); }
     const ashEl = document.getElementById('ashFusionChart');
@@ -3309,9 +3316,7 @@ function _setupAdvancedExpand(wrapper) {
   function _deactivateZoomedCharts() {
     if (_radarBlink) { _radarBlink.stop(); _radarBlink = null; }
     if (_ashFusionBlink) { _ashFusionBlink.stop(); _ashFusionBlink = null; }
-    if (window.Plotly) {
-      try { drawTendencyMapChart(_lastTendencyData || advDashData || {}); } catch (e) {}
-    }
+    _deactivateCube();
   }
 
   function expand() {
