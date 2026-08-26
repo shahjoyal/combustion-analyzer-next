@@ -3792,6 +3792,60 @@ function _restoreDarkBackgroundAfterExport(el, original) {
   else el.style.removeProperty('background');
 }
 
+/* -----------------------------------------------------------------------
+   The Coal AFT Cube View is a WebGL chart (Plotly scatter3d/gl3d). Its
+   canvas doesn't keep its drawing buffer around for html2canvas to read
+   back afterward -- by the time html2canvas gets to it, the browser has
+   already cleared it, so a plain html2canvas capture of the Advanced
+   View comes out with that one panel blank (the 2D/SVG charts next to
+   it -- radar, ash fusion -- aren't affected, since SVG is part of the
+   normal DOM and html2canvas draws it directly).
+
+   Fix: for the capture only, swap the live WebGL canvas out for a plain
+   <img> holding a PNG rendered through Plotly's own export pipeline
+   (Plotly.toImage forces a fresh, complete render rather than reading
+   back whatever the canvas happens to still have on screen), then swap
+   the live chart back in immediately after so nothing changes on screen.
+----------------------------------------------------------------------- */
+async function _swapPlotlyChartForStaticExportImage(plotId) {
+  const el = document.getElementById(plotId);
+  if (!el || !window.Plotly || typeof Plotly.toImage !== 'function') return null;
+
+  const rect = el.getBoundingClientRect();
+  const w = Math.max(60, Math.round(rect.width)  || 260);
+  const h = Math.max(60, Math.round(rect.height) || 130);
+
+  let png = null;
+  try {
+    png = await Plotly.toImage(el, { format: 'png', width: w, height: h, scale: 2 });
+  } catch (e) {
+    console.warn('Plotly.toImage failed for', plotId, e);
+    return null;
+  }
+  if (!png) return null;
+
+  const img = document.createElement('img');
+  img.src = png;
+  img.setAttribute('data-report-swap-for', plotId);
+  img.style.cssText = 'display:block; width:100%; height:100%; object-fit:contain;';
+
+  el.style.display = 'none';
+  el.insertAdjacentElement('afterend', img);
+
+  // Give the browser a beat to actually paint the swapped-in <img>
+  // before html2canvas reads the page.
+  await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+
+  return img;
+}
+
+function _unswapPlotlyChartAfterExport(plotId) {
+  const el = document.getElementById(plotId);
+  if (el) el.style.removeProperty('display');
+  const img = document.querySelector(`img[data-report-swap-for="${plotId}"]`);
+  if (img) img.remove();
+}
+
 /* Capture the Advanced View (Compositional Radar / Ash Fusion Characteristics /
    Coal AFT Cube View + the key-indicator cards) for the report, regardless
    of whether the user has ever toggled to it on screen. If the charts
@@ -3834,11 +3888,17 @@ async function captureAdvancedDashboard() {
   // sit on the dark cluster backdrop) -- give it one just for the capture.
   const originalAdvBg = _flattenDarkBackgroundForExport(advancedDashboard);
 
+  // Swap the WebGL cube chart for a freshly-rendered static PNG (see
+  // comment on _swapPlotlyChartForStaticExportImage) so it isn't blank
+  // in the capture.
+  await _swapPlotlyChartForStaticExportImage('coalCubeChart');
+
   let url = null;
   try {
     url = await captureElementPNG(advancedDashboard, { scale: 1.6, backgroundColor: '#04070f' });
   } catch (e) { console.warn('advanced dashboard capture err', e); }
 
+  _unswapPlotlyChartAfterExport('coalCubeChart');
   _restoreDarkBackgroundAfterExport(advancedDashboard, originalAdvBg);
 
   if (wasHidden) {
