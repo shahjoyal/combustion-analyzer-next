@@ -3736,6 +3736,56 @@ function _restoreOverallScoreBarAfterExport(original) {
   cbBar.style.backgroundColor = original.backgroundColor;
 }
 
+/* Capture the Advanced View (Compositional Radar / Ash Fusion Characteristics /
+   Coal AFT Cube View + the key-indicator cards) for the report, regardless
+   of whether the user has ever toggled to it on screen. If the charts
+   haven't been drawn yet this run, draw them first (same calls the
+   toggle button itself uses). If the panel is currently hidden, briefly
+   un-hide it (swapping out the ternary view) so html2canvas has a laid-out
+   element to rasterize, then restore whatever was showing before. */
+async function captureAdvancedDashboard() {
+  const advancedDashboard = document.getElementById('advancedDashboard');
+  if (!advancedDashboard) return null;
+  const ternaryWrapper = document.getElementById('ternaryPlotWrapper');
+
+  if (window.Plotly && !advancedChartsDrawn) {
+    try {
+      drawRadarChart(advDashData || {});
+      drawAshFusionChart(advDashData || {});
+      await drawCoalCubeChart(advDashData || {});
+      advancedChartsDrawn = true;
+    } catch (e) { console.warn('advanced chart draw for report failed', e); }
+  }
+
+  const wasHidden = advancedDashboard.classList.contains('hidden');
+  const prevTernaryDisplay = ternaryWrapper ? ternaryWrapper.style.display : null;
+
+  if (wasHidden) {
+    if (ternaryWrapper) ternaryWrapper.style.display = 'none';
+    advancedDashboard.classList.remove('hidden');
+    if (window.Plotly) {
+      ['radarChart', 'ashFusionChart', 'coalCubeChart'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { try { Plotly.Plots.resize(el); } catch (e) {} }
+      });
+    }
+    // Let the now-visible Plotly charts finish laying out before capture.
+    await new Promise(r => setTimeout(r, 300));
+  }
+
+  let url = null;
+  try {
+    url = await captureElementPNG(advancedDashboard, { scale: 1.6 });
+  } catch (e) { console.warn('advanced dashboard capture err', e); }
+
+  if (wasHidden) {
+    advancedDashboard.classList.add('hidden');
+    if (ternaryWrapper) ternaryWrapper.style.display = prevTernaryDisplay || '';
+  }
+
+  return url;
+}
+
 /* Capture the gauges + titles + overall score bar (hides download btn, AFB btn, ternary during capture) */
 async function captureResultsDashboard() {
   const container = document.getElementById('resultsContainer');
@@ -3841,6 +3891,11 @@ document.getElementById('downloadPDF').addEventListener('click', async function 
       </div>
     </section>
 
+    <section>
+      <div class="section-title">Advanced View</div>
+      <div id="advancedHolder"></div>
+    </section>
+
     <div class="footer">Abhitech Energycon Limited — Confidential Report</div>
   `;
   document.body.appendChild(page1);
@@ -3884,6 +3939,23 @@ document.getElementById('downloadPDF').addEventListener('click', async function 
       document.getElementById('ternaryHolder').innerHTML = '<p style="font-size:11px;">(Ternary plot not available)</p>';
     }
   } catch(e) { console.warn('ternary capture err', e); }
+
+  // Advanced View (radar / ash fusion / coal cube + key indicators) —
+  // included in full regardless of whether the user toggled to it on
+  // screen, per the report's "everything" requirement.
+  try {
+    const advUrl = await captureAdvancedDashboard();
+    if (advUrl) {
+      const img = document.createElement('img');
+      img.src = advUrl;
+      img.style.width = '100%';
+      img.style.height = 'auto';
+      img.style.display = 'block';
+      document.getElementById('advancedHolder').appendChild(img);
+    } else {
+      document.getElementById('advancedHolder').innerHTML = '<p style="font-size:11px;">(Advanced view not available — run calculation first)</p>';
+    }
+  } catch(e) { console.warn('advanced dashboard capture failed', e); }
 
   // Wait for all images to load
   const imgs = Array.from(page1.querySelectorAll('img'));

@@ -1109,6 +1109,30 @@ body.page-slagging th[colspan="3"] { background-color: #16327e !important; }
    keeps the same dark, translucent surface used for the first row. */
 body.page-slagging table tr:nth-child(even) { background: transparent !important; }
 
+/* #pdfReportPage is the exported/printable report (built on demand and
+   appended straight to <body class="page-slagging">, then rasterized to
+   PDF), and it's meant to stay light/printable — but the dark-theme
+   table rules just above match it too (same generic `table thead th` /
+   `table tbody td` selectors, no #pdfReportPage exclusion) and win with
+   !important, so every report table's body text was rendered in the
+   dark theme's pale off-white (--cxd-white: #f4f8ff) on a white cell
+   background: effectively invisible ("grey and unreadable"). These
+   selectors add #pdfReportPage to win on specificity (ID + class beats
+   class + element) so the report keeps its own readable dark-text look
+   regardless of the on-screen dark theme. */
+body.page-slagging #pdfReportPage table thead th {
+  background: #0153ac !important;
+  color: #fff !important;
+}
+body.page-slagging #pdfReportPage table tbody td {
+  background: #fff !important;
+  color: #111 !important;
+}
+body.page-slagging #pdfReportPage table tr:nth-child(even) td,
+body.page-slagging #pdfReportPage table tr:hover td {
+  background: #fff !important;
+}
+
 body.page-slagging .blendedcoalProperties p {
   background: rgba(255, 255, 255, 0.05) !important;
   border: 1px solid var(--cxd-border);
