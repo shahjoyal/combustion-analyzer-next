@@ -347,8 +347,8 @@ let scoreMappings = {
                 let propertiesHTML = `
                                       <table border="1">
                                         <tr>
-                                            <th>Property</th>
-                                            <th>Value</th>
+                                            <th style="color:#ffffff !important; background:#0153ac !important;">Property</th>
+                                            <th style="color:#ffffff !important; background:#0153ac !important;">Value</th>
                                         </tr>`;
                 
                 for (let prop in propertySums) {
@@ -370,8 +370,8 @@ let scoreMappings = {
                         
                 
                     propertiesHTML += `<tr>
-                                           <td><strong>${prop}</strong></td>
-                                           <td>${avgValue.toFixed(2)}</td>
+                                           <td style="color:#111111 !important; background:#ffffff !important;"><strong style="color:#111111 !important;">${prop}</strong></td>
+                                           <td style="color:#111111 !important; background:#ffffff !important;">${avgValue.toFixed(2)}</td>
                                        </tr>`;
                 }
                 
@@ -2481,10 +2481,10 @@ function buildCoalTableHTML() {
       if (inp) pct = inp.value;
     }
     const name = sel.options[sel.selectedIndex]?.text?.trim() || sel.value || '';
-    if (name || pct) rows += `<tr><td>${_escapeHtml(name)}</td><td>${_escapeHtml(pct)}</td></tr>`;
+    if (name || pct) rows += `<tr><td style="color:#111111 !important; background:#ffffff !important;">${_escapeHtml(name)}</td><td style="color:#111111 !important; background:#ffffff !important;">${_escapeHtml(pct)}</td></tr>`;
   }
   if (!rows) return '<p style="font-size:11px;">No coal selected.</p>';
-  return `<table><thead><tr><th>Coal</th><th>%</th></tr></thead><tbody>${rows}</tbody></table>`;
+  return `<table><thead><tr><th style="color:#ffffff !important; background:#0153ac !important;">Coal</th><th style="color:#ffffff !important; background:#0153ac !important;">%</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
 // Build selected operational params
@@ -3377,9 +3377,9 @@ function buildIndividualCoalTableHTML(results) {
   let rows = '';
   results.forEach(r => {
     const aftText = (r.aft == null || isNaN(r.aft)) ? 'N/A' : `${Math.round(r.aft)} °C`;
-    rows += `<tr><td>${_escapeHtml(r.name)}</td><td>${_escapeHtml(aftText)}</td></tr>`;
+    rows += `<tr><td style="color:#111111 !important; background:#ffffff !important;">${_escapeHtml(r.name)}</td><td style="color:#111111 !important; background:#ffffff !important;">${_escapeHtml(aftText)}</td></tr>`;
   });
-  return `<table><thead><tr><th>Coal Name</th><th>Predicted AFT</th></tr></thead><tbody>${rows}</tbody></table>`;
+  return `<table><thead><tr><th style="color:#ffffff !important; background:#0153ac !important;">Coal Name</th><th style="color:#ffffff !important; background:#0153ac !important;">Predicted AFT</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
 // capture using html2canvas and return dataURL
@@ -3633,9 +3633,9 @@ function buildTernaryLegendHTML(legendItems) {
   if (!Array.isArray(legendItems) || !legendItems.length) return '';
   const rows = legendItems.map(it => `
     <tr>
-      <td style="padding:2px 6px; font-weight:bold; border:1px solid #ccc; text-align:center; width:22px;">${it.marker}</td>
-      <td style="padding:2px 6px; border:1px solid #ccc;">${it.name}</td>
-      <td style="padding:2px 6px; border:1px solid #ccc; text-align:right; white-space:nowrap;">${Math.round(Number(it.aft))}°C</td>
+      <td style="padding:2px 6px; font-weight:bold; border:1px solid #ccc; text-align:center; width:22px; color:#111111 !important; background:#ffffff !important;">${it.marker}</td>
+      <td style="padding:2px 6px; border:1px solid #ccc; color:#111111 !important; background:#ffffff !important;">${it.name}</td>
+      <td style="padding:2px 6px; border:1px solid #ccc; text-align:right; white-space:nowrap; color:#111111 !important; background:#ffffff !important;">${Math.round(Number(it.aft))}°C</td>
     </tr>`).join('');
   return `
     <table style="border-collapse:collapse; font-size:10px; margin-top:6px; width:100%;">
