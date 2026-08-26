@@ -3846,6 +3846,41 @@ function _unswapPlotlyChartAfterExport(plotId) {
   if (img) img.remove();
 }
 
+/* -----------------------------------------------------------------------
+   #resultsContainer (.right-container) is capped to the browser's visible
+   viewport height and scrolls internally once its content grows past
+   that (height/max-height: calc(100vh - navbar - 32px); overflow-y:
+   auto) -- normal and correct for on-screen use. But #advancedDashboard
+   lives inside it, and once its 3-chart grid + key-indicator row are
+   both un-hidden for the report capture, their combined height can
+   exceed that visible slice. html2canvas reproduces real clipping, so
+   whatever falls past that boundary -- here, the bottom of the
+   key-indicator labels -- got cut off mid-line in the captured image
+   instead of just being scrollable like it would be on screen.
+
+   Fix: temporarily lift the height cap and let the ancestor grow to fit
+   its content for the capture, then restore the real values right after.
+----------------------------------------------------------------------- */
+function _liftScrollClipForExport(el) {
+  if (!el) return null;
+  const original = {
+    height: el.style.height,
+    maxHeight: el.style.maxHeight,
+    overflowY: el.style.overflowY
+  };
+  el.style.setProperty('height', 'auto', 'important');
+  el.style.setProperty('max-height', 'none', 'important');
+  el.style.setProperty('overflow-y', 'visible', 'important');
+  return original;
+}
+
+function _restoreScrollClipAfterExport(el, original) {
+  if (!el || !original) return;
+  el.style.height    = original.height;
+  el.style.maxHeight = original.maxHeight;
+  el.style.overflowY = original.overflowY;
+}
+
 /* Capture the Advanced View (Compositional Radar / Ash Fusion Characteristics /
    Coal AFT Cube View + the key-indicator cards) for the report, regardless
    of whether the user has ever toggled to it on screen. If the charts
@@ -3869,6 +3904,11 @@ async function captureAdvancedDashboard() {
 
   const wasHidden = advancedDashboard.classList.contains('hidden');
   const prevTernaryDisplay = ternaryWrapper ? ternaryWrapper.style.display : null;
+  // See _liftScrollClipForExport: #resultsContainer's viewport-height cap
+  // + internal scroll can clip the bottom of this panel once it's
+  // un-hidden, so lift it for the duration of the capture.
+  const resultsContainer = document.getElementById('resultsContainer');
+  const originalScrollClip = _liftScrollClipForExport(resultsContainer);
 
   if (wasHidden) {
     if (ternaryWrapper) ternaryWrapper.style.display = 'none';
@@ -3900,6 +3940,7 @@ async function captureAdvancedDashboard() {
 
   _unswapPlotlyChartAfterExport('coalCubeChart');
   _restoreDarkBackgroundAfterExport(advancedDashboard, originalAdvBg);
+  _restoreScrollClipAfterExport(resultsContainer, originalScrollClip);
 
   if (wasHidden) {
     advancedDashboard.classList.add('hidden');
@@ -3910,20 +3951,19 @@ async function captureAdvancedDashboard() {
 }
 
 /* Capture the gauges + titles + overall score bar (hides download btn, AFB btn, ternary during capture) */
+/* Capture the gauges + overall score bar for the report. Deliberately
+   targets #carDashboardPanel (just the gauge cluster itself) rather than
+   the whole #resultsContainer: that outer panel is styled to fill the
+   entire browser viewport height (calc(100vh - navbar - 32px)) no matter
+   how little it actually contains, so capturing it wholesale baked in a
+   large blank strip below the gauges once the image was stretched to the
+   report's own width. #carDashboardPanel's own box only wraps its real
+   content, so no more empty space -- and the download/blend-properties
+   buttons (absolutely positioned against #resultsContainer, not this
+   nested panel) are naturally excluded without needing to hide them. */
 async function captureResultsDashboard() {
-  const container = document.getElementById('resultsContainer');
+  const container = document.getElementById('carDashboardPanel');
   if (!container) return null;
-
-  const dlBtn     = document.getElementById('downloadPDF');
-  const blendBtn  = document.getElementById('blendPropertiesBtn');
-  const ternaryDiv = document.getElementById('ternary-plot');
-  const prevDl      = dlBtn      ? dlBtn.style.display      : null;
-  const prevBlend   = blendBtn   ? blendBtn.style.display   : null;
-  const prevTernary = ternaryDiv ? ternaryDiv.style.display : null;
-
-  if (dlBtn)      dlBtn.style.display      = 'none';
-  if (blendBtn)   blendBtn.style.display   = 'none';
-  if (ternaryDiv) ternaryDiv.style.display = 'none';
 
   const originalBarStyle = _flattenOverallScoreBarForExport();
   // Gauges draw light glowing text/tracks meant for the dark cluster
@@ -3937,10 +3977,6 @@ async function captureResultsDashboard() {
 
   _restoreDarkBackgroundAfterExport(container, originalContainerBg);
   _restoreOverallScoreBarAfterExport(originalBarStyle);
-
-  if (dlBtn      && prevDl      !== null) dlBtn.style.display      = prevDl;
-  if (blendBtn   && prevBlend   !== null) blendBtn.style.display   = prevBlend;
-  if (ternaryDiv && prevTernary !== null) ternaryDiv.style.display = prevTernary;
 
   return url;
 }
