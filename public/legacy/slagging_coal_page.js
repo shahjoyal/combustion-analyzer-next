@@ -3508,11 +3508,21 @@ async function renderTernaryPNGWithAFT(plotId, opts = { width: 620, height: 440,
       await Plotly.restyle(div, blendRestyle, [tIdx]);
 
       // 2. Lock the live plot to the export width/height and margins.
+      //    Also give the chart an actual dark background: its axis lines,
+      //    gridlines and font are all light colors meant to be read
+      //    against the dark cluster backdrop it normally sits on-screen,
+      //    but Plotly.toImage only rasterizes the chart's own paper/plot
+      //    background (transparent here) -- with no page backdrop behind
+      //    it, that light-on-transparent styling would come out as
+      //    light-on-white and be nearly invisible in the report.
       div.style.width  = opts.width  + 'px';
       div.style.height = opts.height + 'px';
       await Plotly.relayout(div, {
         width: opts.width, height: opts.height,
-        margin: PDF_MARGIN, showlegend: false
+        margin: PDF_MARGIN, showlegend: false,
+        paper_bgcolor: REPORT_DARK_BG_SOLID,
+        plot_bgcolor: REPORT_DARK_BG_SOLID,
+        'ternary.bgcolor': REPORT_DARK_BG_SOLID
       });
 
       // 3. Add one trace holding every individual coal, each with its
@@ -3582,7 +3592,11 @@ async function renderTernaryPNGWithAFT(plotId, opts = { width: 620, height: 440,
       }
       div.style.width  = origWidth;
       div.style.height = origHeight;
-      await Plotly.relayout(div, { margin: ORIG_MARGIN, showlegend: null, autosize: true });
+      await Plotly.relayout(div, {
+        margin: ORIG_MARGIN, showlegend: null, autosize: true,
+        paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+        'ternary.bgcolor': 'rgba(0,0,0,0)'
+      });
 
       // 6. Restore original text/mode/legend/color-range/size on the blend trace
       await Plotly.restyle(div, {
@@ -3606,7 +3620,11 @@ async function renderTernaryPNGWithAFT(plotId, opts = { width: 620, height: 440,
         }
         div.style.width  = origWidth;
         div.style.height = origHeight;
-        await Plotly.relayout(div, { margin: ORIG_MARGIN, showlegend: null, autosize: true });
+        await Plotly.relayout(div, {
+          margin: ORIG_MARGIN, showlegend: null, autosize: true,
+          paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+          'ternary.bgcolor': 'rgba(0,0,0,0)'
+        });
         await Plotly.restyle(div, {
           mode:          [orig.mode         ?? 'markers'],
           text:          [orig.text         ?? null],
@@ -3621,8 +3639,11 @@ async function renderTernaryPNGWithAFT(plotId, opts = { width: 620, height: 440,
     }
   }
 
-  // Fallback: screenshot via html2canvas
-  const fallbackUrl = await captureElementPNG(div, { scale: 1.5 });
+  // Fallback: screenshot via html2canvas (same dark-backdrop fix as above --
+  // the ternary's light axis lines/labels need it or they vanish on white)
+  const fallbackOrigBg = _flattenDarkBackgroundForExport(div);
+  const fallbackUrl = await captureElementPNG(div, { scale: 1.5, backgroundColor: '#04070f' });
+  _restoreDarkBackgroundAfterExport(div, fallbackOrigBg);
   return { url: fallbackUrl, legendItems };
 }
 
@@ -3736,6 +3757,41 @@ function _restoreOverallScoreBarAfterExport(original) {
   cbBar.style.backgroundColor = original.backgroundColor;
 }
 
+/* -----------------------------------------------------------------------
+   Gauges / ternary / Advanced View all draw light, glowing lines and text
+   (see GLOW_WHITE / "#f4f8ff" / rgba(255,255,255,..) throughout this file)
+   that are only meant to be read against the dark instrument-cluster
+   backdrop behind them on screen (.right-container's dark gradient) --
+   the charts themselves all use a transparent paper/plot background so
+   that backdrop shows through. When these pieces are captured in
+   isolation for the PDF (a plain white page), that dark backdrop either
+   doesn't come along (html2canvas has known trouble reproducing layered
+   radial+linear gradients) or never existed in the first place (e.g. the
+   Advanced View card has no opaque background of its own), so the
+   light-on-dark styling reads as washed-out or invisible against white.
+
+   Fix: right before each capture, force the real dark backdrop onto the
+   element being captured (or, for the ternary's plain Plotly render,
+   onto the chart's own paper/plot background, which can't inherit a
+   backdrop the way an HTML element can), then restore the original
+   (transparent / no background) value immediately after so the on-screen
+   UI is completely unaffected. */
+const REPORT_DARK_BG = 'linear-gradient(165deg, #0b1230 0%, #060a1c 55%, #04070f 100%)';
+const REPORT_DARK_BG_SOLID = '#0a1230'; // Plotly layout colors must be a flat color, not a CSS gradient string
+
+function _flattenDarkBackgroundForExport(el) {
+  if (!el) return null;
+  const original = el.style.background;
+  el.style.setProperty('background', REPORT_DARK_BG, 'important');
+  return original;
+}
+
+function _restoreDarkBackgroundAfterExport(el, original) {
+  if (!el) return;
+  if (original) el.style.background = original;
+  else el.style.removeProperty('background');
+}
+
 /* Capture the Advanced View (Compositional Radar / Ash Fusion Characteristics /
    Coal AFT Cube View + the key-indicator cards) for the report, regardless
    of whether the user has ever toggled to it on screen. If the charts
@@ -3773,10 +3829,17 @@ async function captureAdvancedDashboard() {
     await new Promise(r => setTimeout(r, 300));
   }
 
+  // The Advanced View card has no opaque background of its own on screen
+  // (its charts + semi-transparent .advanced-card panels are designed to
+  // sit on the dark cluster backdrop) -- give it one just for the capture.
+  const originalAdvBg = _flattenDarkBackgroundForExport(advancedDashboard);
+
   let url = null;
   try {
-    url = await captureElementPNG(advancedDashboard, { scale: 1.6 });
+    url = await captureElementPNG(advancedDashboard, { scale: 1.6, backgroundColor: '#04070f' });
   } catch (e) { console.warn('advanced dashboard capture err', e); }
+
+  _restoreDarkBackgroundAfterExport(advancedDashboard, originalAdvBg);
 
   if (wasHidden) {
     advancedDashboard.classList.add('hidden');
@@ -3803,12 +3866,16 @@ async function captureResultsDashboard() {
   if (ternaryDiv) ternaryDiv.style.display = 'none';
 
   const originalBarStyle = _flattenOverallScoreBarForExport();
+  // Gauges draw light glowing text/tracks meant for the dark cluster
+  // backdrop -- reproduce that backdrop explicitly so it survives capture.
+  const originalContainerBg = _flattenDarkBackgroundForExport(container);
 
   let url = null;
   try {
-    url = await captureElementPNG(container, { scale: 1.6 });
+    url = await captureElementPNG(container, { scale: 1.6, backgroundColor: '#04070f' });
   } catch(e) { console.warn('dashboard capture err', e); }
 
+  _restoreDarkBackgroundAfterExport(container, originalContainerBg);
   _restoreOverallScoreBarAfterExport(originalBarStyle);
 
   if (dlBtn      && prevDl      !== null) dlBtn.style.display      = prevDl;
