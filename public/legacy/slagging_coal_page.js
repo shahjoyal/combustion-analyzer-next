@@ -3898,7 +3898,26 @@ document.getElementById('downloadPDF').addEventListener('click', async function 
 
     <div class="footer">Abhitech Energycon Limited — Confidential Report</div>
   `;
-  document.body.appendChild(page1);
+  /* Belt-and-braces for the CSS fix above: force every report table cell's
+   text/background color via inline styles with !important priority.
+   Inline styles win over ANY external stylesheet rule (including other
+   !important rules) regardless of selector specificity, so this can't be
+   silently re-broken by some other rule (dark-theme or otherwise) that
+   also happens to target plain <table>/<td>/<th> elements. */
+function _forceReportTableColors(root) {
+  if (!root) return;
+  root.querySelectorAll('table th').forEach(th => {
+    th.style.setProperty('background-color', '#0153ac', 'important');
+    th.style.setProperty('color', '#ffffff', 'important');
+  });
+  root.querySelectorAll('table td').forEach(td => {
+    td.style.setProperty('background-color', '#ffffff', 'important');
+    td.style.setProperty('color', '#111111', 'important');
+  });
+}
+
+document.body.appendChild(page1);
+_forceReportTableColors(page1);
 
   // Capture dashboard (gauges + overall score bar, no ternary, no buttons)
   try {
@@ -3963,6 +3982,11 @@ document.getElementById('downloadPDF').addEventListener('click', async function 
   await new Promise(r => setTimeout(r, 300));
 
   // Capture the full page to canvas
+  // Re-apply just before capture too: the ternary legend table (added
+  // asynchronously above, after the first pass) has its own inline
+  // header colors but not body-cell colors, so it needs the same
+  // !important inline override to stay readable.
+  _forceReportTableColors(page1);
   const canvas = await html2canvas(page1, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
 
   // Build single-page PDF
