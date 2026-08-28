@@ -853,6 +853,7 @@ function optimizeBlend() {
       valueDisplay.style.transform = 'translateX(-50%)';
       valueDisplay.style.zIndex = '10';
       valueDisplay.style.backgroundColor = 'rgba(255,255,255,0.7)';
+      valueDisplay.style.color = '#000000';
       valueDisplay.style.fontWeight = 'bold';
       valueDisplay.style.userSelect = 'none';
 
@@ -864,7 +865,7 @@ function optimizeBlend() {
       caption.textContent = `Slagging: ${FSPD} · Fouling: ${FFFD}`;
       caption.style.fontSize = '11px';
       caption.style.marginTop = '4px';
-      caption.style.color = '#333';
+      caption.style.color = '#ffffff';
       wrapper.appendChild(caption);
 
       // Add hover scale
