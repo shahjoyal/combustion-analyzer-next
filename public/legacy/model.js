@@ -1,5 +1,4 @@
-
-  // --------- key normalization helpers (paste once, top of script) ----------
+// --------- key normalization helpers (paste once, top of script) ----------
 const aliasMap = {
   // ascii -> canonical keys (choose canonical style you use across code)
   'SiO2': 'SiO2', 'SiO₂': 'SiO2', 'sio2': 'SiO2',
@@ -104,14 +103,35 @@ function normalizeCoalProperties(coal) {
 
   function populateDropdown(selectElement) {
     selectElement.innerHTML = '<option value="">Select Coal Type</option>';
-    if (window.coalData && Array.isArray(window.coalData)) {
-      window.coalData.forEach(coal => {
-        const opt = document.createElement('option');
-        opt.value = coal.id;
-        opt.textContent = coal.transportId ? `${coal.coalType} – ${coal.transportId}` : coal.coalType;
-        selectElement.appendChild(opt);
-      });
+
+    if (!Array.isArray(window.coalData)) {
+      console.error("coalData is not an array:", window.coalData);
+      return;
     }
+
+    const sortedCoalData = [...window.coalData].sort((a, b) => {
+      const aText = `${a?.coalType || ""} ${a?.transportId || ""}`.trim();
+      const bText = `${b?.coalType || ""} ${b?.transportId || ""}`.trim();
+
+      return aText.localeCompare(bText, undefined, { sensitivity: "base" });
+    });
+
+    sortedCoalData.forEach(coal => {
+      if (!coal || coal.id == null) return;
+
+      const opt = document.createElement('option');
+      opt.value = coal.id;
+
+      const nameWithId = coal.coalId
+        ? `${coal.coalType || "Unknown Coal"} - ${coal.coalId}`
+        : (coal.coalType || "Unknown Coal");
+
+      opt.textContent = coal.transportId
+        ? `${nameWithId} – ${coal.transportId}`
+        : nameWithId;
+
+      selectElement.appendChild(opt);
+    });
   }
 
   function prefillValues(selectElement) {
@@ -1254,4 +1274,4 @@ if(localStorage.getItem('isLoggedIn') !== 'true') {
               function logoutUser() {
   localStorage.setItem('isLoggedIn', 'false'); 
   window.location.href = 'login.html'; 
-} 
+}
