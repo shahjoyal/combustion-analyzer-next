@@ -1,4 +1,5 @@
 import { withAlerts } from '@/lib/withAlerts';
+import { withEncryption } from '@/lib/withEncryption';
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import { TEST_CSV_PATH } from '@/lib/persistPaths';
@@ -23,4 +24,4 @@ async function handlePOST(req) {
   }
 }
 
-export const POST = withAlerts('POST /api/save-test-dataset', handlePOST);
+export const POST = withEncryption(withAlerts('POST /api/save-test-dataset', handlePOST));

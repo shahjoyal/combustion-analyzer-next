@@ -1,4 +1,5 @@
 import { withAlerts } from '@/lib/withAlerts';
+import { withEncryption } from '@/lib/withEncryption';
 import { NextResponse } from 'next/server';
 import { calculateAFT, activeModel } from '@/lib/aftEngine';
 
@@ -93,4 +94,4 @@ async function handlePOST(req) {
   }
 }
 
-export const POST = withAlerts('POST /calculate-aft', handlePOST);
+export const POST = withEncryption(withAlerts('POST /calculate-aft', handlePOST));

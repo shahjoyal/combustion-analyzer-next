@@ -1,5 +1,6 @@
 import { alertPagerDuty } from '@/lib/pagerduty';
 import { withAlerts } from '@/lib/withAlerts';
+import { withEncryption } from '@/lib/withEncryption';
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
@@ -75,4 +76,4 @@ async function handlePOST(req) {
   }
 }
 
-export const POST = withAlerts('POST /api/activate-model', handlePOST);
+export const POST = withEncryption(withAlerts('POST /api/activate-model', handlePOST));

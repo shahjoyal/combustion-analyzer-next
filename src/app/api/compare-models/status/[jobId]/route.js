@@ -1,4 +1,5 @@
 import { withAlerts } from '@/lib/withAlerts';
+import { withEncryption } from '@/lib/withEncryption';
 import { NextResponse } from 'next/server';
 import { compareModelsJobs } from '@/lib/compareJobs';
 
@@ -16,4 +17,4 @@ async function handleGET(req, { params }) {
   return NextResponse.json({ status: 'done', data: job.data });
 }
 
-export const GET = withAlerts('GET /api/compare-models/status/[jobId]', handleGET);
+export const GET = withEncryption(withAlerts('GET /api/compare-models/status/[jobId]', handleGET));

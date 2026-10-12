@@ -1,4 +1,5 @@
 import { withAlerts } from '@/lib/withAlerts';
+import { withEncryption } from '@/lib/withEncryption';
 import fs from 'fs';
 import path from 'path';
 
@@ -10,4 +11,4 @@ async function handleGET() {
   });
 }
 
-export const GET = withAlerts('GET /api/last-training-upload', handleGET);
+export const GET = withEncryption(withAlerts('GET /api/last-training-upload', handleGET));

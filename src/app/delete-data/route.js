@@ -1,4 +1,5 @@
 import { withAlerts } from '@/lib/withAlerts';
+import { withEncryption } from '@/lib/withEncryption';
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { getCoalModel } from '@/lib/models';
@@ -31,4 +32,4 @@ async function handleDELETE(req) {
   }
 }
 
-export const DELETE = withAlerts('DELETE /delete-data', handleDELETE);
+export const DELETE = withEncryption(withAlerts('DELETE /delete-data', handleDELETE));

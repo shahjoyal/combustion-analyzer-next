@@ -1,4 +1,5 @@
 import { withAlerts } from '@/lib/withAlerts';
+import { withEncryption } from '@/lib/withEncryption';
 import ExcelJS from 'exceljs';
 import { connectToDatabase } from '@/lib/mongodb';
 import { getCoalModel } from '@/lib/models';
@@ -69,4 +70,4 @@ async function handleGET(req) {
   }
 }
 
-export const GET = withAlerts('GET /download-template', handleGET);
+export const GET = withEncryption(withAlerts('GET /download-template', handleGET));

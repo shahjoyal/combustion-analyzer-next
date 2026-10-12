@@ -1,4 +1,5 @@
 import { withAlerts } from '@/lib/withAlerts';
+import { withEncryption } from '@/lib/withEncryption';
 import { NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import { connectToDatabase } from '@/lib/mongodb';
@@ -52,4 +53,4 @@ async function handlePATCH(req) {
   }
 }
 
-export const PATCH = withAlerts('PATCH /update-coal', handlePATCH);
+export const PATCH = withEncryption(withAlerts('PATCH /update-coal', handlePATCH));

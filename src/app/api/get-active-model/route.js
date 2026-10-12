@@ -1,4 +1,5 @@
 import { withAlerts } from '@/lib/withAlerts';
+import { withEncryption } from '@/lib/withEncryption';
 import { NextResponse } from 'next/server';
 import { activeModel } from '@/lib/aftEngine';
 
@@ -9,4 +10,4 @@ async function handleGET() {
   });
 }
 
-export const GET = withAlerts('GET /api/get-active-model', handleGET);
+export const GET = withEncryption(withAlerts('GET /api/get-active-model', handleGET));

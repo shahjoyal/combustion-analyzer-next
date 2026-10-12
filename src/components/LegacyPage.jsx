@@ -49,6 +49,18 @@ export default function LegacyPage({ bodyHtml, styleCss, scriptSrc, externalScri
         console.error('LegacyPage: failed loading external script', err);
       }
       if (cancelled) return;
+      // Project-wide API encryption: config (key/IV from server env) -> AES lib
+      // -> shim that wraps fetch + axios. Must run after axios (loaded above)
+      // and before the page script so every API call it makes is encrypted.
+      try {
+        await loadScriptSequentially('/secure-config.js');
+        await loadScriptSequentially('/legacy/vendor/crypto-aes.min.js');
+        await loadScriptSequentially('/legacy/secure-api.js');
+        if (window.SecureApi && window.SecureApi.installAxios) window.SecureApi.installAxios();
+      } catch (err) {
+        console.error('LegacyPage: failed loading API encryption scripts', err);
+      }
+      if (cancelled) return;
       await loadScriptSequentially(scriptSrc);
       if (cancelled) return;
       // real DOMContentLoaded/load already fired before this component

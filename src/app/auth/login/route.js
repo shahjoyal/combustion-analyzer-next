@@ -1,4 +1,5 @@
 import { withAlerts } from '@/lib/withAlerts';
+import { withEncryption } from '@/lib/withEncryption';
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { connectToDatabase } from '@/lib/mongodb';
@@ -37,4 +38,4 @@ async function handlePOST(req) {
   }
 }
 
-export const POST = withAlerts('POST /auth/login', handlePOST);
+export const POST = withEncryption(withAlerts('POST /auth/login', handlePOST));

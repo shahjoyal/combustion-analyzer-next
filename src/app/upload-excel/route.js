@@ -1,4 +1,5 @@
 import { withAlerts } from '@/lib/withAlerts';
+import { withEncryption } from '@/lib/withEncryption';
 import { NextResponse } from 'next/server';
 import * as xlsx from 'xlsx';
 import { connectToDatabase } from '@/lib/mongodb';
@@ -199,4 +200,4 @@ async function handlePOST(req) {
   }
 }
 
-export const POST = withAlerts('POST /upload-excel', handlePOST);
+export const POST = withEncryption(withAlerts('POST /upload-excel', handlePOST));

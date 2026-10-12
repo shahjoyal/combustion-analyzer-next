@@ -1,4 +1,5 @@
 import { withAlerts } from '@/lib/withAlerts';
+import { withEncryption } from '@/lib/withEncryption';
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { getUserModel } from '@/lib/models';
@@ -57,4 +58,4 @@ async function handlePOST(req) {
   }
 }
 
-export const POST = withAlerts('POST /consume-trial', handlePOST);
+export const POST = withEncryption(withAlerts('POST /consume-trial', handlePOST));

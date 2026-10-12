@@ -167,4 +167,44 @@ MongoDB connection failure, Python ML service unreachable / non-OK (predict and 
 model-training failures. Alerts are throttled (default one per component+failure per 5 min), time out
 after 3 s, and never break the request if PagerDuty itself is down.
 
-To add a new route, wrap it: `export const GET = withAlerts('GET /your/path', handleGET);`
+To add a new route, wrap it: `export const GET = withEncryption(withAlerts('GET /your/path', handleGET));`
+(see "API encryption" below for `withEncryption`).
+
+## API encryption
+
+All API traffic uses the same scheme as the shared `encryption.utils.js`: **AES-256-CBC, hex, JSON**,
+sent as `{ "encryptedData": "<hex>" }`. The wire format is unchanged, so other services that already
+use that utility can talk to these routes.
+
+| Piece | File |
+| --- | --- |
+| encrypt/decrypt (`encryptData`, `decryptData`) | `src/lib/encryption.utils.js` |
+| route wrapper (decrypt request, encrypt response) | `src/lib/withEncryption.js` |
+| key/IV for the browser, from the same env vars | `src/app/secure-config.js/route.js` |
+| browser shim wrapping `fetch` + `axios` | `public/legacy/secure-api.js` (+ `vendor/crypto-aes.min.js`) |
+| loads the shim before each page script | `src/components/LegacyPage.jsx` |
+
+**How it works.** Every route is exported as `withEncryption(withAlerts(name, handler))`. Handlers are
+unchanged: they still `await req.json()` and return `NextResponse.json(...)` and only ever see plain objects.
+
+- **Requests:** JSON bodies are decrypted before the handler runs. `GET`s, empty bodies and non-JSON bodies
+  (the Excel/CSV `multipart` uploads) pass through as-is. A JSON body that is not encrypted gets `400`
+  (`Encrypted payload required`) unless `ALLOW_PLAINTEXT_REQUESTS=true`.
+- **Responses:** JSON (including error responses, with their original status code) is encrypted. `text/*`
+  (the training CSV) is encrypted with a `contentType` field so the browser can restore it. Binary downloads
+  (the `.xlsx` template) and empty bodies are not touched. `Set-Cookie` headers are preserved.
+- **Browser:** the shim wraps `window.fetch` and `axios` for same-origin API calls only, so none of the
+  existing page scripts needed to change.
+
+**New route:** `export const POST = withEncryption(withAlerts('POST /x', handlePOST));`
+**Calling from another client:** send `{ encryptedData: encryptData(body) }`, read `decryptData(res.encryptedData)`.
+
+**Config** (see `.env.example`): `ENCRYPTION_KEY` (32 chars), `ENCRYPTION_IV` (16 chars),
+`ENCRYPTION_ENABLED`, `ALLOW_PLAINTEXT_REQUESTS`. If the key/IV are unset a built-in development key is used
+and a warning is logged - set your own for production.
+
+**What this does and does not give you.** Because the browser has to be able to decrypt, the key is
+necessarily visible to anyone who can open the page's dev tools (`/secure-config.js`). This hides payloads
+from casual inspection of network logs/proxies; it does **not** stop a determined user of the app. Use
+HTTPS for real transport security, and rely on the session/auth checks for access control. The scheme also
+uses a fixed IV (inherited from the original utility), so identical payloads give identical ciphertext.

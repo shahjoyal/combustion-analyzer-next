@@ -1,4 +1,5 @@
 import { withAlerts } from '@/lib/withAlerts';
+import { withEncryption } from '@/lib/withEncryption';
 import { NextResponse } from 'next/server';
 import { destroySession } from '@/lib/session';
 
@@ -8,4 +9,4 @@ async function handlePOST(req) {
   return res;
 }
 
-export const POST = withAlerts('POST /auth/logout', handlePOST);
+export const POST = withEncryption(withAlerts('POST /auth/logout', handlePOST));

@@ -1,4 +1,5 @@
 import { withAlerts } from '@/lib/withAlerts';
+import { withEncryption } from '@/lib/withEncryption';
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import { TEST_CSV_PATH } from '@/lib/persistPaths';
@@ -18,4 +19,4 @@ async function handleGET() {
   }
 }
 
-export const GET = withAlerts('GET /api/get-test-dataset', handleGET);
+export const GET = withEncryption(withAlerts('GET /api/get-test-dataset', handleGET));

@@ -1,4 +1,5 @@
 import { withAlerts } from '@/lib/withAlerts';
+import { withEncryption } from '@/lib/withEncryption';
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { getCoalModel } from '@/lib/models';
@@ -33,4 +34,4 @@ async function handleGET() {
   }
 }
 
-export const GET = withAlerts('GET /get_coal_types', handleGET);
+export const GET = withEncryption(withAlerts('GET /get_coal_types', handleGET));

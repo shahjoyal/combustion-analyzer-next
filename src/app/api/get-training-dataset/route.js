@@ -1,4 +1,5 @@
 import { withAlerts } from '@/lib/withAlerts';
+import { withEncryption } from '@/lib/withEncryption';
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
@@ -18,4 +19,4 @@ async function handleGET() {
   return NextResponse.json({ success: true, headers, rows });
 }
 
-export const GET = withAlerts('GET /api/get-training-dataset', handleGET);
+export const GET = withEncryption(withAlerts('GET /api/get-training-dataset', handleGET));
