@@ -1,8 +1,9 @@
+import { withAlerts } from '@/lib/withAlerts';
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import { COMPARISON_JSON_PATH } from '@/lib/persistPaths';
 
-export async function POST(req) {
+async function handlePOST(req) {
   try {
     const payload = (await req.json()) || {};
     fs.writeFileSync(COMPARISON_JSON_PATH, JSON.stringify(payload, null, 2), 'utf8');
@@ -12,3 +13,5 @@ export async function POST(req) {
     return NextResponse.json({ success: false, message: 'Failed to save comparison state' }, { status: 500 });
   }
 }
+
+export const POST = withAlerts('POST /api/save-comparison-state', handlePOST);

@@ -1,7 +1,8 @@
+import { withAlerts } from '@/lib/withAlerts';
 import { NextResponse } from 'next/server';
 import { compareModelsJobs } from '@/lib/compareJobs';
 
-export async function GET(req, { params }) {
+async function handleGET(req, { params }) {
   const { jobId } = await params;
   const job = compareModelsJobs.get(jobId);
   if (!job) return NextResponse.json({ status: 'not_found', message: 'Unknown or expired job id' }, { status: 404 });
@@ -14,3 +15,5 @@ export async function GET(req, { params }) {
   }
   return NextResponse.json({ status: 'done', data: job.data });
 }
+
+export const GET = withAlerts('GET /api/compare-models/status/[jobId]', handleGET);

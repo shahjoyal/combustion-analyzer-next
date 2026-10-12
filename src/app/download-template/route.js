@@ -1,8 +1,9 @@
+import { withAlerts } from '@/lib/withAlerts';
 import ExcelJS from 'exceljs';
 import { connectToDatabase } from '@/lib/mongodb';
 import { getCoalModel } from '@/lib/models';
 
-export async function GET(req) {
+async function handleGET(req) {
   try {
     await connectToDatabase();
     const Coal = getCoalModel();
@@ -67,3 +68,5 @@ export async function GET(req) {
     return new Response('Template generation failed', { status: 500 });
   }
 }
+
+export const GET = withAlerts('GET /download-template', handleGET);

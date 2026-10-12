@@ -47,3 +47,6 @@ ml-service/*.pyc
 
 # env files
 .env.local
+
+# allow committing the env template (contains no secrets)
+!.env.example

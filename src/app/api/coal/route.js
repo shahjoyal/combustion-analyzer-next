@@ -1,4 +1,7 @@
+import { withAlerts } from '@/lib/withAlerts';
 import { coalListHandler } from '@/lib/coalListHandler';
-export async function GET() {
+async function handleGET() {
   return coalListHandler();
 }
+
+export const GET = withAlerts('GET /api/coal', handleGET);

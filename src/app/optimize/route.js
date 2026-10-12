@@ -1,7 +1,8 @@
+import { withAlerts } from '@/lib/withAlerts';
 import { NextResponse } from 'next/server';
 import { calculateAFT } from '@/lib/aftEngine';
 
-export async function POST(req) {
+async function handlePOST(req) {
   try {
     const { blends } = await req.json();
     if (!blends || !Array.isArray(blends) || blends.length === 0) {
@@ -178,3 +179,5 @@ export async function POST(req) {
     return NextResponse.json({ error: 'Optimization failed', details: String(err) }, { status: 500 });
   }
 }
+
+export const POST = withAlerts('POST /optimize', handlePOST);

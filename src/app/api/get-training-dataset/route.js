@@ -1,8 +1,9 @@
+import { withAlerts } from '@/lib/withAlerts';
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 
-export async function GET() {
+async function handleGET() {
   const lastPath = path.join(process.cwd(), 'last_training_upload.csv');
   if (!fs.existsSync(lastPath)) return NextResponse.json({ success: false, rows: [] });
   const text = fs.readFileSync(lastPath, 'utf8').trim();
@@ -16,3 +17,5 @@ export async function GET() {
   });
   return NextResponse.json({ success: true, headers, rows });
 }
+
+export const GET = withAlerts('GET /api/get-training-dataset', handleGET);

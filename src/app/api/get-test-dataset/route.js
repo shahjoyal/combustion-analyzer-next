@@ -1,9 +1,10 @@
+import { withAlerts } from '@/lib/withAlerts';
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import { TEST_CSV_PATH } from '@/lib/persistPaths';
 import { parseTestCsv } from '@/lib/coalUtils';
 
-export async function GET() {
+async function handleGET() {
   try {
     if (!fs.existsSync(TEST_CSV_PATH)) {
       return NextResponse.json({ success: true, headers: [], rows: [] });
@@ -16,3 +17,5 @@ export async function GET() {
     return NextResponse.json({ success: false, message: 'Failed to read test dataset' }, { status: 500 });
   }
 }
+
+export const GET = withAlerts('GET /api/get-test-dataset', handleGET);

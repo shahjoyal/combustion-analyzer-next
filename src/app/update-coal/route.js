@@ -1,9 +1,10 @@
+import { withAlerts } from '@/lib/withAlerts';
 import { NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import { connectToDatabase } from '@/lib/mongodb';
 import { getCoalModel } from '@/lib/models';
 
-export async function PATCH(req) {
+async function handlePATCH(req) {
   try {
     await connectToDatabase();
     const Coal = getCoalModel();
@@ -50,3 +51,5 @@ export async function PATCH(req) {
     return NextResponse.json({ error: 'Internal server error', details: String(err) }, { status: 500 });
   }
 }
+
+export const PATCH = withAlerts('PATCH /update-coal', handlePATCH);

@@ -1,3 +1,5 @@
+import { alertPagerDuty } from '@/lib/pagerduty';
+import { withAlerts } from '@/lib/withAlerts';
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
@@ -6,7 +8,7 @@ import { loadActiveModel, activeModel } from '@/lib/aftEngine';
 
 const ROOT = process.cwd();
 
-export async function POST(req) {
+async function handlePOST(req) {
   try {
     const body = await req.json();
     const modelName = body.modelName;
@@ -52,6 +54,7 @@ export async function POST(req) {
       child.on('close', (code) => {
         if (code !== 0) {
           console.error('Training failed with exit code', code);
+          alertPagerDuty({ component: 'activate-model trainer', code: 'training_failed', severity: 'error' });
           return resolve(NextResponse.json({ success: false, message: 'Training failed' }));
         }
 
@@ -71,3 +74,5 @@ export async function POST(req) {
     return NextResponse.json({ success: false, message: String(err) });
   }
 }
+
+export const POST = withAlerts('POST /api/activate-model', handlePOST);

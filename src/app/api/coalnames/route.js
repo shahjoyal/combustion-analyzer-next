@@ -1,8 +1,9 @@
+import { withAlerts } from '@/lib/withAlerts';
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { getCoalModel } from '@/lib/models';
 
-export async function GET() {
+async function handleGET() {
   try {
     await connectToDatabase();
     const Coal = getCoalModel();
@@ -14,3 +15,5 @@ export async function GET() {
     return NextResponse.json({ error: err.message || 'Server error' }, { status: 500 });
   }
 }
+
+export const GET = withAlerts('GET /api/coalnames', handleGET);

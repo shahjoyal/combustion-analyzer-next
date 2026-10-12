@@ -1,3 +1,4 @@
+import { withAlerts } from '@/lib/withAlerts';
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { getUserModel } from '@/lib/models';
@@ -20,7 +21,7 @@ async function requireAuth(req) {
   return { user };
 }
 
-export async function POST(req) {
+async function handlePOST(req) {
   try {
     const { user, error } = await requireAuth(req);
     if (error) return error;
@@ -55,3 +56,5 @@ export async function POST(req) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
+export const POST = withAlerts('POST /consume-trial', handlePOST);

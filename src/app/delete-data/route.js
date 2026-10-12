@@ -1,8 +1,9 @@
+import { withAlerts } from '@/lib/withAlerts';
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { getCoalModel } from '@/lib/models';
 
-export async function DELETE(req) {
+async function handleDELETE(req) {
   try {
     await connectToDatabase();
     const Coal = getCoalModel();
@@ -29,3 +30,5 @@ export async function DELETE(req) {
     return NextResponse.json({ error: 'Failed to delete data' }, { status: 500 });
   }
 }
+
+export const DELETE = withAlerts('DELETE /delete-data', handleDELETE);

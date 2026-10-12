@@ -1,3 +1,4 @@
+import { alertPagerDuty } from '@/lib/pagerduty';
 // src/lib/mongodb.js
 // Next.js-friendly Mongoose connection singleton.
 // Replaces the one-shot `mongoose.connect(...)` call that used to sit at the
@@ -36,6 +37,7 @@ export async function connectToDatabase() {
       })
       .catch((err) => {
         console.error('MongoDB connection error:', err);
+        alertPagerDuty({ component: 'mongodb', code: 'db_unavailable', severity: 'critical' });
         cache.promise = null;
         throw err;
       });

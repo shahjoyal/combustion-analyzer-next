@@ -1,3 +1,5 @@
+import { alertPagerDuty } from '@/lib/pagerduty';
+import { withAlerts } from '@/lib/withAlerts';
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
@@ -26,6 +28,7 @@ async function runCompareModelsJob(jobId, lastPath, { verbose, timeoutMs, __cmSt
     __cmLog('runAllModels: DONE (JS models)');
   } catch (runErr) {
     console.error('runAllModels fatal error', runErr);
+    alertPagerDuty({ component: 'compare-models js-trainers', code: 'training_failed', severity: 'error' });
     __cmLog(`runAllModels: FAILED - ${runErr && runErr.message}`);
     progressLog.push({ event: 'fatal', message: String(runErr) });
   }
@@ -57,6 +60,7 @@ async function runCompareModelsJob(jobId, lastPath, { verbose, timeoutMs, __cmSt
       __cmLog(`python call: NON-OK status=${pyResp.status} body=${txt.slice(0, 500)}`);
       progressLog.push({ event: 'python_error', message: 'Python training returned non-OK', details: txt });
       console.warn('Python training failed:', txt);
+      alertPagerDuty({ component: 'ml-service /train_from_path', code: 'ml_service_error', severity: 'error' });
     }
   } catch (pyErr) {
     const wasAbort = pyErr && pyErr.name === 'AbortError';
@@ -67,6 +71,7 @@ async function runCompareModelsJob(jobId, lastPath, { verbose, timeoutMs, __cmSt
       details: pyErr && pyErr.message,
     });
     console.warn('Python service not reachable:', pyErr && pyErr.message);
+    alertPagerDuty({ component: 'ml-service /train_from_path', code: 'ml_service_unreachable', severity: 'error' });
   } finally {
     clearTimeout(timer);
   }
@@ -89,7 +94,7 @@ async function runCompareModelsJob(jobId, lastPath, { verbose, timeoutMs, __cmSt
   };
 }
 
-export async function POST(req) {
+async function handlePOST(req) {
   const __cmStart = Date.now();
   const __cmLog = (label) => console.log(`[compare-models] ${label} (+${Date.now() - __cmStart}ms)`);
   try {
@@ -190,3 +195,5 @@ export async function POST(req) {
     return NextResponse.json({ success: false, message: 'Server error during model comparison', details: String(err) }, { status: 500 });
   }
 }
+
+export const POST = withAlerts('POST /api/compare-models', handlePOST);

@@ -1,8 +1,9 @@
+import { withAlerts } from '@/lib/withAlerts';
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import { COMPARISON_JSON_PATH } from '@/lib/persistPaths';
 
-export async function GET() {
+async function handleGET() {
   try {
     if (!fs.existsSync(COMPARISON_JSON_PATH)) {
       return NextResponse.json({ success: true, data: null });
@@ -14,3 +15,5 @@ export async function GET() {
     return NextResponse.json({ success: false, message: 'Failed to read comparison state' }, { status: 500 });
   }
 }
+
+export const GET = withAlerts('GET /api/get-comparison-state', handleGET);

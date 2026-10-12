@@ -1,8 +1,9 @@
+import { withAlerts } from '@/lib/withAlerts';
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import { TEST_CSV_PATH } from '@/lib/persistPaths';
 
-export async function POST(req) {
+async function handlePOST(req) {
   try {
     const { csv, rows } = await req.json();
     if (!rows || !Array.isArray(rows)) {
@@ -21,3 +22,5 @@ export async function POST(req) {
     return NextResponse.json({ success: false }, { status: 500 });
   }
 }
+
+export const POST = withAlerts('POST /api/save-test-dataset', handlePOST);

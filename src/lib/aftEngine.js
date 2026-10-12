@@ -1,3 +1,4 @@
+import { alertPagerDuty } from '@/lib/pagerduty';
 // src/lib/aftEngine.js
 //
 // This module is a byte-for-byte port of the AFT calculation logic that
@@ -271,6 +272,7 @@ export async function calculateAFT(values) {
         if (!response.ok) {
           const txt = await response.text();
           console.warn('Python predict failed:', txt);
+          alertPagerDuty({ component: 'ml-service /predict', code: 'ml_service_error', severity: 'error' });
           return Math.round(formulaAFT(values));
         }
 
@@ -278,6 +280,7 @@ export async function calculateAFT(values) {
         return json.prediction;
       } catch (err) {
         console.warn('XGB prediction error:', err.message);
+        alertPagerDuty({ component: 'ml-service /predict', code: 'ml_service_unreachable', severity: 'error' });
         return Math.round(formulaAFT(values));
       }
     }

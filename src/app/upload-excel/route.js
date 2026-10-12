@@ -1,9 +1,10 @@
+import { withAlerts } from '@/lib/withAlerts';
 import { NextResponse } from 'next/server';
 import * as xlsx from 'xlsx';
 import { connectToDatabase } from '@/lib/mongodb';
 import { getCoalModel } from '@/lib/models';
 
-export async function POST(req) {
+async function handlePOST(req) {
   try {
     const formData = await req.formData();
     const file = formData.get('file');
@@ -197,3 +198,5 @@ export async function POST(req) {
     return NextResponse.json({ error: 'Failed to process file', details: String(err) }, { status: 500 });
   }
 }
+
+export const POST = withAlerts('POST /upload-excel', handlePOST);

@@ -147,3 +147,24 @@ uvicorn main:app --port 8002
 ```
 
 `npm run build && npm run start` for production (same port, 5005).
+
+## PagerDuty alerting (minimal-data)
+
+Failures are reported to PagerDuty via the Events API v2 (`src/lib/pagerduty.js`).
+It is off unless `PAGERDUTY_ROUTING_KEY` is set (see `.env.example`; on Vercel add it under
+Project Settings -> Environment Variables).
+
+**What PagerDuty receives:** a fixed-format summary (`combustion-analyzer: <failure code> in <component>`),
+severity, component name, failure code and a dedup key. Nothing else.
+
+**What it never receives:** error messages/stack traces, request/response bodies, cookies or sessions,
+user emails/IPs, coal/model/training data, internal URLs/hostnames or env values. The alert function
+accepts only `component`, `code` (from a fixed allow-list) and `severity`, so free text cannot be
+passed by mistake.
+
+**What triggers alerts:** any route that throws or returns HTTP 5xx (`withAlerts` wrapper on every route),
+MongoDB connection failure, Python ML service unreachable / non-OK (predict and training), and
+model-training failures. Alerts are throttled (default one per component+failure per 5 min), time out
+after 3 s, and never break the request if PagerDuty itself is down.
+
+To add a new route, wrap it: `export const GET = withAlerts('GET /your/path', handleGET);`

@@ -1,9 +1,10 @@
+import { withAlerts } from '@/lib/withAlerts';
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { getUserModel } from '@/lib/models';
 import { getSessionUserId } from '@/lib/session';
 
-export async function GET(req) {
+async function handleGET(req) {
   try {
     const userId = getSessionUserId(req);
     if (!userId) return NextResponse.json({ authenticated: false });
@@ -25,3 +26,5 @@ export async function GET(req) {
     return NextResponse.json({ error: 'Status check failed' }, { status: 500 });
   }
 }
+
+export const GET = withAlerts('GET /auth/status', handleGET);

@@ -1,7 +1,8 @@
+import { withAlerts } from '@/lib/withAlerts';
 import { NextResponse } from 'next/server';
 import { calculateAFT, activeModel } from '@/lib/aftEngine';
 
-export async function POST(req) {
+async function handlePOST(req) {
   try {
     const body = await req.json().catch(() => null);
     const payload = body && (body.values !== undefined ? body.values : body);
@@ -91,3 +92,5 @@ export async function POST(req) {
     return NextResponse.json({ error: 'Internal error calculating AFT', details: String(err) }, { status: 500 });
   }
 }
+
+export const POST = withAlerts('POST /calculate-aft', handlePOST);

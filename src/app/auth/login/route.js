@@ -1,3 +1,4 @@
+import { withAlerts } from '@/lib/withAlerts';
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { connectToDatabase } from '@/lib/mongodb';
@@ -5,7 +6,7 @@ import { getUserModel } from '@/lib/models';
 import { createSession } from '@/lib/session';
 import { getClientIp } from '@/lib/coalUtils';
 
-export async function POST(req) {
+async function handlePOST(req) {
   try {
     await connectToDatabase();
     const User = getUserModel();
@@ -35,3 +36,5 @@ export async function POST(req) {
     return NextResponse.json({ error: 'Login failed' }, { status: 500 });
   }
 }
+
+export const POST = withAlerts('POST /auth/login', handlePOST);

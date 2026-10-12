@@ -1,8 +1,9 @@
+import { withAlerts } from '@/lib/withAlerts';
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { getCoalModel } from '@/lib/models';
 
-export async function GET() {
+async function handleGET() {
   try {
     await connectToDatabase();
     const Coal = getCoalModel();
@@ -31,3 +32,5 @@ export async function GET() {
     return NextResponse.json({ error: 'Failed to fetch coal types' }, { status: 500 });
   }
 }
+
+export const GET = withAlerts('GET /get_coal_types', handleGET);
