@@ -1,0 +1,7 @@
+/* Minimal, neutral base. Replaces the old Tailwind/globals.css layer, which
+   painted a white (or #0a0a0a on dark-mode OSes) body behind every legacy
+   page and added flex/min-h utility classes to <body>.
+   Page backgrounds come from each page's own stylesheet. */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; }
