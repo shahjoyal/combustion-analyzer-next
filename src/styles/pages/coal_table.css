@@ -600,3 +600,260 @@ tbody td:first-child {
 .coal-dropdown-body .cd-item.active {
   background: rgba(47, 107, 255, 0.16);
 }
+
+
+/* =====================================================================
+   TOOLBAR — one compact row with two "hubs"
+     left : [Select Coal ›] [Search]        right: [Upload] [‹ Download]
+   Hover / click a hub  -> its buttons slide out in one line, everything else hides.
+   (placed last so it overrides the earlier toolbar / button rules)
+   ===================================================================== */
+
+.toolbar-wrapper {
+  position: relative;
+  z-index: 50;
+  margin-top: 16px;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 18px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.025));
+  border: 1px solid var(--cxd-border);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(10px);
+  animation: tbIn 0.55s cubic-bezier(0.2, 0.9, 0.2, 1) both;
+}
+@keyframes tbIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: none; } }
+
+/* ---------- collapsible wrapper: animates a real, content-sized width to 0 ---------- */
+.tb-collapse {
+  display: grid;
+  grid-template-columns: 1fr;
+  min-width: 0;
+  transition: grid-template-columns 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s ease, visibility 0s linear 0s;
+}
+/* the clip box has equal padding / negative margin so it adds no layout size, but lets shadows show */
+.tb-clip {
+  min-width: 0;
+  overflow: hidden;
+  padding: 14px;
+  margin: -14px;
+}
+.tb-line { display: flex; align-items: center; gap: 10px; }
+
+/* hidden state (used by the toolbar for "everything else") */
+.toolbar[data-open="select"]   .tb-search-wrap,
+.toolbar[data-open="select"]   .tb-right,
+.toolbar[data-open="download"] .tb-left,
+.toolbar[data-open="download"] .tb-upload-wrap {
+  grid-template-columns: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: grid-template-columns 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease, visibility 0s linear 0.5s;
+}
+
+/* ---------- hubs ---------- */
+.tb-hub { display: flex; align-items: center; }
+
+.tb-strip {
+  display: grid;
+  grid-template-columns: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: grid-template-columns 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease, margin 0.5s ease, visibility 0s linear 0.5s;
+}
+.tb-hub--left  .tb-strip { margin-left: 0; }
+.tb-hub--right .tb-strip { margin-right: 0; }
+
+.tb-hub.is-open .tb-strip {
+  grid-template-columns: 1fr;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition: grid-template-columns 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s ease 0.08s, margin 0.5s ease, visibility 0s;
+}
+.tb-hub--left.is-open  .tb-strip { margin-left: 12px; }
+.tb-hub--right.is-open .tb-strip { margin-right: 12px; }
+
+/* options slide in one after another, from the side the hub sits on */
+.tb-hub--left  { --dx: -18px; }
+.tb-hub--right { --dx: 18px; }
+.tb-hub.is-open .tb-strip .tb-clip > * {
+  animation: stripItemIn 0.42s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+  animation-delay: calc(var(--i, 0) * 55ms + 140ms);
+}
+@keyframes stripItemIn { from { opacity: 0; transform: translateX(var(--dx)) scale(0.94); } to { opacity: 1; transform: none; } }
+
+.tb-sep { flex: none; width: 1px; height: 26px; background: var(--cxd-border); }
+
+/* ---------- buttons ---------- */
+.tb-btn {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 11px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28);
+}
+.tb-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.28) 50%, transparent 70%);
+  transform: translateX(-120%);
+  transition: transform 0.6s ease;
+  pointer-events: none;
+}
+.tb-btn:hover:not(:disabled)::after { transform: translateX(120%); }
+.tb-btn:disabled { opacity: 0.38; filter: saturate(0.5); box-shadow: none; cursor: not-allowed; }
+
+.ico, .chev {
+  width: 16px; height: 16px; flex: none;
+  fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+}
+.chev { width: 14px; height: 14px; opacity: 0.85; transition: transform 0.35s cubic-bezier(0.34, 1.4, 0.5, 1); }
+.tb-hub--right .tb-trigger .chev { transform: rotate(180deg); }          /* points toward where it expands */
+.tb-hub--left.is-open  .tb-trigger .chev { transform: rotate(180deg); }
+.tb-hub--right.is-open .tb-trigger .chev { transform: rotate(0deg); }
+
+/* the hub triggers */
+.btn-select-hub { background: linear-gradient(135deg, #7c3aed, #6d28d9); box-shadow: 0 6px 18px rgba(109, 40, 217, 0.4); }
+.tb-trigger { min-width: 128px; }
+.tb-hub.is-open .tb-trigger { box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.18), 0 8px 22px rgba(0, 0, 0, 0.35); }
+.tb-hub.is-pinned .tb-trigger { box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9), 0 8px 22px rgba(0, 0, 0, 0.4); }   /* clicked = pinned open */
+.tb-trigger.tb-pulse { animation: trigPress 0.38s cubic-bezier(0.34, 1.6, 0.5, 1); }
+@keyframes trigPress { 0% { transform: scale(1); } 35% { transform: scale(0.92); } 100% { transform: scale(1); } }
+
+/* keep the colour gradients on hover (generic button:hover would turn them grey) */
+.tb-btn.btn-template:hover:not(:disabled),
+.search-pill #searchBtn.btn-template:hover:not(:disabled) { background: linear-gradient(135deg, #22c55e, #16a34a); }
+.tb-btn.btn-upload:hover:not(:disabled)   { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+.tb-btn.btn-delete:hover:not(:disabled)   { background: linear-gradient(135deg, #ef4444, #dc2626); }
+.tb-btn.btn-download:hover:not(:disabled) { background: linear-gradient(135deg, #0ea5e9, #0284c7); }
+.tb-btn.btn-select-hub:hover:not(:disabled) { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+
+/* selected-row counter on the Select Coal button */
+.sel-badge {
+  font-style: normal;
+  min-width: 20px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.16);
+  transition: background 0.25s ease, color 0.25s ease;
+}
+.tb-actions.has-selection .sel-badge {
+  color: #4c1d95;
+  background: #fff;
+  animation: badgePop 0.3s cubic-bezier(0.34, 1.6, 0.5, 1);
+}
+@keyframes badgePop { 0% { transform: scale(0.6); } 100% { transform: scale(1); } }
+
+/* ---------- search pill ---------- */
+.search-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  width: clamp(230px, 28vw, 400px);
+  padding: 0 4px 0 12px;
+  border-radius: 12px;
+  background: var(--cxd-field-bg);
+  border: 1px solid var(--cxd-border);
+  transition: border-color 0.2s ease, box-shadow 0.25s ease, background 0.2s ease;
+}
+.search-pill .ico { color: var(--cxd-muted); transition: color 0.2s ease; }
+.search-pill:focus-within {
+  border-color: #3b82f6;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 3px rgba(47, 107, 255, 0.22), 0 8px 22px rgba(0, 0, 0, 0.3);
+}
+.search-pill:focus-within .ico { color: #7aa7ff; }
+.search-pill #searchInput {
+  flex: 1;
+  min-width: 0 !important;
+  height: 100%;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--cxd-white) !important;
+  font-size: 13px;
+}
+.search-pill #searchBtn { height: 32px; padding: 0 16px; border-radius: 9px; font-size: 13px; }
+
+/* ---------- sliding segmented toggle (Select / Select Range) ---------- */
+.selection-mode-toggle {
+  position: relative;
+  flex: none;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  height: 40px;
+  padding: 4px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--cxd-border);
+  box-shadow: none;
+}
+.mode-thumb {
+  position: absolute;
+  top: 4px; bottom: 4px; left: 4px;
+  width: calc((100% - 8px) / 2);
+  border-radius: 8px;
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+  box-shadow: 0 6px 18px rgba(109, 40, 217, 0.5);
+  transition: transform 0.38s cubic-bezier(0.34, 1.35, 0.5, 1);
+}
+.selection-mode-toggle[data-mode="range"] .mode-thumb { transform: translateX(100%); }
+.selection-mode-toggle .mode-btn,
+.selection-mode-toggle .mode-btn.active {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 100%;
+  padding: 0 14px;
+  border-radius: 8px;
+  background: transparent;
+  box-shadow: none;
+  font-size: 13px;
+  white-space: nowrap;
+  color: var(--cxd-muted);
+  transition: color 0.25s ease !important;
+}
+.selection-mode-toggle .mode-btn.active { color: #fff; }
+.selection-mode-toggle .mode-btn:hover:not(:disabled) { background: transparent; transform: none; filter: none; color: #fff; }
+
+/* ---------- small screens: let rows wrap instead of overflowing ---------- */
+@media (max-width: 900px) {
+  .toolbar { flex-wrap: wrap; gap: 12px; justify-content: flex-start; padding: 12px; }
+  .tb-line { flex-wrap: wrap; }
+  .tb-hub { flex-wrap: wrap; }
+  .search-pill { width: min(100%, 360px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toolbar, .tb-hub.is-open .tb-strip .tb-clip > * { animation: none; }
+  .tb-collapse, .tb-strip, .mode-thumb, .chev, .tb-btn::after { transition: none !important; }
+}

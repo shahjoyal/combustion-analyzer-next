@@ -1,0 +1,164 @@
+/* SessionGate — blurred lock screen shown when a page is re-opened in a new tab */
+
+/* a signed-in tab (flag set by the inline <head> script) never shows the overlay */
+html[data-ca-auth="ok"] .ca-gate { display: none; }
+
+html.ca-locked,
+html.ca-locked body { overflow: hidden !important; }
+
+.ca-gate, .ca-gate *, .ca-gate *::before, .ca-gate *::after { box-sizing: border-box; }
+
+.ca-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  font-family: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif;
+  color: #f4f8ff;
+  background: rgba(5, 11, 31, 0.55);
+  -webkit-backdrop-filter: blur(18px) saturate(0.85);
+  backdrop-filter: blur(18px) saturate(0.85);
+  animation: caGateIn 0.35s ease both;
+  transition: opacity 0.38s ease, backdrop-filter 0.38s ease, -webkit-backdrop-filter 0.38s ease;
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .ca-gate { background: rgba(5, 11, 31, 0.94); }   /* no blur support: just cover it */
+}
+.ca-gate--out {
+  opacity: 0;
+  pointer-events: none;
+  -webkit-backdrop-filter: blur(0) saturate(1);
+  backdrop-filter: blur(0) saturate(1);
+}
+@keyframes caGateIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* while the very first check runs, show only the blur (no card) */
+.ca-gate--checking .ca-gate__card { visibility: hidden; }
+
+.ca-gate__card {
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+  padding: 30px 28px 24px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(14, 30, 72, 0.96), rgba(7, 18, 48, 0.98));
+  border: 1px solid rgba(120, 155, 230, 0.28);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+  animation: caCardIn 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.1) 0.05s both;
+}
+@keyframes caCardIn {
+  from { opacity: 0; transform: translateY(18px) scale(0.96); }
+  to   { opacity: 1; transform: none; }
+}
+.ca-gate--out .ca-gate__card { transform: translateY(-10px) scale(0.98); opacity: 0; transition: all 0.3s ease; }
+
+.ca-gate__logo { height: 34px; object-fit: contain; align-self: center; filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4)); }
+
+.ca-gate__lock {
+  align-self: center;
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  color: #7fb0ff;
+  background: rgba(47, 107, 255, 0.16);
+  box-shadow: 0 0 0 6px rgba(47, 107, 255, 0.07);
+  animation: caLockPulse 2.6s ease-in-out infinite;
+}
+.ca-gate__lock svg, .ca-gate__eye svg {
+  width: 24px; height: 24px; fill: none; stroke: currentColor;
+  stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+}
+@keyframes caLockPulse {
+  0%, 100% { box-shadow: 0 0 0 6px rgba(47, 107, 255, 0.07); }
+  50%      { box-shadow: 0 0 0 11px rgba(47, 107, 255, 0.02); }
+}
+
+.ca-gate__card h2 { margin: 2px 0 0; text-align: center; font-size: 20px; font-weight: 700; color: #f4f8ff; }
+.ca-gate__sub { margin: -6px 0 4px; text-align: center; font-size: 13px; line-height: 1.5; color: #9db2dd; }
+
+.ca-gate__field { display: flex; flex-direction: column; gap: 6px; }
+.ca-gate__field > span { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #9db2dd; }
+
+.ca-gate__field input {
+  width: 100%;
+  height: 42px;
+  padding: 0 14px;
+  border-radius: 11px;
+  font-size: 14px;
+  color: #f4f8ff;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(120, 155, 230, 0.28);
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+.ca-gate__field input::placeholder { color: rgba(157, 178, 221, 0.6); }
+.ca-gate__field input:focus {
+  border-color: #4f8dff;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 3px rgba(47, 107, 255, 0.25) !important;
+}
+.ca-gate__field input:disabled { opacity: 0.6; }
+
+.ca-gate__pw { position: relative; }
+.ca-gate__pw input { padding-right: 44px; }
+.ca-gate .ca-gate__eye {
+  position: absolute;
+  right: 4px;
+  top: 4px;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: none;
+  border-radius: 9px;
+  color: #9db2dd;
+  background: transparent;
+  box-shadow: none;
+  cursor: pointer;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+.ca-gate .ca-gate__eye:hover { color: #fff; background: rgba(255, 255, 255, 0.08); transform: none; filter: none; }
+.ca-gate__eye svg { width: 18px; height: 18px; }
+
+.ca-gate__error { min-height: 18px; margin-top: -4px; font-size: 12.5px; font-weight: 600; color: #ff8a8a; }
+
+.ca-gate .ca-gate__submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 44px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #2e6bff, #1d4fd6);
+  box-shadow: 0 10px 26px rgba(47, 107, 255, 0.4);
+  cursor: pointer;
+}
+.ca-gate .ca-gate__submit:hover:not(:disabled) { background: linear-gradient(135deg, #4f8dff, #2e6bff); }
+.ca-gate .ca-gate__submit:disabled { opacity: 0.75; cursor: progress; }
+
+.ca-gate__spinner {
+  width: 16px; height: 16px; border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.35); border-top-color: #fff;
+  animation: caSpin 0.7s linear infinite;
+}
+@keyframes caSpin { to { transform: rotate(360deg); } }
+
+.ca-gate__alt { align-self: center; font-size: 12px; color: #7fb0ff; text-decoration: none; opacity: 0.85; }
+.ca-gate__alt:hover { opacity: 1; text-decoration: underline; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ca-gate, .ca-gate__card, .ca-gate__lock { animation: none; }
+}

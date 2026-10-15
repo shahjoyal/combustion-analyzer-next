@@ -1,6 +1,4 @@
-
-
-    // --- Edit flow state ---
+// --- Edit flow state ---
 let latestSelectedId = null; // keep the latest-checked primary id
 
 // --- Selection mode state ('normal' = click each checkbox individually, 'range' = click a start then an end) ---
@@ -18,6 +16,21 @@ function setSelectionMode(mode) {
   const modeRangeBtn = document.getElementById('mode-range-btn');
   if (modeSelectBtn) modeSelectBtn.classList.toggle('active', mode === 'normal');
   if (modeRangeBtn) modeRangeBtn.classList.toggle('active', mode === 'range');
+  const modeToggle = document.querySelector('.selection-mode-toggle');
+  if (modeToggle) modeToggle.setAttribute('data-mode', mode); // drives the sliding thumb in CSS
+}
+
+// --- Toolbar helpers (dropdown open/close + selected-row counter) ---
+function closeAllDropdowns() {
+  // kept under the old name: closes whichever toolbar hub (Select Coal / Download) is open
+  if (window.__closeToolbarHubs) window.__closeToolbarHubs();
+}
+
+function updateSelectionCount(n) {
+  const badge = document.getElementById('selCountBadge');
+  if (badge) badge.textContent = String(n);
+  const group = document.querySelector('.tb-actions');
+  if (group) group.classList.toggle('has-selection', n > 0);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -101,7 +114,9 @@ function updateSelectionButtons() {
   const any = checked.length > 0;
   if (deleteBtn) deleteBtn.disabled = !any;
   if (downloadBtn) downloadBtn.disabled = !any;
+  document.querySelectorAll('.js-download-selected').forEach(function(b){ b.disabled = !any; });
   if (editBtn) editBtn.disabled = !any;
+  updateSelectionCount(checked.length);
 
   // if something selected but latestSelectedId is null (e.g. table re-render), set it to last checked
   if (any && !latestSelectedId) {
@@ -621,7 +636,9 @@ function updateSelectionButtons() {
     const any = checked.length > 0;
     if (deleteBtn) deleteBtn.disabled = !any;
     if (downloadBtn) downloadBtn.disabled = !any;
+    document.querySelectorAll('.js-download-selected').forEach(function(b){ b.disabled = !any; });
     if (editBtn) editBtn.disabled = !any;
+    updateSelectionCount(checked.length);
 
     // If something selected but latestSelectedId is null (e.g. after a re-render), set it to last checked
     if (any && !latestSelectedId) {
@@ -654,22 +671,9 @@ function updateSelectionButtons() {
         .catch(err => { console.error(err); alert('Delete failed'); });
     });
 
-    // download dropdown toggle
-    function setupDownloadDropdown() {
-        const downloadBtn = document.getElementById('download-selected-btn');
-        const menu = document.getElementById('download-menu');
-        if (!downloadBtn || !menu) return;
-        downloadBtn.addEventListener('click', function(e){
-            e.stopPropagation();
-            menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
-            menu.setAttribute('aria-hidden', menu.style.display === 'block' ? 'false' : 'true');
-        });
-        document.addEventListener('click', function(e){
-            if (!menu.contains(e.target) && e.target !== downloadBtn) {
-                menu.style.display = 'none';
-            }
-        });
-    }
+    // The "Select Coal" / "Download" toolbar hubs are handled in React (src/components/useToolbarHubs.js).
+    // Kept as a no-op so the init call below stays valid.
+    function setupDownloadDropdown() {}
 
 /* ===== START: Improved PDF generation using jsPDF + autoTable ===== */
 
@@ -876,7 +880,7 @@ async function downloadSelected(format) {
       doc.save('selected_rows.pdf');
     }
   }
-  const menu = document.getElementById('download-menu'); if (menu) menu.style.display = 'none';
+  closeAllDropdowns();
 }
 
 // Whole page/table button now uses autoTable-based table export
@@ -1285,4 +1289,3 @@ initOnceReady();
 
 
 })();
-

@@ -6,7 +6,7 @@ export default function Page() {
     <>
       <CoalTableBody />
       <LegacyScripts
-        script="/legacy/coal_table.js"
+        script="/legacy/coal_table.js?v=hubs2"
         vendors={[
           'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js',
           'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',

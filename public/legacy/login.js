@@ -1,4 +1,3 @@
-
 /* ============================================================
    Auth panel — animated particle network background
    Plain canvas 2D, no external dependencies, so it always renders
@@ -152,6 +151,8 @@ loginForm.addEventListener('submit', async function(e) {
       message.style.color = 'green';
       message.textContent = 'Login successful! Redirecting...';
        localStorage.setItem('isLoggedIn', 'true');
+      // mark THIS tab as signed in (cleared when the tab closes -> bookmark return asks for login again)
+      try { sessionStorage.setItem('ca_tab_auth', '1'); } catch (e) {}
       // Redirect to your main app page (adjust path as necessary)
       setTimeout(()=> window.location.href = './slagging_coal_page.html', 400);
     } catch (err) {
